@@ -592,7 +592,8 @@ function render(){
 
   // Narrative callout
   t1+='<div class="narrative-box">';
-  t1+='<strong>'+CONFIG.headerTitle.replace(/[^a-zA-Z0-9 ]/g,'')+', '+CONFIG.clientNames.replace(/&/g,'&amp;')+'!</strong> Since purchasing your home in '+purchaseDateObj.toLocaleDateString('en-US',{month:'long',year:'numeric'})+' for '+fmt(S.purchasePrice)+', your property has appreciated by an estimated <strong>'+fmt(appreciation)+'</strong>. Your home sits in '+CONFIG.communityName+' \u2014 one of '+CONFIG.cityStateZip.split(',')[0]+'\'s most established and sought-after communities.'+(CONFIG.pool?' Pool homes like yours consistently command a premium in this neighborhood.':'')+' Here\'s a detailed look at where your investment stands today.';
+  t1+='<div style="font-size:16px;font-weight:800;color:var(--slate);margin-bottom:8px">'+CONFIG.headerTitle.replace(/[^a-zA-Z0-9 ]/g,'')+', '+CONFIG.clientNames.replace(/&/g,'&amp;')+'!</div>';
+  t1+='Since purchasing your home in '+purchaseDateObj.toLocaleDateString('en-US',{month:'long',year:'numeric'})+' for '+fmt(S.purchasePrice)+', your property has appreciated by an estimated <strong>'+fmt(appreciation)+'</strong>. Your home sits in '+CONFIG.communityName+' \u2014 one of '+CONFIG.cityStateZip.split(',')[0]+'\'s most established and sought-after communities.'+(CONFIG.pool?' Pool homes like yours consistently command a premium in this neighborhood.':'')+' Here\'s a detailed look at where your investment stands today.';
   t1+='</div>';
 
   // Standout Features
