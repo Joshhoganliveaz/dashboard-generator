@@ -282,6 +282,7 @@ export default function HomePage() {
           </div>
         ) : (
           /* === Form View === */
+          <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Client Details Form */}
             <div className="lg:col-span-2 space-y-6">
@@ -445,31 +446,7 @@ export default function HomePage() {
                 </p>
               )}
 
-              {/* Progress */}
-              {isGenerating && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Loader2 className="w-5 h-5 text-terra animate-spin" />
-                    <span className="font-semibold text-slate">{message}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {STEPS.map((s, i) => (
-                      <div key={s.key} className="flex-1">
-                        <div
-                          className={`h-2 rounded-full transition-colors ${
-                            i < currentStepIdx ? "bg-sage" : i === currentStepIdx ? "bg-terra" : "bg-sand-pale"
-                          }`}
-                        />
-                        <p className={`text-[10px] mt-1 text-center ${
-                          i <= currentStepIdx ? "text-slate" : "text-slate-light/50"
-                        }`}>
-                          {s.label}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Progress moved to full-width below grid */}
 
               {/* Error */}
               {step === "error" && (
@@ -484,6 +461,33 @@ export default function HomePage() {
               )}
             </div>
           </div>
+
+          {/* Progress — full width below the grid */}
+          {isGenerating && (
+            <div className="bg-white rounded-xl shadow-sm p-6 mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Loader2 className="w-5 h-5 text-terra animate-spin" />
+                <span className="font-semibold text-slate">{message}</span>
+              </div>
+              <div className="flex gap-2">
+                {STEPS.map((s, i) => (
+                  <div key={s.key} className="flex-1">
+                    <div
+                      className={`h-2 rounded-full transition-colors ${
+                        i < currentStepIdx ? "bg-sage" : i === currentStepIdx ? "bg-terra" : "bg-sand-pale"
+                      }`}
+                    />
+                    <p className={`text-xs mt-1.5 text-center ${
+                      i <= currentStepIdx ? "text-slate font-medium" : "text-slate-light/50"
+                    }`}>
+                      {s.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          </>
         )}
       </main>
     </div>
