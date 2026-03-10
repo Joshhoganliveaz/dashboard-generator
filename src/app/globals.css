@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cream: #FAF6F0;
+  --terra: #C2703E;
+  --terra-light: #D4915F;
+  --terra-dark: #A85A2A;
+  --sage: #7A8B6F;
+  --sage-dark: #5C6B52;
+  --sand: #D4A574;
+  --sand-light: #E8CDB0;
+  --sand-pale: #F5EDE3;
+  --slate: #3D3D3D;
+  --slate-light: #5A5A5A;
+}
