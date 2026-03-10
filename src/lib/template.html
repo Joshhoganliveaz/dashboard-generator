@@ -921,7 +921,7 @@ function render(){
   mktBody+='<span style="font-size:10px;transition:transform .2s;display:inline-block;transform:rotate('+(S.sec_cromford_info?'180':'0')+'deg)">▼</span> What is the Cromford Report?</div>';
   if(S.sec_cromford_info){
     mktBody+='<div style="font-size:12px;color:var(--neutral);line-height:1.7;margin-top:8px;padding:12px;background:var(--sand-pale);border-radius:8px">';
-    mktBody+='The Cromford Report is the most trusted source of real estate market data in Arizona, used by top agents, appraisers, and lenders. It tracks 30+ indicators daily for every city in the Phoenix metro. Here\'s what it says about Mesa right now.';
+    mktBody+='The Cromford Report is the most trusted source of real estate market data in Arizona, used by top agents, appraisers, and lenders. It tracks 30+ indicators daily for every city in the Phoenix metro. Here\'s what it says about '+CONFIG.neighborhood.city+' right now.';
     mktBody+='</div>';
   }
   mktBody+='</div>';
@@ -951,7 +951,7 @@ function render(){
   // Source citation
   mktBody+='<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:8px;text-align:center">'+CONFIG.cromfordSource+'</div>';
   mktBody+='</div>';
-  t2+=section('market','📊 What the Cromford Report Says About Mesa',mktBody);
+  t2+=section('market','📊 What the Cromford Report Says About '+CONFIG.neighborhood.city,mktBody);
 
   // Live AZ Co Neighborhood Analysis — driven by NEIGHBORHOOD data object
   var anlBody='';
