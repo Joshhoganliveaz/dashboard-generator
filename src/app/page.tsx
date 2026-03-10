@@ -14,14 +14,14 @@ const AGENT_OPTIONS = [
 ];
 
 const STEPS = [
-  { key: "extracting_mls", label: "Reading MLS Listing" },
-  { key: "parsing_csv", label: "Analyzing Comps" },
-  { key: "reading_cromford", label: "Reading Cromford Data" },
-  { key: "reading_tax_records", label: "Extracting Tax Records" },
-  { key: "researching", label: "Neighborhood Research" },
-  { key: "generating_content", label: "Writing Content" },
-  { key: "assembling", label: "Building Dashboard" },
-  { key: "complete", label: "Complete" },
+  { key: "extracting_mls", label: "MLS" },
+  { key: "parsing_csv", label: "Comps" },
+  { key: "reading_cromford", label: "Cromford" },
+  { key: "reading_tax_records", label: "Tax" },
+  { key: "researching", label: "Research" },
+  { key: "generating_content", label: "Content" },
+  { key: "assembling", label: "Build" },
+  { key: "complete", label: "Done" },
 ];
 
 interface FormFields {
@@ -464,20 +464,20 @@ export default function HomePage() {
 
           {/* Progress — full width below the grid */}
           {isGenerating && (
-            <div className="bg-white rounded-xl shadow-sm p-6 mt-8">
-              <div className="flex items-center gap-3 mb-4">
-                <Loader2 className="w-5 h-5 text-terra animate-spin" />
-                <span className="font-semibold text-slate">{message}</span>
+            <div className="bg-white rounded-xl shadow-sm p-5 mt-6">
+              <div className="flex items-center gap-3 mb-3">
+                <Loader2 className="w-5 h-5 text-terra animate-spin flex-shrink-0" />
+                <span className="font-semibold text-slate text-sm">{message}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-1.5">
                 {STEPS.map((s, i) => (
-                  <div key={s.key} className="flex-1">
+                  <div key={s.key} className="flex-1 min-w-0">
                     <div
                       className={`h-2 rounded-full transition-colors ${
                         i < currentStepIdx ? "bg-sage" : i === currentStepIdx ? "bg-terra" : "bg-sand-pale"
                       }`}
                     />
-                    <p className={`text-xs mt-1.5 text-center ${
+                    <p className={`text-[11px] mt-1 text-center truncate ${
                       i <= currentStepIdx ? "text-slate font-medium" : "text-slate-light/50"
                     }`}>
                       {s.label}
