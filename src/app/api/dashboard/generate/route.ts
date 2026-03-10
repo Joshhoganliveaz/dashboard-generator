@@ -16,12 +16,26 @@ function sendSSE(controller: ReadableStreamDefaultController, data: Record<strin
 }
 
 function parseJSONFromClaude(text: string): Record<string, unknown> {
-  // Strip markdown code fences if present
   let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+
+  // Strip markdown code fences if present
+  const fenceMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) {
+    return JSON.parse(fenceMatch[1].trim());
   }
-  return JSON.parse(cleaned);
+
+  // Try parsing as-is first
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Claude sometimes adds prose before/after the JSON — extract the outermost { }
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    }
+    throw new Error(`No JSON object found in response: ${cleaned.slice(0, 100)}...`);
+  }
 }
 
 export async function POST(request: Request) {
