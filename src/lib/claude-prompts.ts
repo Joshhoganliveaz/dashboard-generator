@@ -67,26 +67,25 @@ Include sales from the last 12 months. For scoring purposes, sales within 6 mont
 
 ---
 
-## Scoring & Ranking
+## Comparable Selection: Scoring & Ranking
 
-Score each sale on a 0-100 scale using the following weighted factors:
+Score each sale on a 0-100 scale based on **physical similarity** to the subject only. No price-based scoring. The goal is to find the most physically comparable properties so adjustments are minimal and the value indication is reliable.
 
 | Factor | Max Points | Logic |
 |---|---|---|
-| **Same subdivision** | 25 | Exact subdivision match = 25. Different subdivision = 0. |
-| **Recency** | 15 | 0-90 days = 15. 91-180 days = 10. 181-270 days = 5. 271-365 days = 2. |
-| **Size proximity (SF)** | 12 | Within 100 SF = 12. Within 200 = 9. Within 300 = 6. Within 500 = 3. Beyond 500 = 0. |
-| **$/SF at or above subject** | 12 | Sale $/SF >= subject $/SF = 12. Within $10 below = 8. Within $20 below = 4. More than $20 below = 0. |
-| **Bedroom match** | 10 | Exact match = 10. Off by 1 = 5. Off by 2+ = 0. |
-| **Year built proximity** | 8 | Within 3 years = 8. Within 5 = 5. Within 10 = 3. Beyond 10 = 0. |
-| **Story count match** | 8 | Exact match = 8. Mismatch = 0. |
-| **Bathroom proximity** | 5 | Within 0.5 = 5. Within 1 = 3. Beyond 1 = 0. |
-| **Pool match** | 5 | Both have pool or both don't = 5. Mismatch = 2. |
-| **Lot size proximity** | 5 | Within 500 SF = 5. Within 1000 = 3. Within 2000 = 1. Beyond 2000 = 0. |
+| **Same subdivision** | 25 | Exact match = 25. Different = 0. |
+| **Recency** | 15 | 0-90 days = 15. 91-180 = 10. 181-270 = 5. 271-365 = 2. |
+| **Size proximity (GLA)** | 15 | Within 100 SF = 15. Within 200 = 12. Within 300 = 9. Within 500 = 5. Within 750 = 2. Beyond = 0. |
+| **Bedroom match** | 10 | Exact = 10. Off by 1 = 6. Off by 2 = 3. Off by 3+ = 0. |
+| **Year built proximity** | 8 | Within 3 yrs = 8. Within 5 = 5. Within 10 = 3. Beyond = 0. |
+| **Story count match** | 8 | Exact = 8. Mismatch = 0. |
+| **Bathroom proximity** | 7 | Within 0.5 = 7. Within 1 = 4. Within 1.5 = 2. Beyond = 0. |
+| **Lot size proximity** | 7 | Within 500 SF = 7. Within 1K = 5. Within 2K = 3. Within 3K = 1. Beyond = 0. |
+| **Pool match** | 5 | Match = 5. Mismatch = 1. |
 
 ### Scoring Notes
 - **No negative scoring.** Low-scoring sales simply don't get featured.
-- **$/SF bias is intentional.** Weighting toward sales at or above the subject's $/SF means featured sales naturally reinforce the homeowner's value.
+- **No price-based scoring.** We do NOT bias toward higher $/SF sales. We select the most physically similar properties and let the adjusted comparable sales method derive an honest, defensible value indication.
 
 ---
 
@@ -123,8 +122,29 @@ Return the top 8-10 sales sorted by score descending. Each sale includes:
 }
 \\\`\\\`\\\`
 
-**Value Derivation Method:**
-Use the top 6 scored comps. Take the median $/SF of those comps, multiply by subject SF. The derivedRange is +/- 3% of derivedValue, rounded to nearest $1,000.
+**Value Derivation Method: Adjusted Comparable Sales**
+
+Select the top 4-6 comps by similarity score. For each comp, apply adjustments to make it equivalent to the subject. Subject SUPERIOR = add to comp price. Subject INFERIOR = subtract from comp price.
+
+**Adjustment Rates (calibrated from Castle Appraising appraisals):**
+
+- **GLA (Square Footage):** Rate = 30% of the comp's $/SF. Dead zone: if SF difference is within 10% of subject SF, NO adjustment. If it exceeds the dead zone, adjust the ENTIRE difference.
+  Example: Subject 2,372 SF, comp 2,243 SF at $312/SF. Dead zone = 237 SF. Diff = 129 SF. Within 10% = no adjustment.
+  Example: Subject 3,396 SF, comp 2,651 SF at $235/SF. Dead zone = 340 SF. Diff = 745 SF. Rate = $235 x 0.30 = $70.50/SF. Adjustment = +$52,523 (round to $500).
+
+- **Bathrooms:** Full bath difference = $10,000. Half bath difference = $5,000. Flat rate, no tapering.
+
+- **Pool:** Pool vs No Pool = $20,000. For homes $1M+, use $35,000-$45,000.
+
+- **Garage:** Per bay difference = $15,000 for homes under $700K, $20,000 for homes $700K+.
+
+- **Lot Size:** $2.00-$2.50 per lot SF for differences over 1,000 SF.
+
+- **Age/Year Built:** $0 for same-subdivision comparisons (within 3-5 year spread). Only adjust for 10+ year gaps across subdivisions.
+
+**Validation:** Gross adjustment % = sum(abs(all adjustments)) / comp sold price. Under 15% = strong. 15-25% = acceptable. Over 25% = weak, weight lower.
+
+**Derive Value:** Weight adjusted sale prices by similarity score: weighted_value = sum(adjusted_price * score) / sum(scores). The derivedRange is the low-to-high range of adjusted prices from the comps used. Round to nearest $1,000.
 
 **Trend Calculation:**
 Sort all filtered sales by close_date, split into two halves, compare median $/SF. >2% higher = "rising", >2% lower = "declining", otherwise "stable".
@@ -522,6 +542,6 @@ IMPORTANT:
 - Pool values in comps must be "Y" or "N".
 - Close dates must be in YYYY-MM-DD format.
 - matchScore should be 0-100 based on the scoring rubric above.
-- derivedValue should use the median $/SF of the top 6 scored comps multiplied by subject sqft.
+- derivedValue must use the adjusted comparable sales method: adjust each of the top 4-6 comps for GLA, bath, pool differences using the calibrated rates, then weight-average the adjusted prices by similarity score.
 - For the neighborhood analysis, use ALL sales in the CSV, not just the top comps.`;
 }
