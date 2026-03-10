@@ -1,7 +1,7 @@
 /**
  * Estimates current mortgage balance using amortization math and historical rate data.
- * Includes sanity checks against purchase price and refinance classification
- * (rate-and-term vs cash-out) to handle messy tax record extractions.
+ * Uses actual purchase data (price, loan amount, down payment) as the foundation,
+ * then classifies each subsequent refinance as rate-and-term or cash-out.
  */
 
 /** Average 30-year fixed rates by quarter (Freddie Mac PMMS) */
@@ -17,9 +17,8 @@ const HISTORICAL_RATES: Record<string, number> = {
   "2026-Q1": 6.35, "2026-Q2": 6.30,
 };
 
-const DEFAULT_LTV = 0.80;
-const MIN_LTV_THRESHOLD = 0.20; // Below this, the "loan" is probably not the primary mortgage
-const CASH_OUT_THRESHOLD = 1.10; // Refi amount > 110% of remaining balance = cash-out
+// Refi amount > 110% of remaining balance at that date = cash-out
+const CASH_OUT_THRESHOLD = 1.10;
 
 export interface Refinance {
   date: string;
@@ -33,6 +32,7 @@ export interface RefiAnalysis {
   amount: number;
   type: RefiType;
   priorBalance: number;
+  cashOut?: number;
 }
 
 export interface LoanEstimate {
@@ -41,7 +41,8 @@ export interface LoanEstimate {
   monthlyPayment: number;
   loanDate: string;
   loanAmount: number;
-  originalLoanCorrected?: boolean;
+  downPayment?: number;
+  ltv?: number;
   refiAnalysis?: RefiAnalysis[];
 }
 
@@ -95,9 +96,14 @@ function monthsBetween(startDate: string, endDate: string): number {
 /**
  * Estimate the current loan balance using standard 30-year amortization.
  *
- * When purchasePrice is provided, validates the original loan amount and
- * classifies each refinance as rate-and-term or cash-out to build an
- * accurate amortization chain.
+ * Starts from the actual original loan data (amount, date, implied down payment),
+ * then walks through each refinance chronologically. At each refi, calculates what
+ * the remaining balance would have been and classifies the refi:
+ *
+ * - Rate-and-term: refi amount ≈ remaining balance (just refinancing the existing debt)
+ * - Cash-out: refi amount significantly exceeds remaining balance (borrower pulled equity)
+ *
+ * The final loan in the chain is amortized to today's date.
  */
 export function estimateCurrentBalance(
   loanAmount: number,
@@ -105,18 +111,14 @@ export function estimateCurrentBalance(
   refinances: Refinance[] = [],
   purchasePrice?: number,
 ): LoanEstimate {
-  let originalLoanCorrected = false;
-  let activeLoanAmount = loanAmount;
-  let activeLoanDate = loanDate;
+  // Start from the actual extracted loan data
+  const downPayment = purchasePrice ? purchasePrice - loanAmount : undefined;
+  const ltv = purchasePrice ? loanAmount / purchasePrice : undefined;
 
-  // Sanity check: if original loan is implausibly small relative to purchase price,
-  // it's likely a lien, second deed of trust, or extraction error — not the primary mortgage.
-  if (purchasePrice && loanAmount < purchasePrice * MIN_LTV_THRESHOLD) {
-    activeLoanAmount = Math.round(purchasePrice * DEFAULT_LTV);
-    originalLoanCorrected = true;
+  if (purchasePrice) {
     console.log(
-      `Loan sanity check: $${loanAmount} is < 20% of purchase price $${purchasePrice}. ` +
-      `Using estimated ${DEFAULT_LTV * 100}% LTV: $${activeLoanAmount}`
+      `Original loan: $${loanAmount} on $${purchasePrice} purchase ` +
+      `(${Math.round((ltv!) * 100)}% LTV, $${downPayment} down)`
     );
   }
 
@@ -125,8 +127,8 @@ export function estimateCurrentBalance(
 
   // Walk through each refinance, classifying and building the amortization chain
   const refiAnalysis: RefiAnalysis[] = [];
-  let currentPrincipal = activeLoanAmount;
-  let currentDate = activeLoanDate;
+  let currentPrincipal = loanAmount;
+  let currentDate = loanDate;
   let currentRate = getHistoricalRate(currentDate);
   let currentMonthlyRate = currentRate / 100 / 12;
 
@@ -136,15 +138,15 @@ export function estimateCurrentBalance(
     const priorBalance = Math.round(balanceAtMonth(currentPrincipal, currentMonthlyRate, 360, elapsed));
 
     // Classify: if refi amount is meaningfully higher than remaining balance, it's cash-out
-    const type: RefiType = refi.amount > priorBalance * CASH_OUT_THRESHOLD
-      ? "cash_out"
-      : "rate_term";
+    const isCashOut = refi.amount > priorBalance * CASH_OUT_THRESHOLD;
+    const type: RefiType = isCashOut ? "cash_out" : "rate_term";
+    const cashOut = isCashOut ? refi.amount - priorBalance : undefined;
 
-    refiAnalysis.push({ date: refi.date, amount: refi.amount, type, priorBalance });
+    refiAnalysis.push({ date: refi.date, amount: refi.amount, type, priorBalance, cashOut });
 
     console.log(
       `Refi ${refi.date}: $${refi.amount} vs prior balance $${priorBalance} → ${type}` +
-      (type === "cash_out" ? ` (cash out ~$${refi.amount - priorBalance})` : "")
+      (cashOut ? ` (cash out ~$${cashOut})` : "")
     );
 
     // Advance the chain: new loan starts from refi amount at refi date
@@ -155,8 +157,8 @@ export function estimateCurrentBalance(
   }
 
   // Final active loan values after walking the chain
-  activeLoanAmount = currentPrincipal;
-  activeLoanDate = currentDate;
+  const activeLoanAmount = currentPrincipal;
+  const activeLoanDate = currentDate;
 
   const rate = getHistoricalRate(activeLoanDate);
   const monthlyRate = rate / 100 / 12;
@@ -175,7 +177,8 @@ export function estimateCurrentBalance(
     monthlyPayment: Math.round(monthlyPayment),
     loanDate: activeLoanDate,
     loanAmount: activeLoanAmount,
-    originalLoanCorrected,
+    downPayment,
+    ltv: ltv ? Math.round(ltv * 1000) / 1000 : undefined,
     refiAnalysis: refiAnalysis.length > 0 ? refiAnalysis : undefined,
   };
 }

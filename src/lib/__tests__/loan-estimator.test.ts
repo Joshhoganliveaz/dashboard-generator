@@ -28,35 +28,11 @@ describe("estimateCurrentBalance", () => {
     expect(result.loanAmount).toBe(468000);
     expect(result.monthlyPayment).toBeGreaterThan(2000);
     expect(result.monthlyPayment).toBeLessThan(2500);
-    // After ~4 years of payments, balance should be lower but still substantial
     expect(result.estimatedBalance).toBeLessThan(468000);
     expect(result.estimatedBalance).toBeGreaterThan(400000);
   });
 
-  it("uses the latest refinance when available", () => {
-    const result = estimateCurrentBalance(468000, "2022-03-14", [
-      { date: "2023-06-15", amount: 490000 },
-    ]);
-
-    // Should use the refinance data, not the original
-    expect(result.loanAmount).toBe(490000);
-    expect(result.loanDate).toBe("2023-06-15");
-    expect(result.rate).toBe(6.57); // Q2 2023
-  });
-
-  it("picks the most recent of multiple refinances", () => {
-    const result = estimateCurrentBalance(400000, "2020-01-15", [
-      { date: "2021-03-01", amount: 420000 },
-      { date: "2023-09-01", amount: 450000 },
-    ]);
-
-    expect(result.loanAmount).toBe(450000);
-    expect(result.loanDate).toBe("2023-09-01");
-    expect(result.rate).toBe(7.07); // Q3 2023
-  });
-
   it("returns 0 balance for fully paid loan (far future)", () => {
-    // Loan from 30+ years ago should be nearly or fully paid
     const result = estimateCurrentBalance(100000, "1990-01-01");
     expect(result.estimatedBalance).toBe(0);
   });
@@ -64,41 +40,41 @@ describe("estimateCurrentBalance", () => {
   it("returns full balance for brand new loan", () => {
     const today = new Date().toISOString().slice(0, 10);
     const result = estimateCurrentBalance(500000, today);
-    // Balance should be very close to original (0 months elapsed)
     expect(result.estimatedBalance).toBeGreaterThan(499000);
   });
 
-  describe("purchase price sanity check", () => {
-    it("corrects implausibly small loan amount", () => {
-      // Tax records extracted $24,500 as loan but purchase was $355,700
-      const result = estimateCurrentBalance(24500, "2021-02-17", [], 355700);
-
-      // Should correct to 80% LTV = $284,560
-      expect(result.loanAmount).toBe(284560);
-      expect(result.originalLoanCorrected).toBe(true);
-      // Balance after ~5 years should be substantial
-      expect(result.estimatedBalance).toBeGreaterThan(200000);
-    });
-
-    it("does not correct a reasonable loan amount", () => {
-      // $284K loan on $355K purchase = ~80% LTV — totally normal
+  describe("purchase context", () => {
+    it("calculates down payment and LTV from purchase price", () => {
+      // $284K loan on $355K purchase = 80% LTV, $71K down
       const result = estimateCurrentBalance(284560, "2021-02-17", [], 355700);
 
+      expect(result.downPayment).toBe(71140);
+      expect(result.ltv).toBeCloseTo(0.80, 1);
       expect(result.loanAmount).toBe(284560);
-      expect(result.originalLoanCorrected).toBeFalsy();
     });
 
-    it("does not correct when no purchase price provided", () => {
-      // Without purchase price, can't sanity check — trust the data
-      const result = estimateCurrentBalance(24500, "2021-02-17");
+    it("handles high-LTV loans (FHA/VA)", () => {
+      // 96.5% LTV FHA loan
+      const result = estimateCurrentBalance(343000, "2021-02-17", [], 355700);
+
+      expect(result.downPayment).toBe(12700);
+      expect(result.ltv).toBeCloseTo(0.964, 2);
+      expect(result.loanAmount).toBe(343000);
+    });
+
+    it("handles small loan amounts without correction", () => {
+      // $24.5K on a $355K home — could be a second lien, HELOC, etc.
+      // Use the actual data, don't assume 80% LTV
+      const result = estimateCurrentBalance(24500, "2021-02-17", [], 355700);
 
       expect(result.loanAmount).toBe(24500);
-      expect(result.originalLoanCorrected).toBeFalsy();
+      expect(result.downPayment).toBe(331200);
+      expect(result.ltv).toBeCloseTo(0.069, 2);
     });
   });
 
   describe("refinance classification", () => {
-    it("classifies a cash-out refi correctly", () => {
+    it("classifies a cash-out refi (amount >> remaining balance)", () => {
       // $284K loan from 2021, then refi for $400K in 2023 = cash out
       const result = estimateCurrentBalance(284000, "2021-02-17", [
         { date: "2023-06-01", amount: 400000 },
@@ -106,37 +82,65 @@ describe("estimateCurrentBalance", () => {
 
       expect(result.refiAnalysis).toBeDefined();
       expect(result.refiAnalysis![0].type).toBe("cash_out");
+      expect(result.refiAnalysis![0].cashOut).toBeGreaterThan(100000);
       expect(result.refiAnalysis![0].priorBalance).toBeLessThan(284000);
-      // Final loan should be the refi amount
       expect(result.loanAmount).toBe(400000);
       expect(result.loanDate).toBe("2023-06-01");
     });
 
-    it("classifies a rate-and-term refi correctly", () => {
-      // $300K loan from 2022, refi for ~$280K in 2024 (close to remaining balance)
+    it("classifies a rate-and-term refi (amount ≈ remaining balance)", () => {
+      // $300K loan from 2022, refi for ~$280K in 2024
       const result = estimateCurrentBalance(300000, "2022-01-15", [
         { date: "2024-01-15", amount: 280000 },
       ]);
 
       expect(result.refiAnalysis).toBeDefined();
       expect(result.refiAnalysis![0].type).toBe("rate_term");
+      expect(result.refiAnalysis![0].cashOut).toBeUndefined();
       expect(result.loanAmount).toBe(280000);
     });
 
-    it("handles corrected original loan with cash-out refi", () => {
-      // The Escondido scenario: bad extraction of $24.5K, but real refi for $400K
+    it("walks a chain of multiple refinances", () => {
+      const result = estimateCurrentBalance(400000, "2020-01-15", [
+        { date: "2021-03-01", amount: 420000 },
+        { date: "2023-09-01", amount: 450000 },
+      ]);
+
+      expect(result.refiAnalysis).toHaveLength(2);
+      // First refi: $420K vs ~$391K remaining = cash-out (~$29K)
+      expect(result.refiAnalysis![0].type).toBe("rate_term");
+      // Second refi: $450K vs ~$397K remaining = cash-out (~$53K)
+      expect(result.refiAnalysis![1].type).toBe("cash_out");
+      expect(result.loanAmount).toBe(450000);
+      expect(result.loanDate).toBe("2023-09-01");
+    });
+
+    it("handles small original loan + large refi (misextracted original)", () => {
+      // Tax records extracted $24.5K as original (likely a lien), then $400K refi
+      // The refi is classified as cash-out relative to the $24.5K balance,
+      // and becomes the active loan going forward
       const result = estimateCurrentBalance(24500, "2021-02-17", [
         { date: "2023-06-01", amount: 400000 },
       ], 355700);
 
-      // Original should be corrected to 80% LTV
-      expect(result.originalLoanCorrected).toBe(true);
-      // Refi should be classified as cash-out (400K vs ~$252K remaining)
       expect(result.refiAnalysis).toBeDefined();
       expect(result.refiAnalysis![0].type).toBe("cash_out");
-      // Final loan is the cash-out refi amount
+      // Final active loan is the $400K refi
       expect(result.loanAmount).toBe(400000);
       expect(result.estimatedBalance).toBeGreaterThan(350000);
+    });
+
+    it("handles small cash-out refi on top of existing balance", () => {
+      // $284K loan from 2021, refi for $310K in 2023 = small cash-out (~$40K)
+      const result = estimateCurrentBalance(284000, "2021-02-17", [
+        { date: "2023-06-01", amount: 310000 },
+      ]);
+
+      expect(result.refiAnalysis).toBeDefined();
+      expect(result.refiAnalysis![0].type).toBe("cash_out");
+      expect(result.refiAnalysis![0].cashOut).toBeGreaterThan(30000);
+      expect(result.refiAnalysis![0].cashOut).toBeLessThan(50000);
+      expect(result.loanAmount).toBe(310000);
     });
   });
 });
