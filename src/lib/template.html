@@ -625,9 +625,9 @@ function render(){
   // ========== SUB-TAB 2: COMPARABLE SALES ==========
   t1+='<div class="sub-panel'+(ast==='comps'?' active':'')+'" id="sub-comps">';
 
-  // Sort comps by matchScore descending, show 3–6 with 50+ threshold
+  // Sort comps by matchScore descending, show 3–6 with 70+ threshold
   var sortedComps = COMPS.slice().sort(function(a,b){ return b.matchScore - a.matchScore; });
-  var displayComps = sortedComps.filter(function(c){ return c.matchScore >= 50; });
+  var displayComps = sortedComps.filter(function(c){ return c.matchScore >= 70; });
   if(displayComps.length < 3) displayComps = sortedComps.slice(0, 3);
   if(displayComps.length > 6) displayComps = displayComps.slice(0, 6);
 
