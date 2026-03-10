@@ -292,8 +292,8 @@ Return a JSON object:
 
 Return ONLY the JSON object.`;
 
-export function webResearchPrompt(city: string, neighborhood: string): string {
-  return `Research recent developments near ${neighborhood} in ${city}, Arizona. I need REAL, verified information with source URLs.
+export function webResearchPrompt(city: string): string {
+  return `Research recent developments in ${city}, Arizona. I need REAL, verified information with source URLs.
 
 Find and return a JSON object with three arrays:
 
@@ -309,9 +309,9 @@ Find and return a JSON object with three arrays:
   ]
 }
 
-For developments: Find 3-4 new restaurants, retail, businesses opening near this neighborhood. Use restaurant/retail emojis.
-For infrastructure: Find 3-4 road projects, transit improvements, park developments. Use construction/road emojis.
-For areaHighlights: Find 2-3 city rankings, awards, notable achievements. Use medal/star emojis.
+For developments: Find 3-4 new restaurants, retail, businesses, or commercial projects opening in ${city}. Use restaurant/retail emojis.
+For infrastructure: Find 3-4 road projects, transit improvements, park developments, or city investments in ${city}. Use construction/road emojis.
+For areaHighlights: Find 2-3 city rankings, awards, notable achievements, or growth stats for ${city}. Use medal/star emojis.
 
 Every item MUST have a real, working source URL. Do not fabricate URLs.
 Return ONLY the JSON object.`;

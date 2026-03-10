@@ -194,7 +194,6 @@ export async function POST(request: Request) {
         sendSSE(controller, { step: "researching", progress: 60 });
 
         const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
-        const neighborhood = clientDetails.communityName || clientDetails.subdivision;
 
         let developments: Development[] = [];
         let infrastructure: Development[] = [];
@@ -202,7 +201,7 @@ export async function POST(request: Request) {
 
         try {
           const researchResponse = await askClaudeWithWebSearch(
-            webResearchPrompt(city, neighborhood),
+            webResearchPrompt(city),
             { maxTokens: 4096 }
           );
           const researchData = parseJSONFromClaude(researchResponse) as {
@@ -214,8 +213,9 @@ export async function POST(request: Request) {
           infrastructure = researchData.infrastructure || [];
           areaHighlights = researchData.areaHighlights || [];
         } catch (err) {
-          console.error("Web research failed, continuing:", err);
-          sendSSE(controller, { step: "warning", message: "Neighborhood research unavailable — section will be empty" });
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error("Web research failed, continuing:", errMsg);
+          sendSSE(controller, { step: "warning", message: `City research failed: ${errMsg}` });
         }
 
         sendSSE(controller, { step: "researching", progress: 70 });
