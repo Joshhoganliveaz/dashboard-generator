@@ -6,3 +6,9 @@ compatibility_flags = ["nodejs_compat_v2"]
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
+
+# Staging environment — same code, separate worker URL
+# Deploy with: npm run deploy:staging
+# URL: https://dashboard-generator-staging.josh-hogan-account.workers.dev
+[env.staging]
+name = "dashboard-generator-staging"

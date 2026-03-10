@@ -13,7 +13,9 @@
     "cf:build": "npx @opennextjs/cloudflare build",
     "cf:dev": "wrangler dev",
     "deploy": "npx @opennextjs/cloudflare build && wrangler deploy",
-    "deploy:force": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy"
+    "deploy:force": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy",
+    "deploy:staging": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy --env staging",
+    "promote": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
