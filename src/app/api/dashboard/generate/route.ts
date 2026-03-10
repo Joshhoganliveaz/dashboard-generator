@@ -173,6 +173,7 @@ export async function POST(request: Request) {
                 taxData.originalLoanAmount,
                 taxData.loanDate || taxData.purchaseDate!,
                 taxData.refinances || [],
+                purchasePrice || undefined,
               );
               loanBalance = estimate.estimatedBalance;
               console.log(`Loan estimate: $${estimate.estimatedBalance} at ${estimate.rate}% (payment: $${estimate.monthlyPayment}/mo)`);
