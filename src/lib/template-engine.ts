@@ -1,4 +1,4 @@
-import type { DashboardConfig } from "./types";
+import type { DashboardConfig, AnyDashboardConfig } from "./types";
 
 /**
  * Serialize a JS value as a JavaScript literal (not JSON).
@@ -42,7 +42,7 @@ export function serializeValue(val: unknown, indent: number = 2): string {
   return String(val);
 }
 
-export function injectConfig(templateHtml: string, config: DashboardConfig): string {
+export function injectConfig(templateHtml: string, config: AnyDashboardConfig): string {
   const startMarker = "// === CONFIG";
   const endMarker = "// === END CONFIG ===";
 

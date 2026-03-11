@@ -4,6 +4,8 @@ import { useState, useRef, useMemo } from "react";
 import { Upload, FileText, Image, Download, Copy, Check, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useGenerateDashboard } from "@/hooks/useGenerateDashboard";
 import ClientPicker from "@/components/ClientPicker";
+import { TEMPLATE_REGISTRY, isFileRequired, isFileRelevant } from "@/lib/template-registry";
+import type { TemplateType } from "@/lib/template-registry";
 import type { ClientRecord } from "@/hooks/useClients";
 
 const AGENT_OPTIONS = [
@@ -13,15 +15,11 @@ const AGENT_OPTIONS = [
   { value: "robyn", label: "Robyn" },
 ];
 
-const STEPS = [
-  { key: "extracting_mls", label: "MLS" },
-  { key: "parsing_csv", label: "Comps" },
-  { key: "reading_cromford", label: "Cromford" },
-  { key: "reading_tax_records", label: "Tax" },
-  { key: "researching", label: "Research" },
-  { key: "generating_content", label: "Content" },
-  { key: "assembling", label: "Build" },
-  { key: "complete", label: "Done" },
+const TEMPLATE_OPTIONS: { value: TemplateType; label: string; desc: string }[] = [
+  { value: "houseversary", label: "Houseversary", desc: "Annual equity & market update for past clients" },
+  { value: "sell", label: "Sell Dashboard", desc: "Pre-listing CMA with pricing strategy & net proceeds" },
+  { value: "buyer", label: "Buyer Dashboard", desc: "Purchase calculator, neighborhoods & schools" },
+  { value: "buysell", label: "Buy/Sell", desc: "Combined sell analysis + buyer search with bridge calculations" },
 ];
 
 interface FormFields {
@@ -33,9 +31,20 @@ interface FormFields {
   subdivision: string;
   communityName: string;
   agentKey: string;
+  // Buyer-specific
+  targetAreas: string;
+  budgetMin: string;
+  budgetMax: string;
+  bedsMin: string;
+  bathsMin: string;
+  mustHaves: string;
+  schoolPreference: string;
+  // Sell-specific
+  loanPayoff: string;
 }
 
 export default function HomePage() {
+  const [templateType, setTemplateType] = useState<TemplateType>("houseversary");
   const [form, setForm] = useState<FormFields>({
     clientNames: "",
     fullName: "",
@@ -45,6 +54,14 @@ export default function HomePage() {
     subdivision: "",
     communityName: "",
     agentKey: "josh_jacqui",
+    targetAreas: "",
+    budgetMin: "400000",
+    budgetMax: "800000",
+    bedsMin: "3",
+    bathsMin: "2",
+    mustHaves: "",
+    schoolPreference: "",
+    loanPayoff: "",
   });
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -64,8 +81,29 @@ export default function HomePage() {
   const { step, message, progress, html, error, warnings, generate, cancel, reset } = useGenerateDashboard();
   const [copied, setCopied] = useState(false);
 
+  const templateConfig = TEMPLATE_REGISTRY[templateType];
+  const pipelineSteps = templateConfig.pipelineSteps;
+
   const isGenerating = step !== "idle" && step !== "complete" && step !== "error";
-  const canGenerate = csvFile && form.clientNames && form.address && form.cityStateZip && form.subdivision;
+
+  const showBuyerFields = templateType === "buyer" || templateType === "buysell";
+  const showSellFields = templateType === "sell" || templateType === "buysell";
+
+  // Determine if we can generate based on template requirements
+  const canGenerate = useMemo(() => {
+    if (!form.clientNames) return false;
+
+    // Address/subdivision required for sell-side templates
+    if (templateType !== "buyer") {
+      if (!form.address || !form.cityStateZip || !form.subdivision) return false;
+    }
+
+    // Check required files
+    if (isFileRequired(templateType, "csv") && !csvFile) return false;
+    if (isFileRequired(templateType, "mlsPdf") && !mlsFile) return false;
+
+    return true;
+  }, [templateType, form.clientNames, form.address, form.cityStateZip, form.subdivision, csvFile, mlsFile]);
 
   function updateField(field: keyof FormFields, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -74,7 +112,6 @@ export default function HomePage() {
   async function handleClientSelect(client: ClientRecord) {
     setSelectedClientAddress(client.address);
 
-    // Check localStorage cache for subdivision data
     const cacheKey = `subdivision:${client.address}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -92,7 +129,7 @@ export default function HomePage() {
         }));
         return;
       } catch {
-        // Invalid cache entry — fall through to API lookup
+        // Invalid cache entry
       }
     }
 
@@ -107,7 +144,6 @@ export default function HomePage() {
       communityName: "",
     }));
 
-    // Look up subdivision via Claude with web search
     setSubdivisionLoading(true);
     try {
       const res = await fetch("/api/clients/subdivision", {
@@ -126,12 +162,11 @@ export default function HomePage() {
         subdivision: subdivision || f.subdivision,
         communityName: communityName || f.communityName,
       }));
-      // Cache the result
       if (subdivision) {
         localStorage.setItem(cacheKey, JSON.stringify({ subdivision, communityName }));
       }
     } catch {
-      // Subdivision lookup failed — user can fill manually
+      // Subdivision lookup failed
     } finally {
       setSubdivisionLoading(false);
     }
@@ -139,7 +174,8 @@ export default function HomePage() {
 
   function handleClientClear() {
     setSelectedClientAddress(null);
-    setForm({
+    setForm((f) => ({
+      ...f,
       clientNames: "",
       fullName: "",
       email: "",
@@ -147,33 +183,47 @@ export default function HomePage() {
       cityStateZip: "",
       subdivision: "",
       communityName: "",
-      agentKey: form.agentKey,
-    });
+    }));
   }
 
   async function handleGenerate() {
     if (!canGenerate) return;
 
     const formData = new FormData();
-    formData.append("csv", csvFile);
+    formData.append("templateType", templateType);
+
+    if (csvFile) formData.append("csv", csvFile);
     if (mlsFile) formData.append("mlsPdf", mlsFile);
     if (taxRecordsFile) formData.append("taxRecords", taxRecordsFile);
     cromfordFiles.forEach((f) => formData.append("cromford", f));
 
-    formData.append(
-      "clientDetails",
-      JSON.stringify({
-        folderName: "",
-        clientNames: form.clientNames,
-        fullName: form.fullName,
-        email: form.email,
-        address: form.address,
-        cityStateZip: form.cityStateZip,
-        subdivision: form.subdivision,
-        communityName: form.communityName,
-        agentKey: form.agentKey,
-      })
-    );
+    const clientDetailsPayload: Record<string, unknown> = {
+      folderName: "",
+      clientNames: form.clientNames,
+      fullName: form.fullName,
+      email: form.email,
+      address: form.address,
+      cityStateZip: form.cityStateZip,
+      subdivision: form.subdivision,
+      communityName: form.communityName,
+      agentKey: form.agentKey,
+    };
+
+    if (showBuyerFields) {
+      clientDetailsPayload.targetAreas = form.targetAreas;
+      clientDetailsPayload.budgetMin = parseInt(form.budgetMin) || 400000;
+      clientDetailsPayload.budgetMax = parseInt(form.budgetMax) || 800000;
+      clientDetailsPayload.bedsMin = parseInt(form.bedsMin) || 3;
+      clientDetailsPayload.bathsMin = parseInt(form.bathsMin) || 2;
+      clientDetailsPayload.mustHaves = form.mustHaves ? form.mustHaves.split(",").map(s => s.trim()).filter(Boolean) : [];
+      clientDetailsPayload.schoolPreference = form.schoolPreference;
+    }
+
+    if (showSellFields) {
+      clientDetailsPayload.loanPayoff = parseInt(form.loanPayoff) || 0;
+    }
+
+    formData.append("clientDetails", JSON.stringify(clientDetailsPayload));
 
     await generate(formData);
   }
@@ -183,9 +233,10 @@ export default function HomePage() {
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const slug = form.address.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+    const slug = (form.address || form.clientNames).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+    const typeLabel = templateType === "houseversary" ? "dashboard" : `${templateType}-dashboard`;
     a.href = url;
-    a.download = `${slug}-dashboard.html`;
+    a.download = `${slug}-${typeLabel}.html`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -203,8 +254,7 @@ export default function HomePage() {
     return URL.createObjectURL(blob);
   }, [html]);
 
-  // Find current step index for progress display
-  const currentStepIdx = STEPS.findIndex((s) => s.key === step);
+  const currentStepIdx = pipelineSteps.findIndex((s) => s.key === step);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -224,7 +274,6 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Show form or results */}
         {step === "complete" && html ? (
           /* === Results View === */
           <div>
@@ -283,6 +332,29 @@ export default function HomePage() {
         ) : (
           /* === Form View === */
           <>
+          {/* Template Type Selector */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-display font-bold text-slate mb-4">Dashboard Type</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {TEMPLATE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setTemplateType(opt.value)}
+                  className={`text-left p-4 rounded-lg border-2 transition-all ${
+                    templateType === opt.value
+                      ? "border-terra bg-terra/5"
+                      : "border-sand-pale hover:border-sand"
+                  }`}
+                >
+                  <p className={`font-bold text-sm ${templateType === opt.value ? "text-terra" : "text-slate"}`}>
+                    {opt.label}
+                  </p>
+                  <p className="text-xs text-slate-light mt-1">{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Client Details Form */}
             <div className="lg:col-span-2 space-y-6">
@@ -298,18 +370,51 @@ export default function HomePage() {
                   <Input label="Client Names" placeholder="Brandon & Nicole" value={form.clientNames} onChange={(v) => updateField("clientNames", v)} required />
                   <Input label="Full Name" placeholder="Brandon Newman & Nicole Savage" value={form.fullName} onChange={(v) => updateField("fullName", v)} />
                   <Input label="Email" placeholder="email@example.com" value={form.email} onChange={(v) => updateField("email", v)} />
-                  <Input label="Address" placeholder="2252 S Estrella Cir" value={form.address} onChange={(v) => updateField("address", v)} required />
-                  <Input label="City, State Zip" placeholder="Mesa, AZ 85202" value={form.cityStateZip} onChange={(v) => updateField("cityStateZip", v)} required />
-                  <div className="relative">
-                    <Input label="Subdivision" placeholder={subdivisionLoading ? "Looking up..." : "Saratoga Lakes"} value={form.subdivision} onChange={(v) => updateField("subdivision", v)} required />
-                    {subdivisionLoading && <Loader2 className="w-4 h-4 text-terra animate-spin absolute right-3 top-8" />}
-                  </div>
-                  <div className="relative col-span-2">
-                    <Input label="Community Name" placeholder={subdivisionLoading ? "Looking up..." : "Saratoga Lakes at Dobson Ranch"} value={form.communityName} onChange={(v) => updateField("communityName", v)} />
-                    {subdivisionLoading && <Loader2 className="w-4 h-4 text-terra animate-spin absolute right-3 top-8" />}
-                  </div>
+                  {templateType !== "buyer" && (
+                    <>
+                      <Input label="Address" placeholder="2252 S Estrella Cir" value={form.address} onChange={(v) => updateField("address", v)} required />
+                      <Input label="City, State Zip" placeholder="Mesa, AZ 85202" value={form.cityStateZip} onChange={(v) => updateField("cityStateZip", v)} required />
+                      <div className="relative">
+                        <Input label="Subdivision" placeholder={subdivisionLoading ? "Looking up..." : "Saratoga Lakes"} value={form.subdivision} onChange={(v) => updateField("subdivision", v)} required />
+                        {subdivisionLoading && <Loader2 className="w-4 h-4 text-terra animate-spin absolute right-3 top-8" />}
+                      </div>
+                      <div className="relative col-span-2">
+                        <Input label="Community Name" placeholder={subdivisionLoading ? "Looking up..." : "Saratoga Lakes at Dobson Ranch"} value={form.communityName} onChange={(v) => updateField("communityName", v)} />
+                        {subdivisionLoading && <Loader2 className="w-4 h-4 text-terra animate-spin absolute right-3 top-8" />}
+                      </div>
+                    </>
+                  )}
+                  {templateType === "buyer" && (
+                    <Input label="City, State Zip" placeholder="Gilbert, AZ 85296" value={form.cityStateZip} onChange={(v) => updateField("cityStateZip", v)} className="col-span-2" />
+                  )}
                 </div>
               </div>
+
+              {/* Buyer-specific fields */}
+              {showBuyerFields && (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-display font-bold text-slate mb-4">Search Criteria</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input label="Target Areas / Neighborhoods" placeholder="Gilbert, Chandler, Queen Creek" value={form.targetAreas} onChange={(v) => updateField("targetAreas", v)} className="col-span-2" />
+                    <Input label="Budget Min" placeholder="400000" value={form.budgetMin} onChange={(v) => updateField("budgetMin", v)} type="number" />
+                    <Input label="Budget Max" placeholder="800000" value={form.budgetMax} onChange={(v) => updateField("budgetMax", v)} type="number" />
+                    <Input label="Min Bedrooms" placeholder="3" value={form.bedsMin} onChange={(v) => updateField("bedsMin", v)} type="number" />
+                    <Input label="Min Bathrooms" placeholder="2" value={form.bathsMin} onChange={(v) => updateField("bathsMin", v)} type="number" />
+                    <Input label="Must-Haves" placeholder="Pool, single story, RV gate" value={form.mustHaves} onChange={(v) => updateField("mustHaves", v)} className="col-span-2" />
+                    <Input label="School Preference" placeholder="Gilbert Public Schools, Higley Unified" value={form.schoolPreference} onChange={(v) => updateField("schoolPreference", v)} className="col-span-2" />
+                  </div>
+                </div>
+              )}
+
+              {/* Sell-specific fields */}
+              {showSellFields && (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-display font-bold text-slate mb-4">Loan Details</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input label="Estimated Loan Payoff" placeholder="340000" value={form.loanPayoff} onChange={(v) => updateField("loanPayoff", v)} type="number" />
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="text-lg font-display font-bold text-slate mb-4">Settings</h2>
@@ -335,90 +440,111 @@ export default function HomePage() {
                 <h2 className="text-lg font-display font-bold text-slate mb-4">Files</h2>
 
                 {/* CSV */}
-                <FileDropZone
-                  label="ARMLS CSV Export"
-                  sublabel="textexport*.csv"
-                  accept=".csv"
-                  icon={<FileText className="w-6 h-6" />}
-                  file={csvFile}
-                  onFile={setCsvFile}
-                  onClear={() => setCsvFile(null)}
-                  inputRef={csvInputRef}
-                  required
-                />
+                {isFileRelevant(templateType, "csv") && (
+                  <FileDropZone
+                    label="ARMLS CSV Export"
+                    sublabel="textexport*.csv"
+                    accept=".csv"
+                    icon={<FileText className="w-6 h-6" />}
+                    file={csvFile}
+                    onFile={setCsvFile}
+                    onClear={() => setCsvFile(null)}
+                    inputRef={csvInputRef}
+                    required={isFileRequired(templateType, "csv")}
+                  />
+                )}
 
                 {/* MLS PDF */}
-                <FileDropZone
-                  label="MLS Listing PDF"
-                  sublabel="Optional - extracts property details"
-                  accept=".pdf"
-                  icon={<FileText className="w-6 h-6" />}
-                  file={mlsFile}
-                  onFile={setMlsFile}
-                  onClear={() => setMlsFile(null)}
-                  inputRef={mlsInputRef}
-                />
+                {isFileRelevant(templateType, "mlsPdf") && (
+                  <FileDropZone
+                    label="MLS Listing PDF"
+                    sublabel={isFileRequired(templateType, "mlsPdf") ? "Required - extracts property details" : "Optional - extracts property details"}
+                    accept=".pdf"
+                    icon={<FileText className="w-6 h-6" />}
+                    file={mlsFile}
+                    onFile={setMlsFile}
+                    onClear={() => setMlsFile(null)}
+                    inputRef={mlsInputRef}
+                    required={isFileRequired(templateType, "mlsPdf")}
+                  />
+                )}
 
                 {/* Tax Records PDF */}
-                <FileDropZone
-                  label="Tax Records (PDF)"
-                  sublabel="Optional - extracts purchase & loan data"
-                  accept=".pdf"
-                  icon={<FileText className="w-6 h-6" />}
-                  file={taxRecordsFile}
-                  onFile={setTaxRecordsFile}
-                  onClear={() => setTaxRecordsFile(null)}
-                  inputRef={taxRecordsInputRef}
-                />
+                {isFileRelevant(templateType, "taxRecords") && (
+                  <FileDropZone
+                    label="Tax Records (PDF)"
+                    sublabel="Optional - extracts purchase & loan data"
+                    accept=".pdf"
+                    icon={<FileText className="w-6 h-6" />}
+                    file={taxRecordsFile}
+                    onFile={setTaxRecordsFile}
+                    onClear={() => setTaxRecordsFile(null)}
+                    inputRef={taxRecordsInputRef}
+                  />
+                )}
 
                 {/* Cromford PNGs */}
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-sm font-medium text-slate">Cromford Screenshots</label>
-                    <span className="text-xs text-slate-light">Optional</span>
-                  </div>
-                  <div
-                    className="border-2 border-dashed border-sand-pale rounded-lg p-4 text-center cursor-pointer hover:border-terra transition-colors"
-                    onClick={() => cromfordInputRef.current?.click()}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const files = Array.from(e.dataTransfer.files).filter((f) =>
-                        f.type.startsWith("image/")
-                      );
-                      setCromfordFiles((prev) => [...prev, ...files]);
-                    }}
-                  >
-                    <Image className="w-6 h-6 text-sand mx-auto mb-1" />
-                    <p className="text-xs text-slate-light">Drop PNG screenshots here</p>
-                  </div>
-                  <input
-                    ref={cromfordInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setCromfordFiles((prev) => [...prev, ...files]);
-                    }}
-                  />
-                  {cromfordFiles.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {cromfordFiles.map((f, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs bg-sand-pale rounded px-2 py-1">
-                          <span className="truncate">{f.name}</span>
-                          <button
-                            onClick={() => setCromfordFiles((prev) => prev.filter((_, j) => j !== i))}
-                            className="text-slate-light hover:text-red-500 ml-2"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
+                {isFileRelevant(templateType, "cromford") && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-slate">Cromford Screenshots</label>
+                      <span className="text-xs text-slate-light">Optional</span>
                     </div>
-                  )}
-                </div>
+                    <div
+                      className="border-2 border-dashed border-sand-pale rounded-lg p-4 text-center cursor-pointer hover:border-terra transition-colors"
+                      onClick={() => cromfordInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const files = Array.from(e.dataTransfer.files).filter((f) =>
+                          f.type.startsWith("image/")
+                        );
+                        setCromfordFiles((prev) => [...prev, ...files]);
+                      }}
+                    >
+                      <Image className="w-6 h-6 text-sand mx-auto mb-1" />
+                      <p className="text-xs text-slate-light">Drop PNG screenshots here</p>
+                    </div>
+                    <input
+                      ref={cromfordInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCromfordFiles((prev) => [...prev, ...files]);
+                      }}
+                    />
+                    {cromfordFiles.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {cromfordFiles.map((f, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs bg-sand-pale rounded px-2 py-1">
+                            <span className="truncate">{f.name}</span>
+                            <button
+                              onClick={() => setCromfordFiles((prev) => prev.filter((_, j) => j !== i))}
+                              className="text-slate-light hover:text-red-500 ml-2"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* No files needed message for buyer */}
+                {templateType === "buyer" && !isFileRelevant(templateType, "csv") && (
+                  <p className="text-sm text-slate-light text-center py-4">
+                    No files required for buyer dashboards. Neighborhood and school data is generated from your search criteria.
+                  </p>
+                )}
+                {templateType === "buyer" && isFileRelevant(templateType, "csv") && !csvFile && (
+                  <p className="text-xs text-slate-light mt-3">
+                    CSV is optional for buyer dashboards. Upload one to include area market stats.
+                  </p>
+                )}
               </div>
 
               {/* Generate Button */}
@@ -435,18 +561,19 @@ export default function HomePage() {
                 ) : (
                   <>
                     <Upload className="w-5 h-5" />
-                    Generate Dashboard
+                    Generate {templateConfig.label}
                   </>
                 )}
               </button>
 
               {!canGenerate && !isGenerating && (
                 <p className="text-xs text-center text-slate-light">
-                  Fill in required fields and upload CSV to enable
+                  {templateType === "buyer"
+                    ? "Fill in client name to enable"
+                    : "Fill in required fields and upload required files to enable"
+                  }
                 </p>
               )}
-
-              {/* Progress moved to full-width below grid */}
 
               {/* Error */}
               {step === "error" && (
@@ -470,7 +597,7 @@ export default function HomePage() {
                 <span className="font-semibold text-slate text-sm">{message}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                {STEPS.map((s, i) => (
+                {pipelineSteps.map((s, i) => (
                   <div key={s.key} className="flex-1 min-w-0">
                     <div
                       className={`h-2 rounded-full transition-colors ${

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { runFullAnalysis } from "@/lib/csv-engine";
 import { askClaudeWithPDF, askClaudeWithImages, askClaudeWithWebSearch, askClaude } from "@/lib/claude-api";
-import { MLS_EXTRACTION_PROMPT, TAX_RECORDS_EXTRACTION_PROMPT, CROMFORD_EXTRACTION_PROMPT, webResearchPrompt, contentGenerationPrompt } from "@/lib/claude-prompts";
+import { MLS_EXTRACTION_PROMPT, TAX_RECORDS_EXTRACTION_PROMPT, CROMFORD_EXTRACTION_PROMPT, webResearchPrompt, contentGenerationPrompt, sellContentPrompt, buyerContentPrompt, buySellContentPrompt } from "@/lib/claude-prompts";
 import { injectConfig } from "@/lib/template-engine";
 import { getTemplateHtml } from "@/lib/template-loader";
 import { validateDashboardConfig } from "@/lib/types";
 import { estimateCurrentBalance } from "@/lib/loan-estimator";
-import type { ClientDetails, DashboardConfig, SubjectProperty, Feature, CromfordMetric, Development, Upgrade } from "@/lib/types";
+import { TEMPLATE_REGISTRY, isFileRelevant } from "@/lib/template-registry";
+import type { TemplateType } from "@/lib/template-registry";
+import type { ClientDetails, DashboardConfig, SellDashboardConfig, BuyerDashboardConfig, BuySellDashboardConfig, AnyDashboardConfig, SubjectProperty, Feature, CromfordMetric, Development, Upgrade } from "@/lib/types";
 
 export const maxDuration = 300; // 5 min timeout for long generation
 
@@ -41,9 +43,27 @@ function parseJSONFromClaude(text: string): Record<string, unknown> {
 export async function POST(request: Request) {
   const formData = await request.formData();
 
+  // Parse template type
+  const templateType = (formData.get("templateType") as TemplateType) || "houseversary";
+  const templateConfig = TEMPLATE_REGISTRY[templateType];
+  if (!templateConfig) {
+    return NextResponse.json({ error: `Unknown template type: ${templateType}` }, { status: 400 });
+  }
+
   // Parse client details from form
   const clientDetailsRaw = formData.get("clientDetails") as string;
-  let clientDetails: ClientDetails;
+  let clientDetails: ClientDetails & {
+    targetAreas?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    bedsMin?: number;
+    bathsMin?: number;
+    mustHaves?: string[];
+    schoolPreference?: string;
+    sellAddress?: string;
+    sellCityStateZip?: string;
+    loanPayoff?: number;
+  };
   try {
     clientDetails = JSON.parse(clientDetailsRaw);
   } catch {
@@ -61,20 +81,26 @@ export async function POST(request: Request) {
     }
   }
 
-  if (!csvFile) {
-    return NextResponse.json({ error: "CSV file is required" }, { status: 400 });
+  // Validate required files
+  if (templateConfig.requiredFiles.includes("csv") && !csvFile) {
+    return NextResponse.json({ error: "CSV file is required for this dashboard type" }, { status: 400 });
+  }
+  if (templateConfig.requiredFiles.includes("mlsPdf") && !mlsPdf) {
+    return NextResponse.json({ error: "MLS PDF is required for this dashboard type" }, { status: 400 });
   }
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // === STEP 1: Extract from MLS PDF (do this first to get subject details) ===
+        // === STEP 1: Extract from MLS PDF ===
         let subject: SubjectProperty = { beds: 0, baths: 0, sqft: 0, yearBuilt: 0, pool: false, stories: 1 };
         let features: Feature[] = [];
         let mlsPurchasePrice: number | null = null;
         let mlsPurchaseDate: string | null = null;
+        let lotSqft = 0;
+        let propertyHighlights: string[] = [];
 
-        if (mlsPdf) {
+        if (mlsPdf && isFileRelevant(templateType, "mlsPdf")) {
           sendSSE(controller, { step: "extracting_mls", progress: 5 });
 
           const pdfBuffer = Buffer.from(await mlsPdf.arrayBuffer());
@@ -85,9 +111,9 @@ export async function POST(request: Request) {
             beds: number; baths: number; sqft: number; yearBuilt: number;
             pool: boolean; stories: number; features: Feature[];
             purchasePrice?: number | null; purchaseDate?: string | null;
+            lotSqft?: number; highlights?: string[];
           };
 
-          // Capture MLS purchase data as fallback
           if (mlsData.purchasePrice) mlsPurchasePrice = mlsData.purchasePrice;
           if (mlsData.purchaseDate) mlsPurchaseDate = mlsData.purchaseDate;
 
@@ -100,25 +126,31 @@ export async function POST(request: Request) {
             stories: mlsData.stories,
           };
           features = mlsData.features || [];
+          lotSqft = mlsData.lotSqft || 0;
+          propertyHighlights = mlsData.highlights || [];
 
           sendSSE(controller, { step: "extracting_mls", progress: 15 });
         }
 
-        // === STEP 2: CSV Analysis via Claude (with full subject data) ===
-        sendSSE(controller, { step: "parsing_csv", progress: 18 });
+        // === STEP 2: CSV Analysis ===
+        let csvResult = null;
+        if (csvFile && isFileRelevant(templateType, "csv")) {
+          sendSSE(controller, { step: "parsing_csv", progress: 18 });
 
-        const csvBuffer = Buffer.from(await csvFile.arrayBuffer());
-        const csvResult = await runFullAnalysis(csvBuffer, {
-          ...subject,
-          subdivision: clientDetails.subdivision,
-          communityName: clientDetails.communityName,
-          cityStateZip: clientDetails.cityStateZip,
-          address: clientDetails.address,
-        });
-        if (csvResult.comps.length === 0 && csvResult.metadata.warnings.length > 0) {
-          sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Warning: ${csvResult.metadata.warnings.join('; ')}` });
-        } else {
-          sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Analyzed ${csvResult.metadata.totalParsed} sales, selected ${csvResult.comps.length} comps` });
+          const csvBuffer = Buffer.from(await csvFile.arrayBuffer());
+          csvResult = await runFullAnalysis(csvBuffer, {
+            ...subject,
+            subdivision: clientDetails.subdivision,
+            communityName: clientDetails.communityName,
+            cityStateZip: clientDetails.cityStateZip,
+            address: clientDetails.address,
+          }, templateConfig.lens);
+
+          if (csvResult.comps.length === 0 && csvResult.metadata.warnings.length > 0) {
+            sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Warning: ${csvResult.metadata.warnings.join('; ')}` });
+          } else {
+            sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Analyzed ${csvResult.metadata.totalParsed} sales, selected ${csvResult.comps.length} comps` });
+          }
         }
 
         // === STEP 3: Read Cromford Screenshots ===
@@ -126,7 +158,7 @@ export async function POST(request: Request) {
         let cromfordTakeaway = "";
         let cromfordSource = "";
 
-        if (cromfordFiles.length > 0) {
+        if (cromfordFiles.length > 0 && isFileRelevant(templateType, "cromford")) {
           sendSSE(controller, { step: "reading_cromford", progress: 38 });
 
           const images = await Promise.all(
@@ -153,12 +185,12 @@ export async function POST(request: Request) {
           sendSSE(controller, { step: "reading_cromford", progress: 48 });
         }
 
-        // === STEP 3.5: Extract from Tax Records ===
+        // === STEP 3.5: Extract from Tax Records (houseversary only) ===
         let purchasePrice = clientDetails.purchasePrice || 0;
         let purchaseDate = clientDetails.purchaseDate || "";
         let loanBalance = clientDetails.loanBalance || 0;
 
-        if (taxRecordsPdf) {
+        if (taxRecordsPdf && isFileRelevant(templateType, "taxRecords")) {
           sendSSE(controller, { step: "reading_tax_records", progress: 50 });
 
           const taxBuffer = Buffer.from(await taxRecordsPdf.arrayBuffer());
@@ -177,11 +209,9 @@ export async function POST(request: Request) {
               legalDescription: string | null;
             };
 
-            // Tax records are most authoritative for purchase data
             if (taxData.purchasePrice) purchasePrice = taxData.purchasePrice;
             if (taxData.purchaseDate) purchaseDate = taxData.purchaseDate;
 
-            // Estimate loan balance from mortgage data
             if (taxData.originalLoanAmount && (taxData.loanDate || taxData.purchaseDate)) {
               const estimate = estimateCurrentBalance(
                 taxData.originalLoanAmount,
@@ -199,141 +229,72 @@ export async function POST(request: Request) {
           sendSSE(controller, { step: "reading_tax_records", progress: 58 });
         }
 
-        // Merge MLS purchase data as fallback (if tax records didn't provide it)
-        // mlsPurchasePrice/mlsPurchaseDate would be set during MLS extraction above
+        // Merge MLS purchase data as fallback
         if (!purchasePrice && mlsPurchasePrice) purchasePrice = mlsPurchasePrice;
         if (!purchaseDate && mlsPurchaseDate) purchaseDate = mlsPurchaseDate;
 
-        // === STEP 4: Web Research ===
-        sendSSE(controller, { step: "researching", progress: 60 });
-
+        // === STEP 4: Web Research (houseversary only) ===
         const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
 
         let developments: Development[] = [];
         let infrastructure: Development[] = [];
         let areaHighlights: Development[] = [];
 
-        try {
-          const researchResponse = await askClaudeWithWebSearch(
-            webResearchPrompt(city),
-            { maxTokens: 4096 }
-          );
-          const researchData = parseJSONFromClaude(researchResponse) as {
-            developments: Development[];
-            infrastructure: Development[];
-            areaHighlights: Development[];
-          };
-          developments = researchData.developments || [];
-          infrastructure = researchData.infrastructure || [];
-          areaHighlights = researchData.areaHighlights || [];
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          console.error("Web research failed, continuing:", errMsg);
-          sendSSE(controller, { step: "warning", message: `City research failed: ${errMsg}` });
-        }
+        if (templateType === "houseversary") {
+          sendSSE(controller, { step: "researching", progress: 60 });
 
-        sendSSE(controller, { step: "researching", progress: 70 });
+          try {
+            const researchResponse = await askClaudeWithWebSearch(
+              webResearchPrompt(city),
+              { maxTokens: 4096 }
+            );
+            const researchData = parseJSONFromClaude(researchResponse) as {
+              developments: Development[];
+              infrastructure: Development[];
+              areaHighlights: Development[];
+            };
+            developments = researchData.developments || [];
+            infrastructure = researchData.infrastructure || [];
+            areaHighlights = researchData.areaHighlights || [];
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            console.error("Web research failed, continuing:", errMsg);
+            sendSSE(controller, { step: "warning", message: `City research failed: ${errMsg}` });
+          }
+
+          sendSSE(controller, { step: "researching", progress: 70 });
+        }
 
         // === STEP 5: Generate Content ===
         sendSSE(controller, { step: "generating_content", progress: 72 });
 
-        const purchaseDateObj = purchaseDate ? new Date(purchaseDate) : new Date();
-        const now = new Date();
-        const yearsOwned = purchaseDate
-          ? Math.max(1, Math.round((now.getTime() - purchaseDateObj.getTime()) / (365.25 * 24 * 60 * 60 * 1000)))
-          : 1;
+        let finalConfig: AnyDashboardConfig;
 
-        const contentResponse = await askClaude(
-          contentGenerationPrompt(
-            { ...subject, address: clientDetails.address, subdivision: clientDetails.subdivision, communityName: clientDetails.communityName, cityStateZip: clientDetails.cityStateZip },
-            csvResult.marketMetrics,
-            csvResult.neighborhood,
-            csvResult.bedroomAnalysis,
-            cromfordMetrics,
-            yearsOwned
-          ),
-          { maxTokens: 4096 }
-        );
-        const contentData = parseJSONFromClaude(contentResponse) as {
-          headerTitle: string;
-          outlookNarrative: string[];
-          neighborhoodNarrative: string;
-          bedroomNarrative: string;
-          upgrades: Upgrade[];
-          resources: {
-            seasonal: { spring: string; summer: string; fall: string; winter: string };
-            links: { label: string; url: string; desc: string }[];
-          };
-        };
-
-        // Update narratives from Claude
-        csvResult.neighborhood.narrative = contentData.neighborhoodNarrative || csvResult.neighborhood.narrative;
-        if (contentData.bedroomNarrative) {
-          csvResult.bedroomAnalysis.narrative = contentData.bedroomNarrative;
+        if (templateType === "houseversary") {
+          finalConfig = await buildHouseversaryConfig(
+            clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
+            purchaseDate, purchasePrice, loanBalance,
+            developments, infrastructure, areaHighlights, controller
+          );
+        } else if (templateType === "sell") {
+          finalConfig = await buildSellConfig(
+            clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
+            lotSqft, propertyHighlights, controller
+          );
+        } else if (templateType === "buyer") {
+          finalConfig = await buildBuyerConfig(clientDetails, csvResult, controller);
+        } else {
+          finalConfig = await buildBuySellConfig(
+            clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
+            lotSqft, propertyHighlights, controller
+          );
         }
 
-        sendSSE(controller, { step: "generating_content", progress: 85 });
-
-        // === STEP 6: Assemble CONFIG ===
+        // === STEP 6: Inject into template ===
         sendSSE(controller, { step: "assembling", progress: 90 });
 
-        const rawConfig = {
-          // Client identity
-          clientNames: clientDetails.clientNames,
-          fullName: clientDetails.fullName,
-          email: clientDetails.email,
-          address: clientDetails.address,
-          cityStateZip: clientDetails.cityStateZip,
-          subdivision: clientDetails.subdivision,
-          communityName: clientDetails.communityName,
-          headerTitle: contentData.headerTitle || `Happy ${yearsOwned}-Year Houseversary!`,
-          purchaseDate,
-          purchasePrice,
-          loanBalance,
-          agentKey: clientDetails.agentKey,
-
-          // Property
-          ...subject,
-
-          // Market analysis
-          comps: csvResult.comps,
-          marketMetrics: csvResult.marketMetrics,
-          neighborhood: csvResult.neighborhood,
-          bedroomAnalysis: csvResult.bedroomAnalysis,
-          subjectAdvantages: csvResult.subjectAdvantages,
-
-          // Content
-          features,
-          cromfordMetrics,
-          cromfordTakeaway,
-          cromfordSource,
-          outlookNarrative: contentData.outlookNarrative || [],
-          upgrades: contentData.upgrades || [],
-          developments,
-          infrastructure,
-          areaHighlights,
-          resources: contentData.resources || {
-            seasonal: { spring: "", summer: "", fall: "", winter: "" },
-            links: [],
-          },
-        };
-
-        // Validate and fill missing fields with safe defaults
-        const config: DashboardConfig = validateDashboardConfig(rawConfig);
-
-        // Check for negative equity
-        const estimatedEquity = csvResult.marketMetrics.derivedValue - loanBalance;
-        if (estimatedEquity < 0) {
-          sendSSE(controller, {
-            step: "warning",
-            progress: 92,
-            message: `Negative equity detected ($${estimatedEquity.toLocaleString()}). Review the comp data in the CSV and consider running a manual comp analysis before delivering this dashboard.`,
-          });
-        }
-
-        // === STEP 7: Inject into template ===
-        const templateHtml = getTemplateHtml();
-        const finalHtml = injectConfig(templateHtml, config);
+        const templateHtml = getTemplateHtml(templateType);
+        const finalHtml = injectConfig(templateHtml, finalConfig);
 
         sendSSE(controller, { step: "complete", progress: 100, html: finalHtml });
       } catch (err) {
@@ -355,4 +316,342 @@ export async function POST(request: Request) {
       Connection: "keep-alive",
     },
   });
+}
+
+// === Houseversary Pipeline (existing logic) ===
+
+async function buildHouseversaryConfig(
+  clientDetails: ClientDetails,
+  subject: SubjectProperty,
+  features: Feature[],
+  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  cromfordMetrics: CromfordMetric[],
+  cromfordTakeaway: string,
+  cromfordSource: string,
+  purchaseDate: string,
+  purchasePrice: number,
+  loanBalance: number,
+  developments: Development[],
+  infrastructure: Development[],
+  areaHighlights: Development[],
+  controller: ReadableStreamDefaultController,
+): Promise<DashboardConfig> {
+  if (!csvResult) throw new Error("CSV analysis result is required for houseversary dashboard");
+
+  const purchaseDateObj = purchaseDate ? new Date(purchaseDate) : new Date();
+  const now = new Date();
+  const yearsOwned = purchaseDate
+    ? Math.max(1, Math.round((now.getTime() - purchaseDateObj.getTime()) / (365.25 * 24 * 60 * 60 * 1000)))
+    : 1;
+
+  const contentResponse = await askClaude(
+    contentGenerationPrompt(
+      { ...subject, address: clientDetails.address, subdivision: clientDetails.subdivision, communityName: clientDetails.communityName, cityStateZip: clientDetails.cityStateZip },
+      csvResult.marketMetrics,
+      csvResult.neighborhood,
+      csvResult.bedroomAnalysis,
+      cromfordMetrics,
+      yearsOwned
+    ),
+    { maxTokens: 4096 }
+  );
+  const contentData = parseJSONFromClaude(contentResponse) as {
+    headerTitle: string;
+    outlookNarrative: string[];
+    neighborhoodNarrative: string;
+    bedroomNarrative: string;
+    upgrades: Upgrade[];
+    resources: {
+      seasonal: { spring: string; summer: string; fall: string; winter: string };
+      links: { label: string; url: string; desc: string }[];
+    };
+  };
+
+  csvResult.neighborhood.narrative = contentData.neighborhoodNarrative || csvResult.neighborhood.narrative;
+  if (contentData.bedroomNarrative) {
+    csvResult.bedroomAnalysis.narrative = contentData.bedroomNarrative;
+  }
+
+  sendSSE(controller, { step: "generating_content", progress: 85 });
+
+  const rawConfig = {
+    clientNames: clientDetails.clientNames,
+    fullName: clientDetails.fullName,
+    email: clientDetails.email,
+    address: clientDetails.address,
+    cityStateZip: clientDetails.cityStateZip,
+    subdivision: clientDetails.subdivision,
+    communityName: clientDetails.communityName,
+    headerTitle: contentData.headerTitle || `Happy ${yearsOwned}-Year Houseversary!`,
+    purchaseDate,
+    purchasePrice,
+    loanBalance,
+    agentKey: clientDetails.agentKey,
+    ...subject,
+    comps: csvResult.comps,
+    marketMetrics: csvResult.marketMetrics,
+    neighborhood: csvResult.neighborhood,
+    bedroomAnalysis: csvResult.bedroomAnalysis,
+    subjectAdvantages: csvResult.subjectAdvantages,
+    features,
+    cromfordMetrics,
+    cromfordTakeaway,
+    cromfordSource,
+    outlookNarrative: contentData.outlookNarrative || [],
+    upgrades: contentData.upgrades || [],
+    developments,
+    infrastructure,
+    areaHighlights,
+    resources: contentData.resources || {
+      seasonal: { spring: "", summer: "", fall: "", winter: "" },
+      links: [],
+    },
+  };
+
+  const config: DashboardConfig = validateDashboardConfig(rawConfig);
+
+  // Check for negative equity
+  const estimatedEquity = csvResult.marketMetrics.derivedValue - loanBalance;
+  if (estimatedEquity < 0) {
+    sendSSE(controller, {
+      step: "warning",
+      progress: 92,
+      message: `Negative equity detected ($${estimatedEquity.toLocaleString()}). Review the comp data in the CSV and consider running a manual comp analysis before delivering this dashboard.`,
+    });
+  }
+
+  return config;
+}
+
+// === Sell Pipeline ===
+
+async function buildSellConfig(
+  clientDetails: ClientDetails & { loanPayoff?: number },
+  subject: SubjectProperty,
+  features: Feature[],
+  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  cromfordMetrics: CromfordMetric[],
+  cromfordTakeaway: string,
+  cromfordSource: string,
+  lotSqft: number,
+  propertyHighlights: string[],
+  controller: ReadableStreamDefaultController,
+): Promise<SellDashboardConfig> {
+  if (!csvResult) throw new Error("CSV analysis result is required for sell dashboard");
+
+  const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
+
+  const contentResponse = await askClaude(
+    sellContentPrompt(
+      { ...subject, address: clientDetails.address, subdivision: clientDetails.subdivision, communityName: clientDetails.communityName, cityStateZip: clientDetails.cityStateZip, lotSqft },
+      csvResult.marketMetrics,
+      csvResult.comps,
+      cromfordMetrics,
+      city
+    ),
+    { maxTokens: 4096 }
+  );
+  const contentData = parseJSONFromClaude(contentResponse) as {
+    pricingStrategy: string;
+    competition: { address: string; price: number; status: string; dom: number; beds: string; baths: string; sqft: number; pool: string; note: string }[];
+    marketSnapshot: { label: string; value: string }[];
+    prepItems: { key: string; label: string; defaultCost: number; desc: string }[];
+    marketingPlan: string[];
+    timeline: { phase: string; dates: string; items: string[] }[];
+    propertyHighlights: string[];
+    upgrades: { name: string; value: string }[];
+  };
+
+  sendSSE(controller, { step: "generating_content", progress: 85 });
+
+  return {
+    templateType: "sell",
+    clientNames: clientDetails.clientNames,
+    fullName: clientDetails.fullName,
+    email: clientDetails.email,
+    address: clientDetails.address,
+    cityStateZip: clientDetails.cityStateZip,
+    subdivision: clientDetails.subdivision,
+    communityName: clientDetails.communityName,
+    agentKey: clientDetails.agentKey,
+    beds: subject.beds,
+    baths: subject.baths,
+    sqft: subject.sqft,
+    lotSqft,
+    yearBuilt: subject.yearBuilt,
+    pool: subject.pool,
+    stories: subject.stories,
+    estimatedSalePrice: csvResult.marketMetrics.derivedValue,
+    loanPayoff: clientDetails.loanPayoff || 0,
+    propertyHighlights: contentData.propertyHighlights || propertyHighlights,
+    upgrades: contentData.upgrades || [],
+    comps: csvResult.comps,
+    marketMetrics: csvResult.marketMetrics,
+    pricingStrategy: contentData.pricingStrategy || "",
+    competition: contentData.competition || [],
+    marketSnapshot: contentData.marketSnapshot || [],
+    prepItems: contentData.prepItems || [],
+    marketingPlan: contentData.marketingPlan || [],
+    timeline: contentData.timeline || [],
+    cromfordMetrics,
+    cromfordTakeaway,
+    cromfordSource,
+    features,
+  };
+}
+
+// === Buyer Pipeline ===
+
+async function buildBuyerConfig(
+  clientDetails: ClientDetails & {
+    targetAreas?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    bedsMin?: number;
+    bathsMin?: number;
+    mustHaves?: string[];
+    schoolPreference?: string;
+  },
+  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  controller: ReadableStreamDefaultController,
+): Promise<BuyerDashboardConfig> {
+  const contentResponse = await askClaude(
+    buyerContentPrompt(
+      clientDetails.clientNames,
+      clientDetails.targetAreas || "",
+      clientDetails.budgetMin || 400000,
+      clientDetails.budgetMax || 800000,
+      clientDetails.bedsMin || 3,
+      clientDetails.bathsMin || 2,
+      clientDetails.mustHaves || [],
+      clientDetails.schoolPreference || "",
+      clientDetails.cityStateZip
+    ),
+    { model: "claude-opus-4-6", maxTokens: 8192 }
+  );
+  const contentData = parseJSONFromClaude(contentResponse) as {
+    neighborhoods: BuyerDashboardConfig["neighborhoods"];
+    schoolDistricts: BuyerDashboardConfig["schoolDistricts"];
+    timeline: BuyerDashboardConfig["timeline"];
+    marketSnapshot: { label: string; value: string }[];
+  };
+
+  sendSSE(controller, { step: "generating_content", progress: 85 });
+
+  return {
+    templateType: "buyer",
+    clientNames: clientDetails.clientNames,
+    fullName: clientDetails.fullName,
+    email: clientDetails.email,
+    agentKey: clientDetails.agentKey,
+    targetAreas: clientDetails.targetAreas || "",
+    budgetMin: clientDetails.budgetMin || 400000,
+    budgetMax: clientDetails.budgetMax || 800000,
+    bedsMin: clientDetails.bedsMin || 3,
+    bathsMin: clientDetails.bathsMin || 2,
+    mustHaves: clientDetails.mustHaves || [],
+    schoolPreference: clientDetails.schoolPreference || "",
+    neighborhoods: contentData.neighborhoods || [],
+    schoolDistricts: contentData.schoolDistricts || [],
+    timeline: contentData.timeline || [],
+    marketSnapshot: contentData.marketSnapshot || [],
+  };
+}
+
+// === Buy/Sell Pipeline ===
+
+async function buildBuySellConfig(
+  clientDetails: ClientDetails & {
+    targetAreas?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    bedsMin?: number;
+    bathsMin?: number;
+    mustHaves?: string[];
+    schoolPreference?: string;
+    sellAddress?: string;
+    sellCityStateZip?: string;
+    loanPayoff?: number;
+  },
+  subject: SubjectProperty,
+  features: Feature[],
+  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  cromfordMetrics: CromfordMetric[],
+  cromfordTakeaway: string,
+  cromfordSource: string,
+  lotSqft: number,
+  propertyHighlights: string[],
+  controller: ReadableStreamDefaultController,
+): Promise<BuySellDashboardConfig> {
+  if (!csvResult) throw new Error("CSV analysis result is required for buy/sell dashboard");
+
+  const contentResponse = await askClaude(
+    buySellContentPrompt(
+      { ...subject, address: clientDetails.address, subdivision: clientDetails.subdivision, communityName: clientDetails.communityName, cityStateZip: clientDetails.cityStateZip, lotSqft },
+      csvResult.marketMetrics,
+      csvResult.comps,
+      clientDetails.clientNames,
+      clientDetails.targetAreas || "",
+      clientDetails.budgetMin || 400000,
+      clientDetails.budgetMax || 800000,
+      clientDetails.bedsMin || 3,
+      clientDetails.bathsMin || 2,
+      clientDetails.mustHaves || [],
+      clientDetails.schoolPreference || "",
+      cromfordMetrics
+    ),
+    { model: "claude-opus-4-6", maxTokens: 8192 }
+  );
+  const contentData = parseJSONFromClaude(contentResponse) as {
+    sellPricingStrategy: string;
+    sellCompetition: BuySellDashboardConfig["sellCompetition"];
+    sellPropertyHighlights: string[];
+    neighborhoods: BuySellDashboardConfig["neighborhoods"];
+    schoolDistricts: BuySellDashboardConfig["schoolDistricts"];
+    strategyOptions: BuySellDashboardConfig["strategyOptions"];
+    strategyTimeline: BuySellDashboardConfig["strategyTimeline"];
+  };
+
+  sendSSE(controller, { step: "generating_content", progress: 85 });
+
+  return {
+    templateType: "buysell",
+    clientNames: clientDetails.clientNames,
+    fullName: clientDetails.fullName,
+    email: clientDetails.email,
+    agentKey: clientDetails.agentKey,
+    sellAddress: clientDetails.address,
+    sellCityStateZip: clientDetails.cityStateZip,
+    sellSubdivision: clientDetails.subdivision,
+    sellCommunityName: clientDetails.communityName,
+    sellBeds: subject.beds,
+    sellBaths: subject.baths,
+    sellSqft: subject.sqft,
+    sellLotSqft: lotSqft,
+    sellYearBuilt: subject.yearBuilt,
+    sellPool: subject.pool,
+    sellStories: subject.stories,
+    estimatedSalePrice: csvResult.marketMetrics.derivedValue,
+    loanPayoff: clientDetails.loanPayoff || 0,
+    sellPropertyHighlights: contentData.sellPropertyHighlights || propertyHighlights,
+    sellComps: csvResult.comps,
+    sellMarketMetrics: csvResult.marketMetrics,
+    sellPricingStrategy: contentData.sellPricingStrategy || "",
+    sellCompetition: contentData.sellCompetition || [],
+    targetAreas: clientDetails.targetAreas || "",
+    budgetMin: clientDetails.budgetMin || 400000,
+    budgetMax: clientDetails.budgetMax || 800000,
+    bedsMin: clientDetails.bedsMin || 3,
+    bathsMin: clientDetails.bathsMin || 2,
+    mustHaves: clientDetails.mustHaves || [],
+    schoolPreference: clientDetails.schoolPreference || "",
+    neighborhoods: contentData.neighborhoods || [],
+    schoolDistricts: contentData.schoolDistricts || [],
+    strategyOptions: contentData.strategyOptions || [],
+    strategyTimeline: contentData.strategyTimeline || [],
+    cromfordMetrics,
+    cromfordTakeaway,
+    cromfordSource,
+    features,
+  };
 }

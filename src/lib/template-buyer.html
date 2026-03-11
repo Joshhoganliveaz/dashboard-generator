@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title id="pageTitle">Your Buyer Dashboard | Live AZ Co</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--sand:#D4A574;--sand-light:#E8CDB0;--sand-pale:#F5EDE3;
+--terra:#C2703E;--terra-light:#D4915F;--terra-dark:#A85A2A;
+--sage:#7A8B6F;--sage-dark:#5C6B52;--sage-light:#9AAD8E;
+--slate:#3D3D3D;--slate-light:#5A5A5A;
+--cream:#FAF6F0;
+--positive:#5C8A4D;--negative:#B84C3A;--neutral:#8B7355;
+--card:#fff;--border:#E8DDD0;
+--sage-bg:rgba(122,139,111,.08);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--slate);-webkit-font-smoothing:antialiased}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--sand-pale);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff}
+input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none}
+input[type=number]:focus{border-color:var(--terra)}
+select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none;cursor:pointer}
+select:focus{border-color:var(--terra)}
+.header{background:linear-gradient(135deg,var(--slate),var(--slate-light));padding:16px 20px;color:#fff}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+.header-text{flex:1;min-width:0}
+.header-logo{height:72px;width:auto;opacity:.9;flex-shrink:0;margin-left:-12px}
+.header-title{font-size:18px;font-weight:700;font-family:'Playfair Display',serif;line-height:1.2;opacity:.85}
+.header-names{font-size:28px;font-weight:900;font-family:'Playfair Display',serif;margin-top:4px}
+.tab-bar-wrap{position:sticky;top:0;z-index:100;background:var(--card)}
+.tab-bar{display:flex;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex:1 0 0;padding:14px 8px;text-align:center;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--slate-light);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap}
+.tab-btn.active{color:var(--terra);border-bottom-color:var(--terra);background:var(--sand-pale)}
+.tab-btn:hover:not(.active){background:rgba(0,0,0,.02)}
+.tab-panel{display:none;max-width:1400px;margin:0 auto;padding:12px}
+.tab-panel.active{display:block}
+.metrics{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.metric-label{font-size:10px;font-weight:600;color:var(--slate-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:800;line-height:1.1}
+.metric-sub{font-size:11px;color:var(--neutral);margin-top:4px}
+.layout{display:flex;flex-direction:column;gap:14px}
+.sidebar{width:100%}.main{width:100%}
+.section{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.section-header{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.section-header:hover{background:var(--sand-pale)}
+.section-title{font-size:14px;font-weight:700;color:var(--slate)}
+.section-arrow{font-size:12px;color:var(--neutral);transition:transform .2s}
+.section-body{padding:0 16px 16px;display:none}
+.section.open .section-body{display:block}
+.section.open .section-arrow{transform:rotate(180deg)}
+.field{margin-bottom:12px}
+.field-label{font-size:11px;font-weight:600;color:var(--slate-light);margin-bottom:4px;display:flex;justify-content:space-between}
+.field-value{font-size:13px;font-weight:700;color:var(--terra)}
+.info-box{background:var(--sand-pale);border-radius:6px;padding:10px 12px;text-align:center;margin-bottom:10px}
+.info-box .big{font-size:20px;font-weight:800;color:var(--terra)}
+.info-box .note{font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.toggle-label{font-size:13px;font-weight:600;color:var(--slate)}
+.toggle{position:relative;width:44px;height:24px;background:var(--sand-pale);border-radius:12px;cursor:pointer;transition:.2s;border:1px solid var(--border)}
+.toggle.on{background:var(--sage)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle.on::after{left:22px}
+.summary-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--sand-pale)}
+.summary-label{font-size:13px;color:var(--slate-light)}
+.summary-value{font-size:14px;font-weight:700}
+.summary-total{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-top:6px}
+.callout{border-radius:8px;padding:12px;margin-bottom:12px}
+.callout.amber{background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2)}
+.callout.green{background:rgba(92,138,77,.06);border:1px solid rgba(92,138,77,.15)}
+.callout.blue{background:rgba(61,61,61,.04);border:1px solid rgba(61,61,61,.12)}
+.callout-title{font-weight:700;font-size:12px;color:var(--slate);margin-bottom:4px}
+.callout-text{font-size:12px;color:var(--neutral);line-height:1.6}
+.email-btn{display:inline-block;background:var(--terra);color:#fff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none;font-family:inherit;border:none;cursor:pointer}
+.email-btn:hover{background:var(--terra-dark)}
+.review-card{background:var(--sand-pale);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:12px}
+.review-text{font-size:13px;color:var(--slate);line-height:1.6;font-style:italic}
+.review-author{font-size:11px;font-weight:700;color:var(--neutral);margin-top:8px}
+.team-stat{text-align:center;padding:16px 10px}
+.team-stat-val{font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:var(--terra)}
+.team-stat-lbl{font-size:11px;font-weight:600;color:var(--slate-light);margin-top:2px}
+.footer{text-align:center;font-size:11px;color:var(--neutral);line-height:1.5;margin-top:20px;padding:20px}
+.footer-logo{height:32px;width:auto;opacity:.7;margin-bottom:8px}
+.nhood-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+.nhood-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.nhood-badge.sage{background:rgba(122,139,111,.15);color:var(--sage-dark)}
+.nhood-badge.terra{background:rgba(194,112,62,.12);color:var(--terra-dark)}
+.nhood-badge.sand{background:rgba(212,165,116,.15);color:var(--neutral)}
+.nhood-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.nhood-stat{text-align:center;background:var(--sand-pale);border-radius:6px;padding:8px 4px}
+.nhood-stat-label{font-size:9px;font-weight:600;color:var(--slate-light);text-transform:uppercase;letter-spacing:.3px}
+.nhood-stat-value{font-size:12px;font-weight:700;color:var(--slate);margin-top:2px}
+.why-box{background:var(--sage-bg);border-left:3px solid var(--sage);border-radius:0 8px 8px 0;padding:12px 14px;margin-top:12px}
+.why-box-title{font-size:11px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.why-box-text{font-size:12px;color:var(--neutral);line-height:1.6}
+.school-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.school-badge{font-size:14px;font-weight:900;color:#fff;background:var(--sage);border-radius:6px;padding:6px 10px;flex-shrink:0;text-align:center;min-width:44px}
+.school-info{flex:1}
+.school-name{font-size:13px;font-weight:700;color:var(--terra)}
+.school-name a{color:var(--terra);text-decoration:none}
+.school-name a:hover{text-decoration:underline}
+.school-meta{font-size:11px;color:var(--slate-light);margin-top:2px}
+.school-desc{font-size:12px;color:var(--neutral);margin-top:4px;line-height:1.5}
+.timeline-phase{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;border-left:4px solid var(--sage)}
+.timeline-phase.phase-1{border-left-color:var(--sage)}
+.timeline-phase.phase-2{border-left-color:var(--terra)}
+.timeline-phase.phase-3{border-left-color:var(--sand)}
+.timeline-phase.phase-4{border-left-color:var(--slate)}
+.timeline-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.timeline-label.sage{color:var(--sage-dark)}
+.timeline-label.terra{color:var(--terra)}
+.timeline-label.sand{color:var(--neutral)}
+.timeline-label.slate{color:var(--slate)}
+.timeline-title{font-size:16px;font-weight:800;font-family:'Playfair Display',serif;color:var(--slate);margin-bottom:8px}
+.timeline-items{list-style:none;padding:0}
+.timeline-items li{font-size:13px;color:var(--neutral);padding:4px 0;padding-left:16px;position:relative;line-height:1.5}
+.timeline-items li::before{content:'';position:absolute;left:0;top:10px;width:6px;height:6px;border-radius:50%;background:var(--sand)}
+.market-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+@media(min-width:768px){
+  .header-names{font-size:32px}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .layout{flex-direction:row}
+  .sidebar{width:380px;flex-shrink:0}
+  .main{flex:1;min-width:0}
+  .tab-btn{font-size:13px;padding:14px 16px}
+  .market-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:600px){
+  .tab-btn{font-size:11px;padding:12px 6px}
+  .nhood-stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header"><div class="header-inner">
+  <div class="header-text">
+    <div class="header-title" id="headerTitle"></div>
+    <div class="header-names" id="headerNames"></div>
+    <div id="headerSub" style="font-size:11px;opacity:.6;margin-top:4px"></div>
+  </div>
+</div></div>
+
+<div class="tab-bar-wrap">
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('search')">🏠 Home Search</button>
+  <button class="tab-btn" onclick="showTab('neighborhoods')">📍 Neighborhoods &amp; Schools</button>
+  <button class="tab-btn" onclick="showTab('timeline')">📅 Timeline</button>
+  <button class="tab-btn" onclick="showTab('team')">🤝 Team</button>
+</div>
+</div>
+
+<div class="tab-panel active" id="tab-search"></div>
+<div class="tab-panel" id="tab-neighborhoods"></div>
+<div class="tab-panel" id="tab-timeline"></div>
+<div class="tab-panel" id="tab-team"></div>
+
+<div class="footer">
+  <div style="font-weight:600;color:var(--terra)">Live AZ Co &bull; Powered by Real Broker</div>
+  <div id="footerAgent"></div>
+  <div style="margin-top:4px;font-style:italic">Estimates for planning purposes only. Verify all figures with your lender.</div>
+</div>
+
+<script>
+// === UTILITY FUNCTIONS ===
+function showTab(id){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+  event.target.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+function toggleSection(key){S['sec_'+key]=!S['sec_'+key];render();}
+function fmt(n){if(n==null||isNaN(n))return"$0";var a=Math.abs(Math.round(n));var s=a.toLocaleString("en-US");return n<0?"-$"+s:"$"+s}
+function fmtK(n){return"$"+Math.round(n/1000)+"k"}
+function fmtPct(n){return(n*100).toFixed(1)+"%"}
+function section(sKey,title,bodyHtml,titleStyle){
+  var isOpen=S['sec_'+sKey];
+  var tStyle=titleStyle?' style="'+titleStyle+'"':'';
+  return '<div class="section'+(isOpen?' open':'')+'"><div class="section-header" onclick="toggleSection(\''+sKey+'\')"><span class="section-title"'+tStyle+'>'+title+'</span><span class="section-arrow">&#9660;</span></div><div class="section-body">'+bodyHtml+'</div></div>';
+}
+function slider(label,key,min,max,step,prefix,suffix){
+  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);render()"></div>';
+}
+function numInput(label,key,min,max,note){
+  return '<div class="field"><div class="field-label">'+label+'</div><input type="number" value="'+S[key]+'" min="'+min+'" max="'+max+'" onchange="S.'+key+'=Number(this.value);render()">'+(note?'<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">'+note+'</div>':'')+'</div>';
+}
+function toggle(label,key){
+  return '<div class="toggle-row"><span class="toggle-label">'+label+'</span><div class="toggle '+(S[key]?'on':'')+'" onclick="S.'+key+'=!S.'+key+';render()"></div></div>';
+}
+
+// === AGENT PROFILES ===
+var AGENTS = {
+  josh_jacqui: {
+    displayName: "Josh Hogan & Jacqui Shoffner",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [
+      { name: "Josh Hogan", initials: "JH", photo: "", gradient: "linear-gradient(135deg, #C2703E, #D4915F)", email: "josh@liveazco.com", phone: "(480) 369-8280" },
+      { name: "Jacqui Shoffner", initials: "JS", photo: "", gradient: "linear-gradient(135deg, #7A8B6F, #9AAD8E)", email: "jacqui@liveazco.com", phone: "(602) 751-1615" }
+    ],
+    reviews: [
+      { text: "Josh and Jacqui found us our dream home in Gilbert. Their neighborhood knowledge is unmatched!", author: "Sarah & Mike T." },
+      { text: "The custom buyer dashboard they created helped us compare neighborhoods and understand our options. Truly above and beyond!", author: "David & Lisa R." }
+    ]
+  },
+  josh: {
+    displayName: "Josh Hogan",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [{ name: "Josh Hogan", initials: "JH", photo: "", gradient: "linear-gradient(135deg, #C2703E, #D4915F)", email: "josh@liveazco.com", phone: "(480) 369-8280" }],
+    reviews: [{ text: "Josh's data-driven approach helped us find the perfect home at the right price.", author: "The Martinez Family" }]
+  },
+  jacqui: {
+    displayName: "Jacqui Shoffner",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [{ name: "Jacqui Shoffner", initials: "JS", photo: "", gradient: "linear-gradient(135deg, #7A8B6F, #9AAD8E)", email: "jacqui@liveazco.com", phone: "(602) 751-1615" }],
+    reviews: [{ text: "Jacqui was incredible throughout our home buying journey!", author: "Jennifer & Mark W." }]
+  },
+  robyn: {
+    displayName: "Robyn Hoogenraad",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [{ name: "Robyn Hoogenraad", initials: "RH", photo: "", gradient: "linear-gradient(135deg, #8B7355, #A68B6B)", email: "robyn@liveazco.com", phone: "(480) 555-0100" }],
+    reviews: [{ text: "Robyn helped us navigate the buying process with confidence.", author: "The Thompson Family" }]
+  }
+};
+
+// ============================================================
+// === CONFIG — The only section that changes per client ===
+// ============================================================
+var CONFIG = {
+  templateType: "buyer",
+  clientNames: "Eric & Kellie",
+  fullName: "Eric & Kellie Johnson",
+  email: "eric@email.com",
+  agentKey: "josh_jacqui",
+  targetAreas: "Gilbert, Chandler, Queen Creek",
+  budgetMin: 550000,
+  budgetMax: 750000,
+  bedsMin: 4,
+  bathsMin: 3,
+  mustHaves: ["Pool", "Single Story", "3-Car Garage"],
+  schoolPreference: "Gilbert Public Schools",
+  neighborhoods: [
+    {
+      name: "Finley Farms",
+      badge: "Top Pick",
+      badgeColor: "sage",
+      priceRange: "$600K-$800K",
+      homeSize: "2,200-3,500 SF",
+      commuteTime: "25 min to Tempe",
+      description: "Master-planned community in Gilbert with resort-style amenities, community pool, and walking trails.",
+      whyItWorks: "Matches your budget and has excellent Gilbert Public Schools zoning."
+    }
+  ],
+  schoolDistricts: [
+    {
+      name: "Gilbert Public Schools",
+      description: "One of the highest-rated districts in Arizona",
+      schools: [
+        { name: "Greenfield Elementary", badge: "A+", type: "Elementary", grades: "K-6", rating: "9/10", description: "Top-rated elementary with STEM focus", url: "https://www.gilbertschools.net" }
+      ]
+    }
+  ],
+  timeline: [
+    { phase: "Phase 1", title: "Get Ready (Now)", items: ["Get pre-approved", "Define priorities"] },
+    { phase: "Phase 2", title: "Search & Tour", items: ["Tour neighborhoods", "Open houses"] },
+    { phase: "Phase 3", title: "Make Your Move", items: ["Write offer", "Inspection"] },
+    { phase: "Phase 4", title: "Close & Move In", items: ["Final walkthrough", "Get keys!"] }
+  ],
+  marketSnapshot: [
+    { label: "Gilbert Median Price", value: "$585,000" },
+    { label: "Avg Days on Market", value: "32 days" },
+    { label: "Inventory", value: "2.8 months" }
+  ]
+};
+// ============================================================
+// === END CONFIG ===
+// ============================================================
+
+// === BACKWARD-COMPATIBLE ALIASES ===
+var AGENT_KEY = CONFIG.agentKey;
+
+// === CALCULATIONS ===
+var CONFORMING_LIMIT = 832750;
+
+function pmt(rate, nper, pv) {
+  if (rate === 0) return Math.round(pv / nper);
+  var r = rate;
+  return Math.round(pv * r * Math.pow(1 + r, nper) / (Math.pow(1 + r, nper) - 1));
+}
+
+function calc() {
+  var dp = Math.round(S.purchasePrice * (S.downPaymentPct / 100));
+  var loan = Math.max(0, S.purchasePrice - dp);
+  var mo = loan > 0 ? pmt(S.mortgageRate / 100 / 12, 360, loan) : 0;
+  var moTax = Math.round(S.purchasePrice * (S.taxRate / 100) / 12);
+  var closingCosts = Math.round(S.purchasePrice * 0.025);
+  var upgradeCost = (S.kitchenEnabled ? S.kitchenCost : 0) + (S.flooringEnabled ? S.flooringCost : 0) + (S.paintEnabled ? S.paintCost : 0) + (S.landscapeEnabled ? S.landscapeCost : 0);
+  var cashToClose = dp + closingCosts;
+  var totalCashNeeded = cashToClose + upgradeCost;
+  var isJumbo = loan > CONFORMING_LIMIT;
+  var needsPMI = S.downPaymentPct < 20;
+  return { dp: dp, loan: loan, mo: mo, moTax: moTax, closingCosts: closingCosts, upgradeCost: upgradeCost, cashToClose: cashToClose, totalCashNeeded: totalCashNeeded, isJumbo: isJumbo, needsPMI: needsPMI, monthlyTotal: mo + moTax };
+}
+
+// === MUTABLE UI STATE ===
+var S = {
+  purchasePrice: Math.round((CONFIG.budgetMin + CONFIG.budgetMax) / 2),
+  downPaymentPct: 20,
+  mortgageRate: 6.5,
+  taxRate: 0.65,
+  kitchenEnabled: false, kitchenCost: 30000,
+  flooringEnabled: false, flooringCost: 12000,
+  paintEnabled: false, paintCost: 8000,
+  landscapeEnabled: false, landscapeCost: 15000,
+  sec_purchase: true,
+  sec_upgrades: false,
+  sec_neighborhoods: true,
+  sec_schools: true,
+  sec_timeline: true
+};
+
+// === RENDER ===
+function render() {
+  var agent = AGENTS[AGENT_KEY];
+  var c = calc();
+  var now = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  // Header
+  document.getElementById('pageTitle').textContent = 'Buyer Dashboard \u2014 ' + CONFIG.clientNames + ' | Live AZ Co';
+  document.getElementById('headerTitle').textContent = 'Your Home Search Dashboard';
+  document.getElementById('headerNames').textContent = CONFIG.clientNames;
+  document.getElementById('headerSub').textContent = CONFIG.targetAreas + ' \u2022 ' + fmt(CONFIG.budgetMin) + '\u2013' + fmt(CONFIG.budgetMax) + ' \u2022 ' + CONFIG.bedsMin + '+ BD / ' + CONFIG.bathsMin + '+ BA';
+  document.getElementById('footerAgent').textContent = 'Prepared by ' + agent.displayName + ' \u2022 ' + agent.members[0].phone;
+
+  // =========================================
+  // TAB 1: HOME SEARCH
+  // =========================================
+  var t1 = '';
+
+  // Search criteria hero
+  t1 += '<div style="background:linear-gradient(135deg,var(--sand-pale),rgba(212,165,116,.08));border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px">';
+  t1 += '<div style="font-size:20px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:8px">🔑 Your Home Search Criteria</div>';
+  t1 += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
+  t1 += '<div style="font-size:12px;color:var(--neutral)"><strong style="color:var(--slate)">Target Areas:</strong> ' + CONFIG.targetAreas + '</div>';
+  t1 += '<div style="font-size:12px;color:var(--neutral)"><strong style="color:var(--slate)">Budget:</strong> ' + fmt(CONFIG.budgetMin) + ' \u2013 ' + fmt(CONFIG.budgetMax) + '</div>';
+  t1 += '<div style="font-size:12px;color:var(--neutral)"><strong style="color:var(--slate)">Bedrooms:</strong> ' + CONFIG.bedsMin + '+ BD / ' + CONFIG.bathsMin + '+ BA</div>';
+  t1 += '<div style="font-size:12px;color:var(--neutral)"><strong style="color:var(--slate)">Schools:</strong> ' + (CONFIG.schoolPreference || 'Any') + '</div>';
+  t1 += '</div>';
+  if (CONFIG.mustHaves && CONFIG.mustHaves.length > 0) {
+    t1 += '<div style="margin-top:8px;font-size:12px;color:var(--neutral)"><strong style="color:var(--slate)">Must-Haves:</strong> ' + CONFIG.mustHaves.join(', ') + '</div>';
+  }
+  t1 += '</div>';
+
+  // Top metrics
+  t1 += '<div class="metrics">';
+  t1 += '<div class="metric-card"><div class="metric-label">Monthly Payment</div><div class="metric-value" style="color:var(--terra)">' + fmt(c.monthlyTotal) + '</div><div class="metric-sub">P&I + Tax @ ' + S.purchasePrice.toLocaleString() + '</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Cash to Close</div><div class="metric-value" style="color:var(--sage-dark)">' + fmt(c.cashToClose) + '</div><div class="metric-sub">' + S.downPaymentPct + '% down + 2.5% closing</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Total Cash Needed</div><div class="metric-value" style="color:var(--slate)">' + fmt(c.totalCashNeeded) + '</div><div class="metric-sub">Including ' + fmt(c.upgradeCost) + ' upgrades</div></div>';
+  t1 += '</div>';
+
+  // Two-column layout
+  t1 += '<div class="layout">';
+
+  // === SIDEBAR ===
+  t1 += '<div class="sidebar">';
+
+  // Purchase Calculator section
+  var purchaseBody = '';
+  purchaseBody += slider('Purchase Price', 'purchasePrice', CONFIG.budgetMin, Math.round(CONFIG.budgetMax * 1.3), 5000, '$', '');
+
+  // Down payment dropdown
+  purchaseBody += '<div class="field"><div class="field-label"><span>Down Payment</span><span class="field-value">' + S.downPaymentPct + '% (' + fmt(c.dp) + ')</span></div>';
+  purchaseBody += '<select onchange="S.downPaymentPct=Number(this.value);render()">';
+  var dpOptions = [5, 10, 15, 20, 25, 30];
+  for (var di = 0; di < dpOptions.length; di++) {
+    purchaseBody += '<option value="' + dpOptions[di] + '"' + (S.downPaymentPct === dpOptions[di] ? ' selected' : '') + '>' + dpOptions[di] + '%</option>';
+  }
+  purchaseBody += '</select></div>';
+
+  purchaseBody += slider('Interest Rate', 'mortgageRate', 4.0, 9.0, 0.125, '', '%');
+  purchaseBody += slider('Property Tax Rate', 'taxRate', 0.40, 0.90, 0.05, '', '%');
+
+  t1 += section('purchase', '🏠 Purchase Calculator', purchaseBody);
+
+  // Upgrades section
+  var upgradeBody = '';
+  upgradeBody += toggle('Kitchen Remodel \u2014 ' + fmt(S.kitchenCost), 'kitchenEnabled');
+  upgradeBody += toggle('New Flooring \u2014 ' + fmt(S.flooringCost), 'flooringEnabled');
+  upgradeBody += toggle('Interior Paint \u2014 ' + fmt(S.paintCost), 'paintEnabled');
+  upgradeBody += toggle('Landscaping \u2014 ' + fmt(S.landscapeCost), 'landscapeEnabled');
+  if (c.upgradeCost > 0) {
+    upgradeBody += '<div class="info-box"><div class="big">' + fmt(c.upgradeCost) + '</div><div class="note">Total estimated upgrade cost</div></div>';
+  }
+  t1 += section('upgrades', '🔨 Upgrades (Optional)', upgradeBody);
+
+  // Budget analysis note
+  var budgetPct = Math.round(((S.purchasePrice - CONFIG.budgetMin) / (CONFIG.budgetMax - CONFIG.budgetMin)) * 100);
+  var budgetLabel = budgetPct <= 25 ? 'Low end of range' : (budgetPct <= 75 ? 'Mid-range' : 'Upper range');
+  var budgetColor = budgetPct <= 25 ? 'var(--positive)' : (budgetPct <= 75 ? 'var(--neutral)' : 'var(--terra)');
+  t1 += '<div style="background:var(--sand-pale);border-radius:8px;padding:12px;text-align:center;margin-top:4px">';
+  t1 += '<div style="font-size:10px;font-weight:600;color:var(--slate-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Budget Position</div>';
+  t1 += '<div style="font-size:14px;font-weight:800;color:' + budgetColor + '">' + budgetLabel + '</div>';
+  t1 += '<div style="height:6px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden">';
+  t1 += '<div style="height:100%;width:' + Math.min(100, Math.max(0, budgetPct)) + '%;background:' + budgetColor + ';border-radius:3px"></div>';
+  t1 += '</div>';
+  t1 += '<div style="font-size:10px;color:var(--neutral);margin-top:4px">' + fmt(CONFIG.budgetMin) + ' \u2014 ' + fmt(CONFIG.budgetMax) + '</div>';
+  t1 += '</div>';
+
+  t1 += '</div>'; // end sidebar
+
+  // === MAIN AREA ===
+  t1 += '<div class="main">';
+
+  // Monthly Payment Breakdown
+  t1 += '<div class="section open"><div class="section-header"><span class="section-title">💰 Monthly Payment Breakdown</span></div><div class="section-body">';
+  t1 += '<div class="summary-row"><span class="summary-label">Principal & Interest</span><span class="summary-value">' + fmt(c.mo) + '</span></div>';
+  t1 += '<div class="summary-row"><span class="summary-label">Property Tax</span><span class="summary-value">' + fmt(c.moTax) + '</span></div>';
+  if (c.needsPMI) {
+    var estPMI = Math.round(c.loan * 0.005 / 12);
+    t1 += '<div class="summary-row"><span class="summary-label">Est. PMI</span><span class="summary-value" style="color:var(--negative)">' + fmt(estPMI) + '</span></div>';
+  }
+  t1 += '<div class="summary-total" style="background:var(--terra);color:#fff"><span style="font-weight:700">Total Monthly</span><span style="font-weight:800;font-size:18px">' + fmt(c.monthlyTotal) + (c.needsPMI ? '+' : '') + '</span></div>';
+  t1 += '</div></div>';
+
+  // Cash to Close card
+  t1 += '<div class="section open"><div class="section-header"><span class="section-title">💵 Cash to Close</span></div><div class="section-body">';
+  t1 += '<div class="summary-row"><span class="summary-label">Down Payment (' + S.downPaymentPct + '%)</span><span class="summary-value">' + fmt(c.dp) + '</span></div>';
+  t1 += '<div class="summary-row"><span class="summary-label">Closing Costs (~2.5%)</span><span class="summary-value">' + fmt(c.closingCosts) + '</span></div>';
+  if (c.upgradeCost > 0) {
+    t1 += '<div class="summary-row"><span class="summary-label">Upgrades</span><span class="summary-value">' + fmt(c.upgradeCost) + '</span></div>';
+  }
+  t1 += '<div class="summary-total" style="background:var(--sage-dark);color:#fff"><span style="font-weight:700">Total Cash Needed</span><span style="font-weight:800;font-size:18px">' + fmt(c.totalCashNeeded) + '</span></div>';
+  t1 += '</div></div>';
+
+  // Loan details
+  t1 += '<div class="section open"><div class="section-header"><span class="section-title">🏦 Loan Details</span></div><div class="section-body">';
+  t1 += '<div class="summary-row"><span class="summary-label">Purchase Price</span><span class="summary-value">' + fmt(S.purchasePrice) + '</span></div>';
+  t1 += '<div class="summary-row"><span class="summary-label">Loan Amount</span><span class="summary-value">' + fmt(c.loan) + '</span></div>';
+  t1 += '<div class="summary-row"><span class="summary-label">Interest Rate</span><span class="summary-value">' + S.mortgageRate + '%</span></div>';
+  t1 += '<div class="summary-row"><span class="summary-label">Loan Term</span><span class="summary-value">30 years</span></div>';
+  t1 += '<div class="summary-row"><span class="summary-label">Loan Type</span><span class="summary-value">' + (c.isJumbo ? 'Jumbo' : 'Conventional') + '</span></div>';
+  var ltv = Math.round((c.loan / S.purchasePrice) * 100);
+  t1 += '<div class="summary-row"><span class="summary-label">Loan-to-Value (LTV)</span><span class="summary-value">' + ltv + '%</span></div>';
+  t1 += '</div></div>';
+
+  // Jumbo loan warning
+  if (c.isJumbo) {
+    t1 += '<div class="callout amber"><div class="callout-title">⚠️ Jumbo Loan</div><div class="callout-text">Your loan amount of ' + fmt(c.loan) + ' exceeds the conforming limit of ' + fmt(CONFORMING_LIMIT) + '. Jumbo loans may require higher credit scores, larger reserves, and may have different rate pricing. Talk to your lender about jumbo-specific programs.</div></div>';
+  }
+
+  // PMI note
+  if (c.needsPMI) {
+    t1 += '<div class="callout blue"><div class="callout-title">📋 Private Mortgage Insurance (PMI)</div><div class="callout-text">With ' + S.downPaymentPct + '% down, most lenders require PMI which typically costs 0.3\u20131.5% of the loan amount annually. PMI is removed once you reach 20% equity. Consider increasing your down payment to avoid this cost.</div></div>';
+  }
+
+  // Market Snapshot
+  if (CONFIG.marketSnapshot && CONFIG.marketSnapshot.length > 0) {
+    t1 += '<div style="font-size:14px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin:16px 0 8px">📊 Market Snapshot</div>';
+    t1 += '<div class="market-grid">';
+    for (var mi = 0; mi < CONFIG.marketSnapshot.length; mi++) {
+      var ms = CONFIG.marketSnapshot[mi];
+      t1 += '<div class="metric-card"><div class="metric-label">' + ms.label + '</div><div class="metric-value" style="font-size:18px;color:var(--terra)">' + ms.value + '</div></div>';
+    }
+    t1 += '</div>';
+  }
+
+  // Must-haves summary
+  if (CONFIG.mustHaves && CONFIG.mustHaves.length > 0) {
+    t1 += '<div style="margin-top:16px"><div class="callout green"><div class="callout-title">✅ Your Must-Haves</div><div class="callout-text">';
+    for (var mhi = 0; mhi < CONFIG.mustHaves.length; mhi++) {
+      t1 += (mhi > 0 ? ' &bull; ' : '') + CONFIG.mustHaves[mhi];
+    }
+    t1 += '</div></div></div>';
+  }
+
+  t1 += '</div>'; // end main
+  t1 += '</div>'; // end layout
+
+  document.getElementById('tab-search').innerHTML = t1;
+
+  // =========================================
+  // TAB 2: NEIGHBORHOODS & SCHOOLS
+  // =========================================
+  var t2 = '';
+
+  // Neighborhoods
+  t2 += '<div style="font-size:20px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:14px">📍 Recommended Neighborhoods</div>';
+
+  for (var ni = 0; ni < CONFIG.neighborhoods.length; ni++) {
+    var nh = CONFIG.neighborhoods[ni];
+    t2 += '<div class="nhood-card">';
+    if (nh.badge) {
+      t2 += '<div class="nhood-badge ' + (nh.badgeColor || 'sage') + '">' + nh.badge + '</div>';
+    }
+    t2 += '<div style="font-size:18px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate)">' + nh.name + '</div>';
+    t2 += '<div class="nhood-stats">';
+    t2 += '<div class="nhood-stat"><div class="nhood-stat-label">Price Range</div><div class="nhood-stat-value">' + nh.priceRange + '</div></div>';
+    t2 += '<div class="nhood-stat"><div class="nhood-stat-label">Home Size</div><div class="nhood-stat-value">' + nh.homeSize + '</div></div>';
+    t2 += '<div class="nhood-stat"><div class="nhood-stat-label">Commute</div><div class="nhood-stat-value">' + nh.commuteTime + '</div></div>';
+    t2 += '</div>';
+    t2 += '<div style="font-size:13px;color:var(--neutral);line-height:1.6">' + nh.description + '</div>';
+    if (nh.whyItWorks) {
+      t2 += '<div class="why-box"><div class="why-box-title">Why It Works for You</div><div class="why-box-text">' + nh.whyItWorks + '</div></div>';
+    }
+    t2 += '</div>';
+  }
+
+  // School Districts
+  if (CONFIG.schoolDistricts && CONFIG.schoolDistricts.length > 0) {
+    t2 += '<div style="font-size:20px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin:24px 0 14px">🏫 School Districts</div>';
+
+    for (var sdi = 0; sdi < CONFIG.schoolDistricts.length; sdi++) {
+      var sd = CONFIG.schoolDistricts[sdi];
+      var sdKey = 'district_' + sdi;
+      if (S['sec_' + sdKey] === undefined) S['sec_' + sdKey] = true;
+      var sdOpen = S['sec_' + sdKey];
+
+      t2 += '<div class="section' + (sdOpen ? ' open' : '') + '">';
+      t2 += '<div class="section-header" onclick="toggleSection(\'' + sdKey + '\')">';
+      t2 += '<span class="section-title">🎓 ' + sd.name + '</span>';
+      t2 += '<span class="section-arrow">&#9660;</span></div>';
+      t2 += '<div class="section-body">';
+      t2 += '<div style="font-size:13px;color:var(--neutral);margin-bottom:12px;line-height:1.5">' + sd.description + '</div>';
+
+      for (var sci = 0; sci < sd.schools.length; sci++) {
+        var sch = sd.schools[sci];
+        t2 += '<div class="school-card">';
+        t2 += '<div class="school-badge">' + sch.badge + '</div>';
+        t2 += '<div class="school-info">';
+        if (sch.url) {
+          t2 += '<div class="school-name"><a href="' + sch.url + '" target="_blank">' + sch.name + '</a></div>';
+        } else {
+          t2 += '<div class="school-name">' + sch.name + '</div>';
+        }
+        t2 += '<div class="school-meta">' + sch.type + ' &bull; Grades ' + sch.grades + ' &bull; Rating: ' + sch.rating + '</div>';
+        t2 += '<div class="school-desc">' + sch.description + '</div>';
+        t2 += '</div></div>';
+      }
+
+      t2 += '</div></div>';
+    }
+  }
+
+  document.getElementById('tab-neighborhoods').innerHTML = t2;
+
+  // =========================================
+  // TAB 3: TIMELINE
+  // =========================================
+  var t3 = '';
+  t3 += '<div style="font-size:20px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:14px">📅 Your Buying Timeline</div>';
+  t3 += '<div style="font-size:13px;color:var(--neutral);margin-bottom:16px;line-height:1.6">Here\'s a step-by-step roadmap customized for your home search. Each phase builds on the last to keep you on track and confident.</div>';
+
+  var phaseColors = ['sage', 'terra', 'sand', 'slate'];
+  var phaseClasses = ['phase-1', 'phase-2', 'phase-3', 'phase-4'];
+
+  for (var ti = 0; ti < CONFIG.timeline.length; ti++) {
+    var tp = CONFIG.timeline[ti];
+    var pColor = phaseColors[ti] || 'sage';
+    var pClass = phaseClasses[ti] || 'phase-1';
+    t3 += '<div class="timeline-phase ' + pClass + '">';
+    t3 += '<div class="timeline-label ' + pColor + '">' + tp.phase + '</div>';
+    t3 += '<div class="timeline-title">' + tp.title + '</div>';
+    t3 += '<ul class="timeline-items">';
+    for (var ii = 0; ii < tp.items.length; ii++) {
+      t3 += '<li>' + tp.items[ii] + '</li>';
+    }
+    t3 += '</ul></div>';
+  }
+
+  // What to Expect section
+  t3 += '<div style="font-size:18px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin:24px 0 12px">📋 What to Expect</div>';
+  t3 += '<div style="display:grid;grid-template-columns:1fr;gap:10px">';
+  var expectations = [
+    { icon: "🏦", title: "Pre-Approval", desc: "Your lender will review income, assets, and credit to determine your maximum purchasing power. This typically takes 1\u20133 business days." },
+    { icon: "🔍", title: "Home Tours", desc: "We will schedule private showings based on your criteria. Most buyers tour 5\u201315 homes before finding the one. We will send you listings daily." },
+    { icon: "📝", title: "Making an Offer", desc: "When you find the right home, we will run comps, analyze days on market, and craft a competitive offer. We will advise on price, terms, and contingencies." },
+    { icon: "🔎", title: "Inspection Period", desc: "A professional inspector will evaluate the property. This is your opportunity to request repairs or credits. Typically 10 days in Arizona." },
+    { icon: "🏠", title: "Appraisal & Closing", desc: "Your lender orders an appraisal to confirm value. We coordinate with title, escrow, and all parties to close on time. You get the keys!" }
+  ];
+  for (var ei = 0; ei < expectations.length; ei++) {
+    var exp = expectations[ei];
+    t3 += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start">';
+    t3 += '<div style="font-size:22px;line-height:1;flex-shrink:0">' + exp.icon + '</div>';
+    t3 += '<div><div style="font-size:13px;font-weight:700;color:var(--slate)">' + exp.title + '</div>';
+    t3 += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-top:2px">' + exp.desc + '</div></div>';
+    t3 += '</div>';
+  }
+  t3 += '</div>';
+
+  // Buying tips callout
+  t3 += '<div class="callout green" style="margin-top:16px"><div class="callout-title">💡 Pro Tips for ' + CONFIG.clientNames + '</div><div class="callout-text">';
+  t3 += 'Get pre-approved before touring homes so you can move fast when the right one appears. In competitive markets, strong pre-approval letters from local lenders carry more weight than big-bank letters. We will guide you through every step.';
+  t3 += '</div></div>';
+
+  // Arizona-specific callout
+  t3 += '<div class="callout blue"><div class="callout-title">🌵 Arizona Buying Notes</div><div class="callout-text">';
+  t3 += 'Arizona uses an escrow closing process (no attorney required). The standard BINSR (Buyer\'s Inspection Notice and Seller\'s Response) period is 10 days. Property taxes in Maricopa County are among the lowest in the nation, typically 0.5\u20130.8% of assessed value.';
+  t3 += '</div></div>';
+
+  document.getElementById('tab-timeline').innerHTML = t3;
+
+  // =========================================
+  // TAB 4: TEAM
+  // =========================================
+  var tTeam = '';
+
+  // Headshots + Names
+  tTeam += '<div style="text-align:center;padding:20px 0 10px">';
+  tTeam += '<div style="display:flex;justify-content:center;gap:16px;margin-bottom:12px">';
+  for (var mi2 = 0; mi2 < agent.members.length; mi2++) {
+    var mem = agent.members[mi2];
+    if (mem.photo) {
+      tTeam += '<img src="' + mem.photo + '" alt="' + mem.name + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--sand-light)">';
+    } else {
+      tTeam += '<div style="width:80px;height:80px;border-radius:50%;background:' + mem.gradient + ';display:flex;align-items:center;justify-content:center;border:3px solid var(--sand-light);color:#fff;font-size:24px;font-weight:800;font-family:\'Playfair Display\',serif">' + mem.initials + '</div>';
+    }
+  }
+  tTeam += '</div>';
+  tTeam += '<div style="font-size:24px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate)">' + agent.displayName.replace(/&/g, '&amp;') + '</div>';
+  tTeam += '<div style="font-size:14px;color:var(--neutral);margin-top:4px">Live AZ Co &bull; Powered by Real Broker</div>';
+  tTeam += '<div style="font-size:12px;color:var(--neutral);margin-top:2px">East Valley Specialists &bull; Gilbert, Chandler, Mesa, Queen Creek, Scottsdale</div>';
+  tTeam += '</div>';
+
+  // Career Stats
+  tTeam += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0">';
+  tTeam += '<div class="team-stat" style="background:var(--card);border:1px solid var(--border);border-radius:10px"><div class="team-stat-val">470+</div><div class="team-stat-lbl">Live AZ Co Team Transactions</div></div>';
+  tTeam += '<div class="team-stat" style="background:var(--card);border:1px solid var(--border);border-radius:10px"><div class="team-stat-val">$232M+</div><div class="team-stat-lbl">Live AZ Co Team Volume</div></div>';
+  tTeam += '</div>';
+
+  // Why This Matters - buyer-specific
+  tTeam += '<div style="background:linear-gradient(135deg,rgba(92,138,77,.08),rgba(122,139,111,.04));border:1px solid rgba(92,138,77,.2);border-radius:12px;padding:16px;margin-bottom:16px">';
+  tTeam += '<div style="font-size:13px;font-weight:800;color:var(--sage-dark);margin-bottom:14px;text-align:center">🏆 Why This Matters for Your Home Search</div>';
+  tTeam += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+  tTeam += '<div style="text-align:center;background:var(--card);border-radius:8px;padding:12px"><div style="font-size:18px">🏠</div><div style="font-size:10px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;margin-top:4px">Buyer Advocates</div><div style="font-size:10px;color:var(--neutral);margin-top:2px">We represent your interests and negotiate on your behalf</div></div>';
+  tTeam += '<div style="text-align:center;background:var(--card);border-radius:8px;padding:12px"><div style="font-size:18px">📊</div><div style="font-size:10px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;margin-top:4px">Market Intel</div><div style="font-size:10px;color:var(--neutral);margin-top:2px">We analyze every listing so you never overpay</div></div>';
+  tTeam += '<div style="text-align:center;background:var(--card);border-radius:8px;padding:12px"><div style="font-size:18px">🤝</div><div style="font-size:10px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;margin-top:4px">Always Here</div><div style="font-size:10px;color:var(--neutral);margin-top:2px">Questions about neighborhoods, schools, or timing \u2014 anytime</div></div>';
+  tTeam += '</div>';
+  tTeam += '<div style="background:var(--sage-dark);color:#fff;border-radius:8px;padding:12px 14px;text-align:center">';
+  tTeam += '<div style="font-size:12px;font-weight:700;line-height:1.5">Finding the right home is one of the biggest decisions you will make. We are here to make sure you feel confident, informed, and supported every step of the way.</div>';
+  tTeam += '</div>';
+  tTeam += '</div>';
+
+  // Reviews
+  tTeam += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin:16px 0 10px">⭐ What Our Clients Say</div>';
+  for (var ri = 0; ri < agent.reviews.length; ri++) {
+    var rev = agent.reviews[ri];
+    tTeam += '<div class="review-card"><div class="review-text">"' + rev.text + '"</div><div class="review-author">\u2014 ' + rev.author + '</div></div>';
+  }
+
+  tTeam += '<div style="text-align:center;margin:16px 0"><a href="' + agent.reviewUrl + '" target="_blank" class="email-btn" style="background:var(--slate)">⭐ Read All Reviews on Google</a></div>';
+
+  // What We Do Differently
+  tTeam += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin:20px 0 10px">🛠️ What We Do Differently</div>';
+  tTeam += '<div style="background:linear-gradient(135deg,var(--slate),var(--slate-light));border-radius:12px;padding:16px;margin-bottom:12px;color:#fff">';
+  tTeam += '<div style="font-size:14px;font-weight:800;margin-bottom:6px">🤖 AI-Powered Real Estate</div>';
+  tTeam += '<div style="font-size:12px;line-height:1.6;opacity:.9">We are one of the only teams in Arizona actively using AI across every phase of a transaction. This is not a gimmick. It translates directly into finding better homes faster, smarter negotiations, and less stress for you.</div>';
+  tTeam += '</div>';
+
+  var aiCards = [
+    { emoji: "📈", title: "Smarter Pricing & Market Analysis", desc: "AI processes hundreds of comparable sales, active listings, and market trends in seconds. We identify the exact value range for any home so you never overpay." },
+    { emoji: "🔍", title: "Neighborhood Intelligence", desc: "We analyze school ratings, commute patterns, appreciation trends, and lifestyle factors to match you with neighborhoods that fit your life \u2014 not just your budget." },
+    { emoji: "💻", title: "Custom Dashboards Like This One", desc: "Every client gets a personalized, interactive dashboard built specifically for their search criteria. You can model scenarios, compare neighborhoods, and stay informed in real time." },
+    { emoji: "🎯", title: "Offer Strategy & Negotiation", desc: "AI analyzes listing agent patterns, days on market, price history, and comparable negotiation outcomes so we craft the strongest possible offer for every home." },
+    { emoji: "🕒", title: "Faster Response, Less Stress", desc: "Contracts, disclosures, and transaction coordination are streamlined with AI so nothing falls through the cracks. You get faster answers, cleaner paperwork, and fewer surprises." },
+    { emoji: "🏠", title: "Off-Market & Coming-Soon Access", desc: "Our network and technology give you access to properties before they hit the MLS, giving you a competitive edge in a fast-moving market." }
+  ];
+  for (var a = 0; a < aiCards.length; a++) {
+    var ac = aiCards[a];
+    tTeam += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">';
+    tTeam += '<div style="font-size:22px;line-height:1">' + ac.emoji + '</div>';
+    tTeam += '<div><div style="font-size:13px;font-weight:700;color:var(--terra);margin-bottom:4px">' + ac.title + '</div><div style="font-size:12px;color:var(--neutral);line-height:1.6">' + ac.desc + '</div></div>';
+    tTeam += '</div>';
+  }
+
+  // Contact CTA
+  var emails = agent.members.map(function(m) { return m.email; });
+  var firstNames = agent.members.map(function(m) { return m.name.split(' ')[0]; });
+  var mailto = 'mailto:' + emails.join(',') + '?subject=' + encodeURIComponent('Question from ' + CONFIG.clientNames + ' - Home Search') + '&body=Hi%20' + encodeURIComponent(firstNames.join(' & ')) + '%2C%0A%0A';
+  tTeam += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;margin-top:16px">';
+  tTeam += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:12px">We\'re Here to Find Your Perfect Home</div>';
+  tTeam += '<div style="font-size:12px;color:var(--neutral);line-height:1.5;margin-bottom:12px">Whether it\'s a question about a listing, a neighborhood, or the buying process \u2014 don\'t hesitate to reach out anytime.</div>';
+  tTeam += '<a href="' + mailto + '" class="email-btn">📧 Reach Out to Your Team</a>';
+  tTeam += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:12px">';
+  for (var ci = 0; ci < agent.members.length; ci++) {
+    var cm = agent.members[ci];
+    tTeam += '<div style="font-size:11px;color:var(--neutral)">' + cm.email + ' &bull; ' + cm.phone + '</div>';
+  }
+  tTeam += '</div>';
+  tTeam += '</div>';
+
+  document.getElementById('tab-team').innerHTML = tTeam;
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

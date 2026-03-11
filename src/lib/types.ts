@@ -144,7 +144,174 @@ export interface Upgrade {
   desc: string;
 }
 
+// --- Sell Dashboard Types ---
+
+export interface CompetitionListing {
+  address: string;
+  price: number;
+  status: string;
+  dom: number;
+  beds: string;
+  baths: string;
+  sqft: number;
+  pool: string;
+  note: string;
+}
+
+export interface PrepItem {
+  key: string;
+  label: string;
+  defaultCost: number;
+  desc: string;
+}
+
+export interface SellDashboardConfig {
+  templateType: "sell";
+  // Client
+  clientNames: string;
+  fullName: string;
+  email: string;
+  address: string;
+  cityStateZip: string;
+  subdivision: string;
+  communityName: string;
+  agentKey: string;
+  // Property
+  beds: number;
+  baths: number;
+  sqft: number;
+  lotSqft: number;
+  yearBuilt: number;
+  pool: boolean;
+  stories: number;
+  // Sell-specific
+  estimatedSalePrice: number;
+  loanPayoff: number;
+  propertyHighlights: string[];
+  upgrades: { name: string; value: string }[];
+  // Market
+  comps: CompSale[];
+  marketMetrics: MarketMetrics;
+  pricingStrategy: string;
+  competition: CompetitionListing[];
+  marketSnapshot: { label: string; value: string }[];
+  // Listing plan
+  prepItems: PrepItem[];
+  marketingPlan: string[];
+  timeline: { phase: string; dates: string; items: string[] }[];
+  // Cromford
+  cromfordMetrics: CromfordMetric[];
+  cromfordTakeaway: string;
+  cromfordSource: string;
+  // Features from MLS
+  features: Feature[];
+}
+
+// --- Buyer Dashboard Types ---
+
+export interface NeighborhoodCard {
+  name: string;
+  badge: string;
+  badgeColor: string;
+  priceRange: string;
+  homeSize: string;
+  commuteTime: string;
+  description: string;
+  whyItWorks: string;
+}
+
+export interface SchoolInfo {
+  name: string;
+  badge: string;
+  type: string;
+  grades: string;
+  rating: string;
+  description: string;
+  url: string;
+}
+
+export interface SchoolDistrict {
+  name: string;
+  description: string;
+  schools: SchoolInfo[];
+}
+
+export interface BuyerDashboardConfig {
+  templateType: "buyer";
+  // Client
+  clientNames: string;
+  fullName: string;
+  email: string;
+  agentKey: string;
+  // Search criteria
+  targetAreas: string;
+  budgetMin: number;
+  budgetMax: number;
+  bedsMin: number;
+  bathsMin: number;
+  mustHaves: string[];
+  schoolPreference: string;
+  // Content
+  neighborhoods: NeighborhoodCard[];
+  schoolDistricts: SchoolDistrict[];
+  timeline: { phase: string; title: string; items: string[] }[];
+  // Optional market context from CSV
+  marketSnapshot: { label: string; value: string }[];
+}
+
+// --- Buy/Sell Dashboard Types ---
+
+export interface BuySellDashboardConfig {
+  templateType: "buysell";
+  // Client
+  clientNames: string;
+  fullName: string;
+  email: string;
+  agentKey: string;
+  // Sell-side (current home)
+  sellAddress: string;
+  sellCityStateZip: string;
+  sellSubdivision: string;
+  sellCommunityName: string;
+  sellBeds: number;
+  sellBaths: number;
+  sellSqft: number;
+  sellLotSqft: number;
+  sellYearBuilt: number;
+  sellPool: boolean;
+  sellStories: number;
+  estimatedSalePrice: number;
+  loanPayoff: number;
+  sellPropertyHighlights: string[];
+  sellComps: CompSale[];
+  sellMarketMetrics: MarketMetrics;
+  sellPricingStrategy: string;
+  sellCompetition: CompetitionListing[];
+  // Buy-side
+  targetAreas: string;
+  budgetMin: number;
+  budgetMax: number;
+  bedsMin: number;
+  bathsMin: number;
+  mustHaves: string[];
+  schoolPreference: string;
+  neighborhoods: NeighborhoodCard[];
+  schoolDistricts: SchoolDistrict[];
+  // Strategy
+  strategyOptions: { label: string; title: string; pros: string[]; cons: string[] }[];
+  strategyTimeline: { phase: string; title: string; items: string[] }[];
+  // Cromford
+  cromfordMetrics: CromfordMetric[];
+  cromfordTakeaway: string;
+  cromfordSource: string;
+  // Features from MLS
+  features: Feature[];
+}
+
+// --- Houseversary Dashboard Types (existing) ---
+
 export interface DashboardConfig {
+  templateType?: "houseversary";
   clientNames: string;
   fullName: string;
   email: string;
@@ -302,3 +469,10 @@ export interface GenerationStep {
   message: string;
   progress: number;
 }
+
+/** Union type for all dashboard configs */
+export type AnyDashboardConfig =
+  | DashboardConfig
+  | SellDashboardConfig
+  | BuyerDashboardConfig
+  | BuySellDashboardConfig;

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title id="pageTitle">Pre-Listing Sell Dashboard | Live AZ Co</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--sand:#D4A574;--sand-light:#E8CDB0;--sand-pale:#F5EDE3;
+--terra:#C2703E;--terra-light:#D4915F;--terra-dark:#A85A2A;
+--sage:#7A8B6F;--sage-dark:#5C6B52;--sage-light:#9AAD8E;
+--slate:#3D3D3D;--slate-light:#5A5A5A;
+--cream:#FAF6F0;
+--positive:#5C8A4D;--negative:#B84C3A;--neutral:#8B7355;
+--card:#fff;--border:#E8DDD0;
+--sage-bg:rgba(122,139,111,.08);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--slate);-webkit-font-smoothing:antialiased}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--sand-pale);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff}
+input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none}
+input[type=number]:focus{border-color:var(--terra)}
+.header{background:linear-gradient(135deg,var(--slate),var(--slate-light));padding:16px 20px;color:#fff}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+.header-text{flex:1;min-width:0}
+.header-title{font-size:18px;font-weight:700;font-family:'Playfair Display',serif;line-height:1.2;opacity:.85}
+.header-names{font-size:28px;font-weight:900;font-family:'Playfair Display',serif;margin-top:4px}
+.tab-bar-wrap{position:sticky;top:0;z-index:100;background:var(--card)}
+.tab-bar{display:flex;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex:1 0 0;padding:14px 8px;text-align:center;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--slate-light);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap}
+.tab-btn.active{color:var(--terra);border-bottom-color:var(--terra);background:var(--sand-pale)}
+.tab-btn:hover:not(.active){background:rgba(0,0,0,.02)}
+.tab-panel{display:none;max-width:1400px;margin:0 auto;padding:12px}
+.tab-panel.active{display:block}
+.metrics{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.metric-label{font-size:10px;font-weight:600;color:var(--slate-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:800;line-height:1.1}
+.metric-sub{font-size:11px;color:var(--neutral);margin-top:4px}
+.section{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.section-header{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.section-header:hover{background:var(--sand-pale)}
+.section-title{font-size:14px;font-weight:700;color:var(--slate)}
+.section-arrow{font-size:12px;color:var(--neutral);transition:transform .2s}
+.section-body{padding:0 16px 16px;display:none}
+.section.open .section-body{display:block}
+.section.open .section-arrow{transform:rotate(180deg)}
+.field{margin-bottom:12px}
+.field-label{font-size:11px;font-weight:600;color:var(--slate-light);margin-bottom:4px;display:flex;justify-content:space-between}
+.field-value{font-size:13px;font-weight:700;color:var(--terra)}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.toggle-label{font-size:13px;font-weight:600;color:var(--slate)}
+.toggle{position:relative;width:44px;height:24px;background:var(--sand-pale);border-radius:12px;cursor:pointer;transition:.2s;border:1px solid var(--border);flex-shrink:0}
+.toggle.on{background:var(--sage)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle.on::after{left:22px}
+.summary-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--sand-pale)}
+.summary-label{font-size:13px;color:var(--slate-light)}
+.summary-value{font-size:14px;font-weight:700}
+.summary-total{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-top:6px}
+.comp-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.comp-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.comp-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.comp-card-addr{font-weight:700;font-size:13px;color:var(--slate)}
+.comp-card-sub{font-size:11px;color:var(--slate-light);margin-top:2px}
+.comm-badge{display:inline-block;font-size:9px;background:var(--sage);color:#fff;padding:1px 6px;border-radius:3px;margin-left:4px;font-weight:600;letter-spacing:.3px;vertical-align:middle}
+.tier-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+.tier-badge.strong{background:rgba(92,138,77,.12);color:var(--positive)}
+.tier-badge.moderate{background:rgba(212,168,71,.12);color:#B8860B}
+.tier-badge.weak{background:rgba(184,76,58,.1);color:var(--negative)}
+.score-row{display:flex;align-items:center;gap:8px}
+.score-label{font-size:10px;color:var(--slate-light);text-transform:uppercase;letter-spacing:.3px;font-weight:600;white-space:nowrap}
+.score-bar{flex:1;height:6px;background:var(--sand-pale);border-radius:3px;overflow:hidden}
+.score-fill{height:100%;background:var(--sage);border-radius:3px;transition:width .3s}
+.score-val{font-size:12px;font-weight:700;color:var(--sage-dark);min-width:20px;text-align:right}
+.comp-details{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.comp-detail{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--sand-pale)}
+.cd-label{font-size:10px;color:var(--slate-light);text-transform:uppercase;letter-spacing:.3px}
+.cd-val{font-size:12px;font-weight:600;color:var(--slate)}
+.comp-adj-section{border-top:1px solid var(--border);padding-top:8px}
+.comp-adj-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--slate-light);margin-bottom:6px}
+.comp-adj-none{font-size:11px;color:var(--positive);font-style:italic}
+.comp-adj-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
+.comp-adj-row span:first-child{color:var(--slate-light)}
+.comp-adj-amt{font-weight:600;color:var(--positive)}
+.comp-card-footer{display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;margin-top:auto}
+.comp-sold{font-size:12px;font-weight:600;color:var(--slate)}
+.comp-adjusted{font-size:12px;font-weight:700;color:var(--terra)}
+@media(max-width:768px){.comp-card-grid{grid-template-columns:1fr}}
+.adj-legend{background:linear-gradient(135deg,rgba(194,112,62,.05),transparent);border-left:3px solid var(--terra);padding:14px 18px;border-radius:0 8px 8px 0;margin-bottom:14px}
+.adj-legend-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--slate);margin-bottom:6px}
+.adj-legend-intro{font-size:12px;color:var(--neutral);line-height:1.7;margin:0 0 10px}
+.adj-legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.adj-legend-item{display:flex;gap:8px;align-items:baseline}
+.adj-legend-label{font-size:11px;font-weight:700;color:var(--terra);white-space:nowrap;min-width:65px}
+.adj-legend-desc{font-size:11px;color:var(--neutral);line-height:1.5}
+@media(max-width:768px){.adj-legend-grid{grid-template-columns:1fr}}
+.callout{border-radius:8px;padding:12px;margin-bottom:12px}
+.callout.amber{background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2)}
+.callout.green{background:rgba(92,138,77,.06);border:1px solid rgba(92,138,77,.15)}
+.callout.blue{background:rgba(61,61,61,.04);border:1px solid rgba(61,61,61,.12)}
+.callout-title{font-weight:700;font-size:12px;color:var(--slate);margin-bottom:4px}
+.callout-text{font-size:12px;color:var(--neutral);line-height:1.6}
+.email-btn{display:inline-block;background:var(--terra);color:#fff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none;font-family:inherit;border:none;cursor:pointer}
+.email-btn:hover{background:var(--terra-dark)}
+.review-card{background:var(--sand-pale);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:12px}
+.review-text{font-size:13px;color:var(--slate);line-height:1.6;font-style:italic}
+.review-author{font-size:11px;font-weight:700;color:var(--neutral);margin-top:8px}
+.team-stat{text-align:center;padding:16px 10px}
+.team-stat-val{font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:var(--terra)}
+.team-stat-lbl{font-size:11px;font-weight:600;color:var(--slate-light);margin-top:2px}
+.footer{text-align:center;font-size:11px;color:var(--neutral);line-height:1.5;margin-top:20px;padding:20px}
+.prop-card{background:var(--sand-pale);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:12px}
+.prop-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.prop-stat{background:var(--card);border-radius:8px;padding:10px;text-align:center}
+.prop-stat-label{font-size:10px;color:var(--slate-light);text-transform:uppercase;font-weight:600}
+.prop-stat-value{font-size:18px;font-weight:800}
+.value-display{text-align:center;padding:24px 20px;background:linear-gradient(135deg,rgba(194,112,62,.08),rgba(194,112,62,.02));border:2px solid var(--terra);border-radius:10px;margin-bottom:16px}
+.value-display .big{font-size:42px;font-weight:900;font-family:'Playfair Display',serif;color:var(--terra)}
+.value-display .range{font-size:13px;color:var(--neutral);margin-top:4px}
+.home-hero{background:linear-gradient(135deg,var(--sand-pale),rgba(212,165,116,.08));border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:16px}
+.home-hero-address{font-size:24px;font-weight:800;font-family:'Playfair Display',serif;color:var(--slate)}
+.home-hero-sub{font-size:13px;color:var(--neutral);margin-top:4px;margin-bottom:20px}
+.home-hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.home-hero-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.home-hero-stat .label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--slate-light);font-weight:600;margin-bottom:4px}
+.home-hero-stat .value{font-size:20px;font-weight:800;color:var(--terra)}
+.home-hero-stat .detail{font-size:10px;color:var(--neutral);margin-top:2px}
+.narrative-box{background:linear-gradient(135deg,rgba(194,112,62,.05),transparent);border-left:3px solid var(--terra);padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;line-height:1.8;color:var(--neutral)}
+.narrative-box strong{color:var(--slate)}
+.btn-group{display:flex;gap:6px;margin:6px 0}
+.btn-opt{flex:1;padding:8px 4px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-family:inherit;font-size:12px;font-weight:600;color:var(--slate-light);cursor:pointer;text-align:center;transition:.2s}
+.btn-opt.active{background:var(--terra);color:#fff;border-color:var(--terra)}
+.btn-opt:hover:not(.active){background:var(--sand-pale)}
+.status-badge{display:inline-block;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase}
+.status-badge.active{background:rgba(92,138,77,.12);color:var(--positive)}
+.status-badge.uc{background:rgba(212,168,71,.12);color:#B8860B}
+.status-badge.drop{background:rgba(184,76,58,.1);color:var(--negative)}
+.timeline-phase{border-left:3px solid var(--terra);padding:12px 16px;margin-bottom:12px;border-radius:0 8px 8px 0;background:linear-gradient(135deg,rgba(194,112,62,.04),transparent)}
+.timeline-phase-title{font-size:13px;font-weight:800;color:var(--terra)}
+.timeline-phase-dates{font-size:11px;color:var(--neutral);margin-top:2px;margin-bottom:8px}
+.timeline-phase-item{font-size:12px;color:var(--slate);line-height:1.8;padding-left:16px;position:relative}
+.timeline-phase-item::before{content:'\2022';position:absolute;left:4px;color:var(--terra)}
+.check-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--slate);line-height:1.6;margin-bottom:6px}
+.check-icon{color:var(--sage);font-size:14px;flex-shrink:0;margin-top:1px}
+.prep-toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.prep-toggle-info{flex:1;min-width:0}
+.prep-toggle-label{font-size:13px;font-weight:700;color:var(--slate)}
+.prep-toggle-desc{font-size:11px;color:var(--neutral);margin-top:2px}
+.prep-toggle-cost{font-size:13px;font-weight:700;color:var(--terra);margin-right:12px;white-space:nowrap}
+@media(min-width:768px){
+  .header-names{font-size:32px}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .tab-btn{font-size:13px;padding:14px 16px}
+}
+@media(max-width:600px){
+  .tab-btn{font-size:11px;padding:12px 6px}
+  .value-display .big{font-size:32px}
+  .home-hero-address{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<div class="header"><div class="header-inner">
+  <div class="header-text">
+    <div class="header-title" id="headerTitle"></div>
+    <div class="header-names" id="headerNames"></div>
+    <div id="headerSub" style="font-size:11px;opacity:.6;margin-top:4px"></div>
+  </div>
+</div></div>
+
+<div class="tab-bar-wrap">
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('home')">Your Home</button>
+  <button class="tab-btn" onclick="showTab('market')">Market</button>
+  <button class="tab-btn" onclick="showTab('listing')">Listing Plan</button>
+  <button class="tab-btn" onclick="showTab('team')">Team</button>
+</div>
+</div>
+
+<div class="tab-panel active" id="tab-home"></div>
+<div class="tab-panel" id="tab-market"></div>
+<div class="tab-panel" id="tab-listing"></div>
+<div class="tab-panel" id="tab-team"></div>
+
+<div class="footer">
+  <div style="font-weight:600;color:var(--terra)">Live AZ Co &bull; Powered by Real Broker</div>
+  <div id="footerAgent"></div>
+  <div style="margin-top:4px;font-style:italic">Estimates for planning purposes only. Verify all figures with your lender and title company.</div>
+</div>
+
+<script>
+// === UTILITY FUNCTIONS ===
+function showTab(id){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+  event.target.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+function toggleSection(key){S['sec_'+key]=!S['sec_'+key];render();}
+function fmt(n){if(n==null||isNaN(n))return"$0";var a=Math.abs(Math.round(n));var s=a.toLocaleString("en-US");return n<0?"-$"+s:"$"+s}
+function fmtK(n){return"$"+Math.round(n/1000)+"k"}
+function fmtPct(n){return(n*100).toFixed(1)+"%"}
+function section(sKey,title,bodyHtml,titleStyle){
+  var isOpen=S['sec_'+sKey];
+  var tStyle=titleStyle?' style="'+titleStyle+'"':'';
+  return '<div class="section'+(isOpen?' open':'')+'"><div class="section-header" onclick="toggleSection(\''+sKey+'\')"><span class="section-title"'+tStyle+'>'+title+'</span><span class="section-arrow">&#9660;</span></div><div class="section-body">'+bodyHtml+'</div></div>';
+}
+function slider(label,key,min,max,step,prefix,suffix){
+  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);render()"></div>';
+}
+function numInput(label,key,min,max,note){
+  return '<div class="field"><div class="field-label">'+label+'</div><input type="number" value="'+S[key]+'" min="'+min+'" max="'+max+'" onchange="S.'+key+'=Number(this.value);render()">'+(note?'<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">'+note+'</div>':'')+'</div>';
+}
+function toggle(label,key){
+  return '<div class="toggle-row"><span class="toggle-label">'+label+'</span><div class="toggle '+(S[key]?'on':'')+'" onclick="S.'+key+'=!S.'+key+';render()"></div></div>';
+}
+
+// === AGENT PROFILES ===
+var AGENTS = {
+  josh_jacqui: {
+    displayName: "Josh Hogan & Jacqui Shoffner",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [
+      { name: "Josh Hogan", initials: "JH", photo: "", gradient: "linear-gradient(135deg, #C2703E, #D4915F)", email: "josh@liveazco.com", phone: "(480) 369-8280" },
+      { name: "Jacqui Shoffner", initials: "JS", photo: "", gradient: "linear-gradient(135deg, #7A8B6F, #9AAD8E)", email: "jacqui@liveazco.com", phone: "(602) 751-1615" }
+    ],
+    reviews: [
+      { text: "Josh and Jacqui made the entire selling process seamless. Their market analysis was spot-on and we sold above asking price in just 5 days!", author: "Sarah & Mike T." },
+      { text: "The custom dashboards they provide give you so much insight into the market. We felt confident in our pricing strategy from day one.", author: "David & Lisa R." }
+    ]
+  },
+  josh: {
+    displayName: "Josh Hogan",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [
+      { name: "Josh Hogan", initials: "JH", photo: "", gradient: "linear-gradient(135deg, #C2703E, #D4915F)", email: "josh@liveazco.com", phone: "(480) 369-8280" }
+    ],
+    reviews: [
+      { text: "Josh's data-driven approach gave us the confidence to price our home right. Sold in 4 days!", author: "The Martinez Family" }
+    ]
+  },
+  jacqui: {
+    displayName: "Jacqui Shoffner",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [
+      { name: "Jacqui Shoffner", initials: "JS", photo: "", gradient: "linear-gradient(135deg, #7A8B6F, #9AAD8E)", email: "jacqui@liveazco.com", phone: "(602) 751-1615" }
+    ],
+    reviews: [
+      { text: "Jacqui was incredibly responsive and knowledgeable. She made the whole process stress-free!", author: "Jennifer & Mark W." }
+    ]
+  },
+  robyn: {
+    displayName: "Robyn Hoogenraad",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [
+      { name: "Robyn Hoogenraad", initials: "RH", photo: "", gradient: "linear-gradient(135deg, #8B7355, #A68B6B)", email: "robyn@liveazco.com", phone: "(480) 555-0100" }
+    ],
+    reviews: [
+      { text: "Robyn went above and beyond to help us sell our home quickly and at a great price.", author: "The Thompson Family" }
+    ]
+  }
+};
+
+// ============================================================
+// === CONFIG — The only section that changes per client ===
+// ============================================================
+var CONFIG = {
+  templateType: "sell",
+  clientNames: "Jessica & Adrian",
+  fullName: "Jessica & Adrian Nguyen",
+  email: "jessica@email.com",
+  address: "1234 E Dava Dr",
+  cityStateZip: "Tempe, AZ 85284",
+  subdivision: "Warner Estates",
+  communityName: "Warner Estates",
+  agentKey: "josh_jacqui",
+  beds: 4, baths: 3, sqft: 2850, lotSqft: 8500, yearBuilt: 1998, pool: true, stories: 1,
+  estimatedSalePrice: 850000,
+  loanPayoff: 340000,
+  propertyHighlights: ["Complete kitchen remodel with quartz countertops", "Pebble Tec pool resurfaced 2024"],
+  upgrades: [{ name: "Kitchen Remodel", value: "$45,000" }],
+  comps: [
+    { addr: "123 E Main St", sub: "Warner Estates", community: "Warner Estates", close: "2026-01-15", sp: 820000, sf: 2750, ppsf: 298, beds: "4", baths: "3", pool: "Y", dom: "12", yearBuilt: 2000, stories: 1, matchScore: 88, note: "Same subdivision" }
+  ],
+  marketMetrics: {
+    medianSoldPrice: 790000, medianPpsf: 285, avgPpsf: 290,
+    ppsfRange: { low: 260, high: 320 },
+    derivedValue: 850000, derivedRange: { low: 830000, high: 870000 },
+    compsUsedForValue: 5, avgDom: 28, medianDom: 22,
+    saleToListRatio: 0.985, priceTrendDirection: "rising",
+    priceTrendDetail: "Median $/SF up 3.2% over 6 months",
+    totalSalesInPeriod: 45, subdivisionSalesCount: 8,
+    earliestSale: "2025-03-15", latestSale: "2026-03-01",
+    analysisPeriodMonths: 12
+  },
+  pricingStrategy: "Based on the comparable sales analysis...",
+  competition: [
+    { address: "456 W Morgan Dr", price: 895000, status: "Under Contract", dom: 18, beds: "4", baths: "3.5", sqft: 3100, pool: "Y", note: "Larger but similar neighborhood" }
+  ],
+  marketSnapshot: [
+    { label: "Tempe Median Price", value: "$685,000" },
+    { label: "South Tempe Median", value: "$850,000" },
+    { label: "Avg Days on Market", value: "28 days" }
+  ],
+  prepItems: [
+    { key: "paint", label: "Interior Paint", defaultCost: 5000, desc: "Fresh paint throughout" },
+    { key: "landscape", label: "Landscaping", defaultCost: 2500, desc: "Curb appeal cleanup" },
+    { key: "staging", label: "Professional Staging", defaultCost: 4000, desc: "Full staging" },
+    { key: "deepClean", label: "Deep Clean", defaultCost: 1500, desc: "Professional cleaning" },
+    { key: "minorRepairs", label: "Minor Repairs", defaultCost: 2000, desc: "Touch-ups" }
+  ],
+  marketingPlan: ["Professional photography", "Zillow Showcase listing"],
+  timeline: [
+    { phase: "Phase 1", dates: "Weeks 1-2", items: ["Complete prep", "Photography"] },
+    { phase: "Phase 2", dates: "Week 3", items: ["Go live on MLS", "Open house"] }
+  ],
+  cromfordMetrics: [],
+  cromfordTakeaway: "",
+  cromfordSource: "",
+  features: [{ title: "Pool", desc: "Pebble Tec pool with spa" }]
+};
+// ============================================================
+// === END CONFIG ===
+// ============================================================
+
+// === BACKWARD-COMPATIBLE ALIASES ===
+var AGENT_KEY = CONFIG.agentKey;
+var COMPS = CONFIG.comps;
+var MARKET_METRICS = CONFIG.marketMetrics;
+var SUBJECT = { sf: CONFIG.sqft, beds: CONFIG.beds, baths: CONFIG.baths, pool: CONFIG.pool ? "Y" : "N", yearBuilt: CONFIG.yearBuilt, stories: CONFIG.stories };
+
+// === MUTABLE UI STATE ===
+var S = {
+  salePrice: CONFIG.estimatedSalePrice,
+  listingPct: 3.5,
+  buyerPct: 2.5,
+  titleEscrow: Math.round(CONFIG.estimatedSalePrice * 0.005),
+  loanPayoff: CONFIG.loanPayoff,
+  sec_property: true,
+  sec_equity: true,
+  sec_comps: true,
+  sec_pricing: true,
+  sec_competition: true,
+  sec_snapshot: true,
+  sec_prep: true,
+  sec_marketing: true,
+  sec_timeline: true
+};
+// Initialize prep toggles from CONFIG
+CONFIG.prepItems.forEach(function(item) {
+  S[item.key + 'Enabled'] = false;
+  S[item.key + 'Cost'] = item.defaultCost;
+});
+
+// === DYNAMIC ADJUSTMENT COMPUTATION ===
+(function() {
+  var deadZone = SUBJECT.sf * 0.10;
+  for (var i = 0; i < COMPS.length; i++) {
+    var c = COMPS[i];
+    var adjs = [];
+    var sfDiff = SUBJECT.sf - c.sf;
+    if (Math.abs(sfDiff) > deadZone) {
+      var glaRate = c.ppsf * 0.30;
+      var glaAdj = Math.round(sfDiff * glaRate / 500) * 500;
+      adjs.push({ label: "GLA", amount: glaAdj });
+    }
+    var bathDiff = SUBJECT.baths - parseFloat(c.baths);
+    if (bathDiff !== 0) {
+      var bathAdj = Math.round(bathDiff * 2) * 5000;
+      adjs.push({ label: "Bathrooms", amount: bathAdj });
+    }
+    if (SUBJECT.pool === "Y" && c.pool !== "Y") {
+      adjs.push({ label: "Pool", amount: 20000 });
+    } else if (SUBJECT.pool !== "Y" && c.pool === "Y") {
+      adjs.push({ label: "Pool", amount: -20000 });
+    }
+    c.adjustments = adjs;
+    c.adjustedPrice = c.sp;
+    for (var j = 0; j < adjs.length; j++) c.adjustedPrice += adjs[j].amount;
+  }
+})();
+
+// === NET PROCEEDS CALCULATOR ===
+function calc() {
+  var listingFee = Math.round(S.salePrice * (S.listingPct / 100));
+  var buyerFee = Math.round(S.salePrice * (S.buyerPct / 100));
+  var totalCommission = listingFee + buyerFee;
+  var titleEscrow = Math.round(S.salePrice * 0.005);
+  S.titleEscrow = titleEscrow;
+  var prepCost = 0;
+  CONFIG.prepItems.forEach(function(item) {
+    if (S[item.key + 'Enabled']) prepCost += S[item.key + 'Cost'];
+  });
+  var totalCosts = totalCommission + titleEscrow + S.loanPayoff + prepCost;
+  var netProceeds = S.salePrice - totalCosts;
+  var equity = S.salePrice - S.loanPayoff;
+  return { listingFee: listingFee, buyerFee: buyerFee, totalCommission: totalCommission, prepCost: prepCost, totalCosts: totalCosts, netProceeds: netProceeds, equity: equity, titleEscrow: titleEscrow };
+}
+
+// === RENDER ===
+function render(){
+  var now = new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  var agent = AGENTS[AGENT_KEY];
+  var c = calc();
+
+  // Header
+  document.getElementById('pageTitle').textContent = 'Sell Dashboard \u2014 ' + CONFIG.clientNames + ' | Live AZ Co';
+  document.getElementById('headerTitle').textContent = 'Your Pre-Listing Sell Dashboard';
+  document.getElementById('headerNames').textContent = CONFIG.clientNames;
+  document.getElementById('headerSub').textContent = 'Prepared for ' + CONFIG.fullName + ' by ' + agent.displayName + ' \u2022 Live AZ Co \u2022 ' + now;
+  document.getElementById('footerAgent').textContent = 'Prepared by ' + agent.displayName + ' \u2022 ' + agent.members[0].phone;
+
+  // ===== TAB 1: YOUR HOME =====
+  var t1 = '';
+
+  // Top Metrics
+  t1 += '<div class="metrics">';
+  t1 += '<div class="metric-card"><div class="metric-label">Est. Sale Price</div><div class="metric-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</div><div class="metric-sub">Based on ' + MARKET_METRICS.compsUsedForValue + ' comparable sales</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Est. Cash to Seller</div><div class="metric-value" style="color:' + (c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)') + '">' + fmt(c.netProceeds) + '</div><div class="metric-sub">After all costs &amp; payoffs</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Home Equity</div><div class="metric-value" style="color:var(--positive)">' + fmt(c.equity) + '</div><div class="metric-sub">Sale price minus loan payoff</div></div>';
+  t1 += '</div>';
+
+  // Property Snapshot
+  var propBody = '';
+  propBody += '<div class="prop-card">';
+  propBody += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:2px">' + CONFIG.address + '</div>';
+  propBody += '<div style="font-size:12px;color:var(--terra);font-weight:600">' + CONFIG.subdivision + ' \u2022 ' + CONFIG.cityStateZip + '</div>';
+  propBody += '<div class="prop-summary">';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Beds / Baths</div><div class="prop-stat-value" style="font-size:16px">' + CONFIG.beds + ' / ' + CONFIG.baths + '</div></div>';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Sq Ft</div><div class="prop-stat-value" style="font-size:16px">' + CONFIG.sqft.toLocaleString() + '</div></div>';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Lot Size</div><div class="prop-stat-value" style="font-size:16px">' + CONFIG.lotSqft.toLocaleString() + ' SF</div></div>';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Year / Pool</div><div class="prop-stat-value" style="font-size:16px">' + CONFIG.yearBuilt + (CONFIG.pool ? ' \u2022 Pool' : '') + '</div></div>';
+  propBody += '</div>';
+  propBody += '</div>';
+
+  // Upgrades
+  if (CONFIG.upgrades && CONFIG.upgrades.length) {
+    propBody += '<div style="font-size:13px;font-weight:700;color:var(--terra);margin:12px 0 8px">Documented Upgrades</div>';
+    for (var u = 0; u < CONFIG.upgrades.length; u++) {
+      propBody += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--sand-pale);font-size:12px"><span style="color:var(--slate)">' + CONFIG.upgrades[u].name + '</span><span style="font-weight:700;color:var(--terra)">' + CONFIG.upgrades[u].value + '</span></div>';
+    }
+  }
+
+  // Property Highlights
+  if (CONFIG.propertyHighlights && CONFIG.propertyHighlights.length) {
+    propBody += '<div style="font-size:13px;font-weight:700;color:var(--terra);margin:14px 0 8px">Property Highlights</div>';
+    for (var h = 0; h < CONFIG.propertyHighlights.length; h++) {
+      propBody += '<div class="check-item"><span class="check-icon">\u2713</span><span>' + CONFIG.propertyHighlights[h] + '</span></div>';
+    }
+  }
+
+  t1 += section('property', 'Property Snapshot', propBody);
+
+  // Equity & Net Proceeds Calculator
+  var eqBody = '';
+
+  // Sale Price slider
+  var spMin = Math.round(MARKET_METRICS.derivedRange.low * 0.8);
+  var spMax = Math.round(MARKET_METRICS.derivedRange.high * 1.2);
+  eqBody += slider('Sale Price', 'salePrice', spMin, spMax, 5000, '$', '');
+
+  // Loan payoff slider
+  eqBody += slider('Loan Payoff', 'loanPayoff', 0, Math.round(CONFIG.estimatedSalePrice * 0.9), 5000, '$', '');
+
+  // Buyer Broker Commission buttons
+  eqBody += '<div class="field"><div class="field-label">Buyer Broker Commission</div>';
+  eqBody += '<div class="btn-group">';
+  var buyerPcts = [2, 2.5, 3];
+  for (var bp = 0; bp < buyerPcts.length; bp++) {
+    eqBody += '<button class="btn-opt' + (S.buyerPct === buyerPcts[bp] ? ' active' : '') + '" onclick="S.buyerPct=' + buyerPcts[bp] + ';render()">' + buyerPcts[bp] + '%</button>';
+  }
+  eqBody += '</div></div>';
+
+  // Listing Commission display
+  eqBody += '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;color:var(--slate-light);border-bottom:1px solid var(--sand-pale)"><span>Listing Commission</span><span style="font-weight:700;color:var(--slate)">' + S.listingPct + '%</span></div>';
+
+  // Summary breakdown
+  eqBody += '<div style="margin-top:14px">';
+  eqBody += '<div class="summary-row"><span class="summary-label">Sale Price</span><span class="summary-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Listing Commission (' + S.listingPct + '%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.listingFee) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Buyer Broker (' + S.buyerPct + '%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.buyerFee) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Title & Escrow (~0.5%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.titleEscrow) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Loan Payoff</span><span class="summary-value" style="color:var(--negative)">-' + fmt(S.loanPayoff) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Prep Costs</span><span class="summary-value" style="color:' + (c.prepCost > 0 ? 'var(--negative)' : 'var(--neutral)') + '">-' + fmt(c.prepCost) + '</span></div>';
+  eqBody += '</div>';
+
+  // Net Proceeds total
+  var npColor = c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)';
+  eqBody += '<div class="summary-total" style="background:' + (c.netProceeds >= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)') + '">';
+  eqBody += '<span style="font-size:14px;font-weight:800;color:var(--slate)">Estimated Net Proceeds</span>';
+  eqBody += '<span style="font-size:18px;font-weight:900;color:' + npColor + '">' + fmt(c.netProceeds) + '</span>';
+  eqBody += '</div>';
+
+  t1 += section('equity', 'Equity & Net Proceeds Calculator', eqBody);
+
+  document.getElementById('tab-home').innerHTML = t1;
+
+  // ===== TAB 2: MARKET =====
+  var t2 = '';
+
+  // Comparable Sales
+  var compBody = '';
+  var sortedComps = COMPS.slice().sort(function(a,b){ return b.matchScore - a.matchScore; });
+  var displayComps = sortedComps.filter(function(comp){ return comp.matchScore >= 70; });
+  if (displayComps.length < 3) displayComps = sortedComps.slice(0, Math.max(3, sortedComps.length));
+  if (displayComps.length > 6) displayComps = displayComps.slice(0, 6);
+
+  compBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:14px">' + displayComps.length + ' comparable sales scored by physical similarity to your home. Sorted by match score.</div>';
+
+  // Summary stats
+  compBody += '<div class="prop-summary" style="margin-bottom:14px">';
+  compBody += '<div class="prop-stat"><div class="prop-stat-label">Median Sold Price</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">' + fmt(MARKET_METRICS.medianSoldPrice) + '</div></div>';
+  compBody += '<div class="prop-stat"><div class="prop-stat-label">Median $/SF</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">$' + MARKET_METRICS.medianPpsf + '</div></div>';
+  compBody += '<div class="prop-stat"><div class="prop-stat-label">Avg Days on Market</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">' + MARKET_METRICS.avgDom + '</div></div>';
+  compBody += '<div class="prop-stat"><div class="prop-stat-label">Derived Value Range</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">' + fmtK(MARKET_METRICS.derivedRange.low) + ' \u2013 ' + fmtK(MARKET_METRICS.derivedRange.high) + '</div></div>';
+  compBody += '</div>';
+
+  // Adjustment legend
+  compBody += '<div class="adj-legend">';
+  compBody += '<div class="adj-legend-title">How Adjustments Work</div>';
+  compBody += '<p class="adj-legend-intro">Each comp is compared to your home. When a comp differs \u2014 fewer bedrooms, smaller living area, no pool \u2014 its sale price is adjusted to estimate what it <em>would have</em> sold for if it matched your home.</p>';
+  compBody += '<div class="adj-legend-grid">';
+  compBody += '<div class="adj-legend-item"><span class="adj-legend-label">GLA</span><span class="adj-legend-desc">Gross Living Area \u2014 adjusts for square footage differences exceeding 10% of your home\'s size.</span></div>';
+  compBody += '<div class="adj-legend-item"><span class="adj-legend-label">Bathrooms</span><span class="adj-legend-desc">$10,000 per full bath, $5,000 per half bath difference.</span></div>';
+  compBody += '<div class="adj-legend-item"><span class="adj-legend-label">Pool</span><span class="adj-legend-desc">Adjusts ~$20K when pool presence differs.</span></div>';
+  compBody += '</div></div>';
+
+  // Comp cards
+  compBody += '<div class="comp-card-grid">';
+  for (var ci = 0; ci < displayComps.length; ci++) {
+    var comp = displayComps[ci];
+    var tier = comp.matchScore >= 55 ? 'strong' : comp.matchScore >= 40 ? 'moderate' : 'weak';
+    var tierLabel = tier.toUpperCase();
+    var inSub = comp.community === CONFIG.communityName || comp.sub === CONFIG.subdivision;
+
+    compBody += '<div class="comp-card">';
+    compBody += '<div class="comp-card-header">';
+    compBody += '<div><div class="comp-card-addr">' + comp.addr + '</div>';
+    compBody += '<div class="comp-card-sub">' + comp.sub + (inSub ? ' <span class="comm-badge">SAME AREA</span>' : '') + '</div></div>';
+    compBody += '<span class="tier-badge ' + tier + '">' + tierLabel + '</span>';
+    compBody += '</div>';
+
+    compBody += '<div class="score-row"><span class="score-label">Match Score</span>';
+    compBody += '<div class="score-bar"><div class="score-fill" style="width:' + comp.matchScore + '%"></div></div>';
+    compBody += '<span class="score-val">' + comp.matchScore + '</span></div>';
+
+    compBody += '<div class="comp-details">';
+    compBody += '<div class="comp-detail"><span class="cd-label">Beds/Baths</span><span class="cd-val">' + comp.beds + '/' + comp.baths + '</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">Sq Ft</span><span class="cd-val">' + Number(comp.sf).toLocaleString() + '</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">Year Built</span><span class="cd-val">' + comp.yearBuilt + '</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">Stories</span><span class="cd-val">' + comp.stories + '</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">Pool</span><span class="cd-val">' + (comp.pool === "Y" ? "Yes" : "No") + '</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">$/SF</span><span class="cd-val">$' + comp.ppsf.toFixed(0) + '</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">DOM</span><span class="cd-val">' + comp.dom + ' days</span></div>';
+    compBody += '<div class="comp-detail"><span class="cd-label">Close Date</span><span class="cd-val">' + comp.close + '</span></div>';
+    compBody += '</div>';
+
+    // Adjustments
+    compBody += '<div class="comp-adj-section">';
+    compBody += '<div class="comp-adj-title">ADJUSTMENTS TO SUBJECT</div>';
+    if (comp.adjustments.length === 0) {
+      compBody += '<div class="comp-adj-none">No adjustments needed \u2014 near-perfect match!</div>';
+    } else {
+      for (var ai = 0; ai < comp.adjustments.length; ai++) {
+        var adj = comp.adjustments[ai];
+        var sign = adj.amount >= 0 ? '+' : '';
+        compBody += '<div class="comp-adj-row"><span>' + adj.label + '</span><span class="comp-adj-amt' + (adj.amount < 0 ? '" style="color:var(--negative)' : '') + '">' + sign + fmt(adj.amount) + '</span></div>';
+      }
+    }
+    compBody += '</div>';
+
+    // Footer
+    compBody += '<div class="comp-card-footer"><span class="comp-sold">Sold: ' + fmt(comp.sp) + '</span><span class="comp-adjusted">Adj: ' + fmt(comp.adjustedPrice) + '</span></div>';
+    compBody += '</div>';
+  }
+  compBody += '</div>';
+
+  t2 += section('comps', 'Comparable Sales', compBody);
+
+  // Pricing Strategy
+  var priceBody = '';
+  priceBody += '<div class="value-display">';
+  priceBody += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--slate-light);font-weight:600;margin-bottom:8px">Recommended List Price</div>';
+  priceBody += '<div class="big">' + fmt(CONFIG.estimatedSalePrice) + '</div>';
+  priceBody += '<div class="range">' + fmtK(MARKET_METRICS.derivedRange.low) + ' \u2013 ' + fmtK(MARKET_METRICS.derivedRange.high) + ' value range</div>';
+  priceBody += '</div>';
+  priceBody += '<div class="narrative-box">' + CONFIG.pricingStrategy + '</div>';
+
+  // Market trend callout
+  var trendColor = MARKET_METRICS.priceTrendDirection === 'rising' ? 'green' : MARKET_METRICS.priceTrendDirection === 'falling' ? 'amber' : 'blue';
+  priceBody += '<div class="callout ' + trendColor + '">';
+  priceBody += '<div class="callout-title">Market Trend: ' + MARKET_METRICS.priceTrendDirection.charAt(0).toUpperCase() + MARKET_METRICS.priceTrendDirection.slice(1) + '</div>';
+  priceBody += '<div class="callout-text">' + MARKET_METRICS.priceTrendDetail + ' \u2022 Sale-to-List Ratio: ' + fmtPct(MARKET_METRICS.saleToListRatio) + '</div>';
+  priceBody += '</div>';
+
+  t2 += section('pricing', 'Pricing Strategy', priceBody);
+
+  // Competition Tracker
+  if (CONFIG.competition && CONFIG.competition.length) {
+    var competeBody = '';
+    competeBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:12px">Active and pending listings competing for the same buyer pool.</div>';
+    for (var xi = 0; xi < CONFIG.competition.length; xi++) {
+      var x = CONFIG.competition[xi];
+      var statusClass = x.status === 'Active' ? 'active' : x.status === 'Under Contract' ? 'uc' : 'drop';
+      competeBody += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">';
+      competeBody += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      competeBody += '<div><div style="font-weight:700;font-size:13px;color:var(--slate)">' + x.address + '</div>';
+      competeBody += '<div style="font-size:18px;font-weight:800;color:var(--terra);margin-top:4px">' + fmt(x.price) + '</div></div>';
+      competeBody += '<span class="status-badge ' + statusClass + '">' + x.status + '</span>';
+      competeBody += '</div>';
+      competeBody += '<div class="comp-details">';
+      competeBody += '<div class="comp-detail"><span class="cd-label">Beds/Baths</span><span class="cd-val">' + x.beds + '/' + x.baths + '</span></div>';
+      competeBody += '<div class="comp-detail"><span class="cd-label">Sq Ft</span><span class="cd-val">' + Number(x.sqft).toLocaleString() + '</span></div>';
+      competeBody += '<div class="comp-detail"><span class="cd-label">DOM</span><span class="cd-val">' + x.dom + ' days</span></div>';
+      competeBody += '<div class="comp-detail"><span class="cd-label">Pool</span><span class="cd-val">' + (x.pool === "Y" ? "Yes" : "No") + '</span></div>';
+      competeBody += '</div>';
+      if (x.note) {
+        competeBody += '<div style="font-size:11px;color:var(--neutral);font-style:italic;margin-top:8px">' + x.note + '</div>';
+      }
+      competeBody += '</div>';
+    }
+    t2 += section('competition', 'Competition Tracker', competeBody);
+  }
+
+  // Market Snapshot
+  if (CONFIG.marketSnapshot && CONFIG.marketSnapshot.length) {
+    var snapBody = '';
+    snapBody += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">';
+    for (var si = 0; si < CONFIG.marketSnapshot.length; si++) {
+      var ms = CONFIG.marketSnapshot[si];
+      snapBody += '<div style="background:var(--sand-pale);border-radius:8px;padding:14px;text-align:center">';
+      snapBody += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--slate-light);font-weight:600;margin-bottom:4px">' + ms.label + '</div>';
+      snapBody += '<div style="font-size:18px;font-weight:800;color:var(--terra)">' + ms.value + '</div>';
+      snapBody += '</div>';
+    }
+    snapBody += '</div>';
+
+    // Additional market metrics
+    snapBody += '<div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    snapBody += '<div class="prop-stat"><div class="prop-stat-label">Total Sales (' + MARKET_METRICS.analysisPeriodMonths + ' mo)</div><div class="prop-stat-value" style="font-size:16px">' + MARKET_METRICS.totalSalesInPeriod + '</div></div>';
+    snapBody += '<div class="prop-stat"><div class="prop-stat-label">Subdivision Sales</div><div class="prop-stat-value" style="font-size:16px">' + MARKET_METRICS.subdivisionSalesCount + '</div></div>';
+    snapBody += '</div>';
+
+    t2 += section('snapshot', 'Market Snapshot', snapBody);
+  }
+
+  document.getElementById('tab-market').innerHTML = t2;
+
+  // ===== TAB 3: LISTING PLAN =====
+  var t3 = '';
+
+  // Market-Ready Prep
+  var prepBody = '';
+  prepBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:12px">Toggle items on or off to see how prep costs affect your net proceeds.</div>';
+
+  for (var pi = 0; pi < CONFIG.prepItems.length; pi++) {
+    var item = CONFIG.prepItems[pi];
+    var enabled = S[item.key + 'Enabled'];
+    prepBody += '<div class="prep-toggle-row' + (enabled ? '' : ' style="opacity:.7"') + '">';
+    prepBody += '<div class="prep-toggle-info"><div class="prep-toggle-label">' + item.label + '</div><div class="prep-toggle-desc">' + item.desc + '</div></div>';
+    prepBody += '<span class="prep-toggle-cost">' + fmt(item.defaultCost) + '</span>';
+    prepBody += '<div class="toggle ' + (enabled ? 'on' : '') + '" onclick="S.' + item.key + 'Enabled=!S.' + item.key + 'Enabled;render()"></div>';
+    prepBody += '</div>';
+  }
+
+  // Prep cost summary
+  prepBody += '<div class="summary-total" style="background:rgba(194,112,62,.06);margin-top:12px">';
+  prepBody += '<span style="font-size:13px;font-weight:700;color:var(--slate)">Total Prep Costs</span>';
+  prepBody += '<span style="font-size:16px;font-weight:800;color:var(--terra)">' + fmt(c.prepCost) + '</span>';
+  prepBody += '</div>';
+
+  t3 += section('prep', 'Market-Ready Prep', prepBody);
+
+  // Marketing Plan
+  if (CONFIG.marketingPlan && CONFIG.marketingPlan.length) {
+    var mktBody = '';
+    mktBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:12px">Our comprehensive marketing strategy to maximize exposure and attract qualified buyers.</div>';
+    for (var mi = 0; mi < CONFIG.marketingPlan.length; mi++) {
+      mktBody += '<div class="check-item"><span class="check-icon">\u2713</span><span>' + CONFIG.marketingPlan[mi] + '</span></div>';
+    }
+    t3 += section('marketing', 'Marketing Plan', mktBody);
+  }
+
+  // Timeline
+  if (CONFIG.timeline && CONFIG.timeline.length) {
+    var tlBody = '';
+    tlBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:14px">Your step-by-step roadmap from prep to closing.</div>';
+    for (var ti = 0; ti < CONFIG.timeline.length; ti++) {
+      var phase = CONFIG.timeline[ti];
+      tlBody += '<div class="timeline-phase">';
+      tlBody += '<div class="timeline-phase-title">' + phase.phase + '</div>';
+      tlBody += '<div class="timeline-phase-dates">' + phase.dates + '</div>';
+      for (var ii = 0; ii < phase.items.length; ii++) {
+        tlBody += '<div class="timeline-phase-item">' + phase.items[ii] + '</div>';
+      }
+      tlBody += '</div>';
+    }
+    t3 += section('timeline', 'Timeline', tlBody);
+  }
+
+  document.getElementById('tab-listing').innerHTML = t3;
+
+  // ===== TAB 4: TEAM =====
+  var tTeam = '';
+
+  // Headshots + Names
+  tTeam += '<div style="text-align:center;padding:20px 0 10px">';
+  tTeam += '<div style="display:flex;justify-content:center;gap:16px;margin-bottom:12px">';
+  for (var mi2 = 0; mi2 < agent.members.length; mi2++) {
+    var mem = agent.members[mi2];
+    if (mem.photo) {
+      tTeam += '<img src="' + mem.photo + '" alt="' + mem.name + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--sand-light)">';
+    } else {
+      tTeam += '<div style="width:80px;height:80px;border-radius:50%;background:' + mem.gradient + ';display:flex;align-items:center;justify-content:center;border:3px solid var(--sand-light);color:#fff;font-size:24px;font-weight:800;font-family:\'Playfair Display\',serif">' + mem.initials + '</div>';
+    }
+  }
+  tTeam += '</div>';
+  tTeam += '<div style="font-size:24px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate)">' + agent.displayName.replace(/&/g, '&amp;') + '</div>';
+  tTeam += '<div style="font-size:14px;color:var(--neutral);margin-top:4px">Live AZ Co &bull; Powered by Real Broker</div>';
+  tTeam += '<div style="font-size:12px;color:var(--neutral);margin-top:2px">East Valley Specialists &bull; Gilbert, Chandler, Mesa, Queen Creek, Scottsdale</div>';
+  tTeam += '</div>';
+
+  // Career Stats
+  tTeam += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0">';
+  tTeam += '<div class="team-stat" style="background:var(--card);border:1px solid var(--border);border-radius:10px"><div class="team-stat-val">470+</div><div class="team-stat-lbl">Live AZ Co Team Transactions</div></div>';
+  tTeam += '<div class="team-stat" style="background:var(--card);border:1px solid var(--border);border-radius:10px"><div class="team-stat-val">$232M+</div><div class="team-stat-lbl">Live AZ Co Team Volume</div></div>';
+  tTeam += '</div>';
+
+  // Why This Matters
+  tTeam += '<div style="background:linear-gradient(135deg,rgba(92,138,77,.08),rgba(122,139,111,.04));border:1px solid rgba(92,138,77,.2);border-radius:12px;padding:16px;margin-bottom:16px">';
+  tTeam += '<div style="font-size:13px;font-weight:800;color:var(--sage-dark);margin-bottom:14px;text-align:center">Why This Matters for You</div>';
+  tTeam += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+  tTeam += '<div style="text-align:center;background:var(--card);border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;margin-top:4px">Your Listing Team</div><div style="font-size:10px;color:var(--neutral);margin-top:2px">Dedicated agents with deep local expertise</div></div>';
+  tTeam += '<div style="text-align:center;background:var(--card);border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;margin-top:4px">Pricing Intel</div><div style="font-size:10px;color:var(--neutral);margin-top:2px">Data-driven strategy to maximize your sale price</div></div>';
+  tTeam += '<div style="text-align:center;background:var(--card);border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--sage-dark);text-transform:uppercase;margin-top:4px">Full Support</div><div style="font-size:10px;color:var(--neutral);margin-top:2px">From prep to close, we handle every detail</div></div>';
+  tTeam += '</div>';
+  tTeam += '<div style="background:var(--sage-dark);color:#fff;border-radius:8px;padding:12px 14px;text-align:center">';
+  tTeam += '<div style="font-size:12px;font-weight:700;line-height:1.5">We combine cutting-edge technology with hands-on service to get your home sold for the highest possible price, in the least amount of time, with the least amount of stress.</div>';
+  tTeam += '</div>';
+  tTeam += '</div>';
+
+  // Reviews
+  tTeam += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin:16px 0 10px">What Our Clients Say</div>';
+  for (var ri = 0; ri < agent.reviews.length; ri++) {
+    var rev = agent.reviews[ri];
+    tTeam += '<div class="review-card"><div class="review-text">"' + rev.text + '"</div><div class="review-author">\u2014 ' + rev.author + '</div></div>';
+  }
+
+  tTeam += '<div style="text-align:center;margin:16px 0"><a href="' + agent.reviewUrl + '" target="_blank" class="email-btn" style="background:var(--slate)">Read All Reviews on Google</a></div>';
+
+  // What We Do Differently
+  tTeam += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin:20px 0 10px">What We Do Differently</div>';
+  tTeam += '<div style="background:linear-gradient(135deg,var(--slate),var(--slate-light));border-radius:12px;padding:16px;margin-bottom:12px;color:#fff">';
+  tTeam += '<div style="font-size:14px;font-weight:800;margin-bottom:6px">AI-Powered Real Estate</div>';
+  tTeam += '<div style="font-size:12px;line-height:1.6;opacity:.9">We are one of the only teams in Arizona actively using AI across every phase of a transaction. This translates directly into more money in your pocket, faster decisions, and less stress.</div>';
+  tTeam += '</div>';
+
+  var aiCards = [
+    {title:"Smarter Pricing & Market Analysis",desc:"AI processes hundreds of comparable sales, active listings, price reductions, and market trends in seconds. We identify the exact price point that maximizes buyer interest while protecting your equity."},
+    {title:"Appraisal Defense That Protects Your Sale Price",desc:"If an appraisal comes in low, we build professional Reconsideration of Value packages with matched-pair analyses and data-backed arguments."},
+    {title:"Custom Dashboards Like This One",desc:"Every client gets a personalized, interactive planner built specifically for their property and situation. No other team in the Valley offers this."},
+    {title:"Hyper-Targeted Marketing",desc:"AI helps us write listing descriptions, social media campaigns, and email blasts tailored to your home\'s specific strengths. We also use Zillow Showcase to get 2\u20133x more views."},
+    {title:"Faster Response, Less Stress",desc:"Contracts, disclosures, and transaction coordination are streamlined with AI so nothing falls through the cracks. Faster answers, cleaner paperwork, fewer surprises."},
+    {title:"Negotiation Intelligence",desc:"AI analyzes buyer agent patterns, comparable negotiation outcomes, and inspection data so we walk into every negotiation with a data-backed strategy."}
+  ];
+  for (var a = 0; a < aiCards.length; a++) {
+    var ac = aiCards[a];
+    tTeam += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px">';
+    tTeam += '<div style="font-size:13px;font-weight:700;color:var(--terra);margin-bottom:4px">' + ac.title + '</div>';
+    tTeam += '<div style="font-size:12px;color:var(--neutral);line-height:1.6">' + ac.desc + '</div>';
+    tTeam += '</div>';
+  }
+
+  // Contact CTA
+  var emails = agent.members.map(function(m){return m.email});
+  var firstNames = agent.members.map(function(m){return m.name.split(' ')[0]});
+  var mailto = 'mailto:' + emails.join(',') + '?subject=' + encodeURIComponent('Question from ' + CONFIG.clientNames + ' - ' + CONFIG.address) + '&body=Hi%20' + encodeURIComponent(firstNames.join(' & ')) + '%2C%0A%0A';
+  tTeam += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;margin-top:16px">';
+  tTeam += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:12px">Ready to Get Started?</div>';
+  tTeam += '<div style="font-size:12px;color:var(--neutral);line-height:1.5;margin-bottom:12px">Whether you have questions about pricing, prep, or timing \u2014 we\'re here to help every step of the way.</div>';
+  tTeam += '<a href="' + mailto + '" class="email-btn">Reach Out to Your Team</a>';
+  tTeam += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:12px">';
+  for (var ci2 = 0; ci2 < agent.members.length; ci2++) {
+    var cm = agent.members[ci2];
+    tTeam += '<div style="font-size:11px;color:var(--neutral)">' + cm.email + ' &bull; ' + cm.phone + '</div>';
+  }
+  tTeam += '</div>';
+  tTeam += '</div>';
+
+  document.getElementById('tab-team').innerHTML = tTeam;
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title id="pageTitle">Buy &amp; Sell Dashboard | Live AZ Co</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--sand:#D4A574;--sand-light:#E8CDB0;--sand-pale:#F5EDE3;
+--terra:#C2703E;--terra-light:#D4915F;--terra-dark:#A85A2A;
+--sage:#7A8B6F;--sage-dark:#5C6B52;--sage-light:#9AAD8E;
+--slate:#3D3D3D;--slate-light:#5A5A5A;
+--cream:#FAF6F0;
+--positive:#5C8A4D;--negative:#B84C3A;--neutral:#8B7355;
+--card:#fff;--border:#E8DDD0;
+--sage-bg:rgba(122,139,111,.08);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--slate);-webkit-font-smoothing:antialiased}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--sand-pale);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff}
+input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none}
+input[type=number]:focus{border-color:var(--terra)}
+.header{background:linear-gradient(135deg,var(--slate),var(--slate-light));padding:16px 20px;color:#fff}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+.header-text{flex:1;min-width:0}
+.header-title{font-size:18px;font-weight:700;font-family:'Playfair Display',serif;line-height:1.2;opacity:.85}
+.header-names{font-size:28px;font-weight:900;font-family:'Playfair Display',serif;margin-top:4px}
+.tab-bar-wrap{position:sticky;top:0;z-index:100;background:var(--card)}
+.tab-bar{display:flex;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex:1 0 0;padding:14px 8px;text-align:center;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--slate-light);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap}
+.tab-btn.active{color:var(--terra);border-bottom-color:var(--terra);background:var(--sand-pale)}
+.tab-btn:hover:not(.active){background:rgba(0,0,0,.02)}
+.tab-panel{display:none;max-width:1400px;margin:0 auto;padding:12px}
+.tab-panel.active{display:block}
+.metrics{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.metric-label{font-size:10px;font-weight:600;color:var(--slate-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:800;line-height:1.1}
+.metric-sub{font-size:11px;color:var(--neutral);margin-top:4px}
+.layout{display:flex;flex-direction:column;gap:14px}
+.sidebar{width:100%}.main{width:100%}
+.section{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.section-header{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.section-header:hover{background:var(--sand-pale)}
+.section-title{font-size:14px;font-weight:700;color:var(--slate)}
+.section-arrow{font-size:12px;color:var(--neutral);transition:transform .2s}
+.section-body{padding:0 16px 16px;display:none}
+.section.open .section-body{display:block}
+.section.open .section-arrow{transform:rotate(180deg)}
+.field{margin-bottom:12px}
+.field-label{font-size:11px;font-weight:600;color:var(--slate-light);margin-bottom:4px;display:flex;justify-content:space-between}
+.field-value{font-size:13px;font-weight:700;color:var(--terra)}
+.info-box{background:var(--sand-pale);border-radius:6px;padding:10px 12px;text-align:center;margin-bottom:10px}
+.info-box .big{font-size:20px;font-weight:800;color:var(--terra)}
+.info-box .note{font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.toggle-label{font-size:13px;font-weight:600;color:var(--slate)}
+.toggle{position:relative;width:44px;height:24px;background:var(--sand-pale);border-radius:12px;cursor:pointer;transition:.2s;border:1px solid var(--border)}
+.toggle.on{background:var(--sage)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle.on::after{left:22px}
+.summary-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--sand-pale)}
+.summary-label{font-size:13px;color:var(--slate-light)}
+.summary-value{font-size:14px;font-weight:700}
+.summary-total{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-top:6px}
+.comp-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.comp-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.comp-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.comp-card-addr{font-weight:700;font-size:13px;color:var(--slate)}
+.comp-card-sub{font-size:11px;color:var(--slate-light);margin-top:2px}
+.comm-badge{display:inline-block;font-size:9px;background:var(--sage);color:#fff;padding:1px 6px;border-radius:3px;margin-left:4px;font-weight:600;letter-spacing:.3px;vertical-align:middle}
+.tier-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+.tier-badge.strong{background:rgba(92,138,77,.12);color:var(--positive)}
+.tier-badge.moderate{background:rgba(212,168,71,.12);color:#B8860B}
+.tier-badge.weak{background:rgba(184,76,58,.1);color:var(--negative)}
+.score-row{display:flex;align-items:center;gap:8px}
+.score-label{font-size:10px;color:var(--slate-light);text-transform:uppercase;letter-spacing:.3px;font-weight:600;white-space:nowrap}
+.score-bar{flex:1;height:6px;background:var(--sand-pale);border-radius:3px;overflow:hidden}
+.score-fill{height:100%;background:var(--sage);border-radius:3px;transition:width .3s}
+.score-val{font-size:12px;font-weight:700;color:var(--sage-dark);min-width:20px;text-align:right}
+.comp-details{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.comp-detail{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--sand-pale)}
+.cd-label{font-size:10px;color:var(--slate-light);text-transform:uppercase;letter-spacing:.3px}
+.cd-val{font-size:12px;font-weight:600;color:var(--slate)}
+.callout{border-radius:8px;padding:12px;margin-bottom:12px}
+.callout.amber{background:rgba(212,168,71,.08);border:1px solid rgba(212,168,71,.2)}
+.callout.green{background:rgba(92,138,77,.06);border:1px solid rgba(92,138,77,.15)}
+.callout.blue{background:rgba(61,61,61,.04);border:1px solid rgba(61,61,61,.12)}
+.callout-title{font-weight:700;font-size:12px;color:var(--slate);margin-bottom:4px}
+.callout-text{font-size:12px;color:var(--neutral);line-height:1.6}
+.email-btn{display:inline-block;background:var(--terra);color:#fff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none;font-family:inherit;border:none;cursor:pointer}
+.email-btn:hover{background:var(--terra-dark)}
+.review-card{background:var(--sand-pale);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:12px}
+.review-text{font-size:13px;color:var(--slate);line-height:1.6;font-style:italic}
+.review-author{font-size:11px;font-weight:700;color:var(--neutral);margin-top:8px}
+.team-stat{text-align:center;padding:16px 10px}
+.team-stat-val{font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:var(--terra)}
+.team-stat-lbl{font-size:11px;font-weight:600;color:var(--slate-light);margin-top:2px}
+.footer{text-align:center;font-size:11px;color:var(--neutral);line-height:1.5;margin-top:20px;padding:20px}
+.footer-logo{height:32px;width:auto;opacity:.7;margin-bottom:8px}
+.prop-card{background:var(--sand-pale);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:12px}
+.prop-title{font-size:14px;font-weight:800;color:var(--slate);margin-bottom:2px}
+.prop-addr{font-size:12px;color:var(--terra);font-weight:600}
+.prop-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.prop-stat{background:var(--card);border-radius:8px;padding:10px;text-align:center}
+.prop-stat-label{font-size:10px;color:var(--slate-light);text-transform:uppercase;font-weight:600}
+.prop-stat-value{font-size:18px;font-weight:800}
+.nb-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.nb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.nb-name{font-size:16px;font-weight:800;font-family:'Playfair Display',serif;color:var(--slate)}
+.nb-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.5px}
+.nb-badge.sage{background:var(--sage-bg);color:var(--sage-dark)}
+.nb-badge.terra{background:rgba(194,112,62,.1);color:var(--terra)}
+.nb-badge.sand{background:var(--sand-pale);color:var(--neutral)}
+.nb-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.nb-stat{text-align:center;background:var(--sand-pale);border-radius:6px;padding:8px 4px}
+.nb-stat-label{font-size:9px;color:var(--slate-light);text-transform:uppercase;font-weight:600;letter-spacing:.3px}
+.nb-stat-value{font-size:13px;font-weight:700;color:var(--slate)}
+.nb-desc{font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:8px}
+.nb-why{background:var(--sage-bg);border-left:3px solid var(--sage);border-radius:0 6px 6px 0;padding:8px 12px;font-size:12px;color:var(--sage-dark);line-height:1.5}
+.strategy-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.strategy-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--terra);margin-bottom:4px}
+.strategy-title{font-size:16px;font-weight:800;font-family:'Playfair Display',serif;color:var(--slate);margin-bottom:10px}
+.strategy-list{list-style:none;padding:0;margin:0 0 6px}
+.strategy-list li{font-size:12px;padding:3px 0;padding-left:18px;position:relative;line-height:1.5}
+.strategy-list li::before{content:'';position:absolute;left:0;top:8px;width:8px;height:8px;border-radius:50%}
+.strategy-list.pros li::before{background:var(--positive)}
+.strategy-list.cons li::before{background:var(--negative)}
+.strategy-list.pros li{color:var(--positive)}
+.strategy-list.cons li{color:var(--negative)}
+.timeline-phase{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid var(--terra)}
+.timeline-phase-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--terra);margin-bottom:2px}
+.timeline-phase-title{font-size:14px;font-weight:800;color:var(--slate);margin-bottom:8px}
+.timeline-items{list-style:none;padding:0;margin:0}
+.timeline-items li{font-size:12px;color:var(--neutral);padding:3px 0;padding-left:16px;position:relative}
+.timeline-items li::before{content:'\2022';position:absolute;left:0;color:var(--terra);font-weight:700}
+.school-district{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.school-district-header{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.school-district-header:hover{background:var(--sand-pale)}
+.school-district-name{font-size:14px;font-weight:700;color:var(--slate)}
+.school-district-desc{font-size:11px;color:var(--neutral);margin-top:2px}
+.school-district-body{padding:0 16px 16px;display:none}
+.school-district.open .school-district-body{display:block}
+.school-card{background:var(--sand-pale);border-radius:8px;padding:12px;margin-bottom:8px}
+.school-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.school-card-name{font-size:13px;font-weight:700;color:var(--slate)}
+.school-card-badge{font-size:11px;font-weight:800;background:var(--sage);color:#fff;padding:2px 8px;border-radius:4px}
+.school-card-meta{font-size:11px;color:var(--neutral);margin-bottom:4px}
+.school-card-desc{font-size:12px;color:var(--slate-light);line-height:1.5}
+.gap-summary{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.gap-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--sand-pale);font-size:13px}
+.gap-label{color:var(--slate-light)}
+.gap-value{font-weight:700}
+.gap-total{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-top:8px;font-size:15px;font-weight:800}
+.competition-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.competition-addr{font-weight:700;font-size:13px;color:var(--slate);margin-bottom:4px}
+.competition-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:6px}
+.competition-stat{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid var(--sand-pale)}
+.competition-note{font-size:11px;color:var(--neutral);font-style:italic}
+@media(min-width:768px){
+  .header-names{font-size:32px}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .layout{flex-direction:row}
+  .sidebar{width:380px;flex-shrink:0}
+  .main{flex:1;min-width:0}
+  .tab-btn{font-size:13px;padding:14px 16px}
+  .comp-card-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:768px){.comp-card-grid{grid-template-columns:1fr}}
+@media(max-width:600px){
+  .tab-btn{font-size:11px;padding:12px 6px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-text">
+      <div class="header-title" id="headerTitle">Buy &amp; Sell Dashboard</div>
+      <div class="header-names" id="headerNames"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('search')">Home Search</button>
+    <button class="tab-btn" onclick="showTab('selling')">Selling</button>
+    <button class="tab-btn" onclick="showTab('schools')">Schools</button>
+    <button class="tab-btn" onclick="showTab('strategy')">Strategy</button>
+    <button class="tab-btn" onclick="showTab('team')">Team</button>
+  </div>
+</div>
+
+<div class="tab-panel active" id="tab-search"></div>
+<div class="tab-panel" id="tab-selling"></div>
+<div class="tab-panel" id="tab-schools"></div>
+<div class="tab-panel" id="tab-strategy"></div>
+<div class="tab-panel" id="tab-team"></div>
+
+<div class="footer">
+  <div style="font-weight:600;color:var(--terra)">Live AZ Co &bull; Powered by Real Broker</div>
+  <div id="footerAgent"></div>
+  <div style="margin-top:4px;font-style:italic">Estimates for planning purposes only. Verify all figures with your lender and appraiser.</div>
+</div>
+
+<script>
+// === UTILITY FUNCTIONS ===
+function showTab(id){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+  event.target.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+function toggleSection(key){S['sec_'+key]=!S['sec_'+key];render();}
+function fmt(n){if(n==null||isNaN(n))return"$0";var a=Math.abs(Math.round(n));var s=a.toLocaleString("en-US");return n<0?"-$"+s:"$"+s}
+function fmtK(n){return"$"+Math.round(n/1000)+"k"}
+function fmtPct(n){return(n*100).toFixed(1)+"%"}
+function section(sKey,title,bodyHtml,titleStyle){
+  var isOpen=S['sec_'+sKey];
+  var tStyle=titleStyle?' style="'+titleStyle+'"':'';
+  return '<div class="section'+(isOpen?' open':'')+'"><div class="section-header" onclick="toggleSection(\''+sKey+'\')"><span class="section-title"'+tStyle+'>'+title+'</span><span class="section-arrow">&#9660;</span></div><div class="section-body">'+bodyHtml+'</div></div>';
+}
+function slider(label,key,min,max,step,prefix,suffix){
+  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);render()"></div>';
+}
+function numInput(label,key,min,max,note){
+  return '<div class="field"><div class="field-label">'+label+'</div><input type="number" value="'+S[key]+'" min="'+min+'" max="'+max+'" onchange="S.'+key+'=Number(this.value);render()">'+(note?'<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">'+note+'</div>':'')+'</div>';
+}
+function toggle(label,key){
+  return '<div class="toggle-row"><span class="toggle-label">'+label+'</span><div class="toggle '+(S[key]?'on':'')+'" onclick="S.'+key+'=!S.'+key+';render()"></div></div>';
+}
+function dpDropdown(label,key){
+  var opts=[5,10,15,20,25,30];
+  var h='<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+S[key]+'%</span></div><select style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none" onchange="S.'+key+'=Number(this.value);render()">';
+  for(var i=0;i<opts.length;i++){h+='<option value="'+opts[i]+'"'+(S[key]===opts[i]?' selected':'')+'>'+opts[i]+'%</option>';}
+  h+='</select></div>';
+  return h;
+}
+
+// === AGENT PROFILES ===
+var AGENTS = {
+  josh_jacqui: {
+    displayName: "Josh Hogan & Jacqui Shoffner",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [
+      { name: "Josh Hogan", initials: "JH", photo: "", gradient: "linear-gradient(135deg, #C2703E, #D4915F)", email: "josh@liveazco.com", phone: "(480) 369-8280" },
+      { name: "Jacqui Shoffner", initials: "JS", photo: "", gradient: "linear-gradient(135deg, #7A8B6F, #9AAD8E)", email: "jacqui@liveazco.com", phone: "(602) 751-1615" }
+    ],
+    reviews: [
+      { text: "Josh and Jacqui coordinated our sell and buy seamlessly. Their strategy for bridging the gap was brilliant!", author: "Sarah & Mike T." },
+      { text: "The buy/sell dashboard gave us complete visibility into both transactions. We knew exactly where we stood at every step.", author: "David & Lisa R." }
+    ]
+  },
+  josh: {
+    displayName: "Josh Hogan",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [{ name: "Josh Hogan", initials: "JH", photo: "", gradient: "linear-gradient(135deg, #C2703E, #D4915F)", email: "josh@liveazco.com", phone: "(480) 369-8280" }],
+    reviews: [{ text: "Josh made our simultaneous buy/sell stress-free.", author: "The Martinez Family" }]
+  },
+  jacqui: {
+    displayName: "Jacqui Shoffner",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [{ name: "Jacqui Shoffner", initials: "JS", photo: "", gradient: "linear-gradient(135deg, #7A8B6F, #9AAD8E)", email: "jacqui@liveazco.com", phone: "(602) 751-1615" }],
+    reviews: [{ text: "Jacqui was incredible coordinating both our sale and purchase!", author: "Jennifer & Mark W." }]
+  },
+  robyn: {
+    displayName: "Robyn Hoogenraad",
+    reviewUrl: "https://www.google.com/search?q=live+az+co#lrd=0x872b0778e90dca0f:0x74dc2d1de681e808,1",
+    members: [{ name: "Robyn Hoogenraad", initials: "RH", photo: "", gradient: "linear-gradient(135deg, #8B7355, #A68B6B)", email: "robyn@liveazco.com", phone: "(480) 555-0100" }],
+    reviews: [{ text: "Robyn navigated our buy/sell with expertise.", author: "The Thompson Family" }]
+  }
+};
+
+// ============================================================
+// === CONFIG — The only section that changes per client ===
+// ============================================================
+var CONFIG = {
+  templateType: "buysell",
+  clientNames: "Kiara & Brian",
+  fullName: "Kiara & Brian Wanner",
+  email: "kiara@email.com",
+  agentKey: "josh_jacqui",
+  // Sell side
+  sellAddress: "2517 S Constellation Dr",
+  sellCityStateZip: "Gilbert, AZ 85295",
+  sellSubdivision: "Whitewing at Higley Heights",
+  sellCommunityName: "Whitewing at Higley Heights",
+  sellBeds: 5, sellBaths: 4.5, sellSqft: 3800, sellLotSqft: 12000,
+  sellYearBuilt: 2004, sellPool: true, sellStories: 2,
+  estimatedSalePrice: 1150000,
+  loanPayoff: 852000,
+  sellPropertyHighlights: ["Renovated 2023", "4-car garage with RV gate"],
+  sellComps: [
+    { addr: "123 S Maple Dr", sub: "Whitewing", community: "Whitewing", close: "2026-01-15", sp: 1100000, sf: 3600, ppsf: 305, beds: "5", baths: "4", pool: "Y", dom: "22", yearBuilt: 2005, stories: 2, matchScore: 82, note: "Same subdivision" }
+  ],
+  sellMarketMetrics: {
+    medianSoldPrice: 950000, medianPpsf: 290, avgPpsf: 295,
+    ppsfRange: { low: 260, high: 330 },
+    derivedValue: 1150000, derivedRange: { low: 1100000, high: 1200000 },
+    compsUsedForValue: 4, avgDom: 35, medianDom: 28,
+    saleToListRatio: 0.975, priceTrendDirection: "stable",
+    priceTrendDetail: "", totalSalesInPeriod: 30, subdivisionSalesCount: 5,
+    earliestSale: "2025-03-15", latestSale: "2026-03-01", analysisPeriodMonths: 12
+  },
+  sellPricingStrategy: "Based on the comparable sales analysis, your home is positioned competitively in the $1.1M-$1.2M range. The recent renovations and 4-car garage with RV gate provide a premium above the median comps.",
+  sellCompetition: [
+    { address: "456 W Oak Ln", price: 1200000, status: "Active", dom: 45, beds: "5", baths: "4.5", sqft: 4000, pool: "Y", note: "Priced above market" }
+  ],
+  // Buy side
+  targetAreas: "West Gilbert, Queen Creek",
+  budgetMin: 1200000, budgetMax: 1500000,
+  bedsMin: 5, bathsMin: 4,
+  mustHaves: ["Pool", "RV Gate", "Large Lot"],
+  schoolPreference: "Higley Unified",
+  neighborhoods: [
+    { name: "Circle G", badge: "Top Pick", badgeColor: "sage", priceRange: "$1.1M-$1.6M", homeSize: "3,500-5,500 SF", commuteTime: "20 min", description: "Premium Gilbert community with large lots, equestrian properties, and top-rated schools.", whyItWorks: "Large lots, great schools, within budget" }
+  ],
+  schoolDistricts: [
+    { name: "Higley Unified", description: "Highly rated district in the East Valley", schools: [
+      { name: "Chaparral Elementary", badge: "A", type: "Elementary", grades: "K-6", rating: "8/10", description: "Strong elementary school with excellent test scores", url: "https://www.husd.org" }
+    ]}
+  ],
+  // Strategy
+  strategyOptions: [
+    { label: "Option A", title: "Buy with Contingency", pros: ["Move once", "Familiar process"], cons: ["Weaker offer position", "Risk of losing dream home"] },
+    { label: "Option B", title: "Sell First, Then Buy", pros: ["Strongest offer", "Know exact budget"], cons: ["Need temporary housing", "Two moves"] },
+    { label: "Option C", title: "Bridge Financing (HELOC)", pros: ["Buy before selling", "Move once"], cons: ["Temporary double payments", "Need equity for HELOC"] }
+  ],
+  strategyTimeline: [
+    { phase: "Phase 1", title: "Lay Groundwork (Now)", items: ["Get pre-approved", "HELOC application", "Prep home for sale"] },
+    { phase: "Phase 2", title: "Execute", items: ["List home / start searching"] },
+    { phase: "Phase 3", title: "Under Contract", items: ["Coordinate closings"] },
+    { phase: "Phase 4", title: "Close & Move", items: ["Close both transactions"] }
+  ],
+  cromfordMetrics: [],
+  cromfordTakeaway: "",
+  cromfordSource: "",
+  features: []
+};
+// ============================================================
+// === END CONFIG ===
+// ============================================================
+
+// === CONSTANTS ===
+var CONFORMING_LIMIT = 832750;
+
+// === PMT FUNCTION ===
+function pmt(rate, nper, pv) {
+  if (rate === 0) return Math.round(pv / nper);
+  var r = rate;
+  return Math.round(pv * r * Math.pow(1 + r, nper) / (Math.pow(1 + r, nper) - 1));
+}
+
+// === CALCULATIONS ===
+function calc() {
+  // Buy side
+  var dp = Math.round(S.purchasePrice * (S.downPaymentPct / 100));
+  var loan = Math.max(0, S.purchasePrice - dp);
+  var mo = loan > 0 ? pmt(S.mortgageRate / 100 / 12, 360, loan) : 0;
+  var moTax = Math.round(S.purchasePrice * (S.taxRate / 100) / 12);
+  var closingBuy = Math.round(S.purchasePrice * 0.025);
+  var cashToClose = dp + closingBuy;
+  var isJumbo = loan > CONFORMING_LIMIT;
+
+  // Sell side
+  var brokerFees = Math.round(S.salePrice * (S.brokerFeePct / 100));
+  var sellerClosing = Math.round(S.salePrice * (S.sellerClosingPct / 100));
+  var netProceeds = S.salePrice - brokerFees - sellerClosing - S.loanPayoff;
+
+  // Upgrades
+  var upgradeCost = (S.kitchenEnabled ? S.kitchenCost : 0) + (S.flooringEnabled ? S.flooringCost : 0) +
+    (S.paintEnabled ? S.paintCost : 0) + (S.bathroomEnabled ? S.bathroomCost : 0) +
+    (S.landscapeEnabled ? S.landscapeCost : 0) + (S.poolEnabled ? S.poolCost : 0) +
+    (S.casitaEnabled ? S.casitaCost : 0);
+
+  // HELOC
+  var helocMo = S.helocEnabled && S.helocAmount > 0 ? Math.round(S.helocAmount * (S.helocRate / 100 / 12)) : 0;
+  var helocFund = S.helocEnabled ? S.helocAmount : 0;
+
+  // Bridge the gap
+  var totalCashNeeded = cashToClose + upgradeCost;
+  var cashGap = totalCashNeeded - netProceeds - helocFund;
+  var monthlyPayment = mo + moTax + helocMo;
+
+  return { dp: dp, loan: loan, mo: mo, moTax: moTax, closingBuy: closingBuy, cashToClose: cashToClose, isJumbo: isJumbo, brokerFees: brokerFees, sellerClosing: sellerClosing, netProceeds: netProceeds, upgradeCost: upgradeCost, helocMo: helocMo, helocFund: helocFund, totalCashNeeded: totalCashNeeded, cashGap: cashGap, monthlyPayment: monthlyPayment };
+}
+
+// === MUTABLE UI STATE ===
+var S = {
+  // Buy side
+  purchasePrice: Math.round((CONFIG.budgetMin + CONFIG.budgetMax) / 2),
+  downPaymentPct: 20,
+  mortgageRate: 6.0,
+  taxRate: 0.65,
+  // Sell side
+  salePrice: CONFIG.estimatedSalePrice,
+  brokerFeePct: 6,
+  sellerClosingPct: 1,
+  loanPayoff: CONFIG.loanPayoff,
+  // Upgrades
+  kitchenEnabled: false, kitchenCost: 50000,
+  flooringEnabled: false, flooringCost: 15000,
+  paintEnabled: false, paintCost: 10000,
+  bathroomEnabled: false, bathroomCost: 25000,
+  landscapeEnabled: false, landscapeCost: 25000,
+  poolEnabled: false, poolCost: 70000,
+  casitaEnabled: false, casitaCost: 160000,
+  // HELOC
+  helocEnabled: false,
+  helocAmount: 0,
+  helocRate: 7.0,
+  // Section toggles
+  sec_purchase: true,
+  sec_upgrades: false,
+  sec_bridge: false,
+  sec_neighborhoods: true,
+  sec_sell_property: true,
+  sec_sell_net: true,
+  sec_sell_comps: true,
+  sec_sell_competition: true,
+  sec_sell_pricing: true,
+  sec_sell_cromford: true,
+  sec_schools: true,
+  sec_strategy: true,
+  sec_timeline: true
+};
+
+// === SCHOOL DISTRICT TOGGLE ===
+function toggleDistrict(idx){
+  var el=document.getElementById('district-'+idx);
+  if(el)el.classList.toggle('open');
+}
+
+// === RENDER ===
+function render(){
+  var agent = AGENTS[CONFIG.agentKey];
+  var c = calc();
+
+  // Header
+  document.getElementById('pageTitle').textContent = 'Buy & Sell Dashboard \u2014 ' + CONFIG.clientNames + ' | Live AZ Co';
+  document.getElementById('headerTitle').textContent = 'Buy & Sell Dashboard';
+  document.getElementById('headerNames').textContent = CONFIG.clientNames;
+
+  // =============================================
+  // TAB 1: HOME SEARCH (Buy Side)
+  // =============================================
+  var gapColor = c.cashGap <= 0 ? 'var(--positive)' : 'var(--negative)';
+  var gapLabel = c.cashGap <= 0 ? 'Surplus' : 'Shortfall';
+
+  var searchHtml = '';
+  // Top metrics
+  searchHtml += '<div class="metrics">';
+  searchHtml += '<div class="metric-card"><div class="metric-label">Est. Monthly Payment</div><div class="metric-value" style="color:var(--terra)">' + fmt(c.monthlyPayment) + '</div><div class="metric-sub">P&I ' + fmt(c.mo) + ' + Tax ' + fmt(c.moTax) + (c.helocMo > 0 ? ' + HELOC ' + fmt(c.helocMo) : '') + '</div></div>';
+  searchHtml += '<div class="metric-card"><div class="metric-label">Cash to Close (Buy)</div><div class="metric-value" style="color:var(--slate)">' + fmt(c.cashToClose) + '</div><div class="metric-sub">Down ' + fmt(c.dp) + ' + Closing ' + fmt(c.closingBuy) + (c.isJumbo ? ' <span style="color:var(--negative);font-weight:700">JUMBO</span>' : '') + '</div></div>';
+  searchHtml += '<div class="metric-card"><div class="metric-label">Cash Gap</div><div class="metric-value" style="color:' + gapColor + '">' + fmt(Math.abs(c.cashGap)) + '</div><div class="metric-sub" style="color:' + gapColor + '">' + gapLabel + ' \u2014 ' + (c.cashGap <= 0 ? 'Proceeds cover purchase' : 'Additional funds needed') + '</div></div>';
+  searchHtml += '</div>';
+
+  // Two-column layout
+  searchHtml += '<div class="layout">';
+
+  // Sidebar: Purchase Calculator
+  var sidebarHtml = '';
+
+  // Purchase calculator section
+  var purchaseBody = '';
+  purchaseBody += slider('Purchase Price', 'purchasePrice', CONFIG.budgetMin * 0.7, CONFIG.budgetMax * 1.3, 5000, '$', '');
+  purchaseBody += dpDropdown('Down Payment', 'downPaymentPct');
+  purchaseBody += slider('Interest Rate', 'mortgageRate', 3.0, 9.0, 0.125, '', '%');
+  purchaseBody += slider('Property Tax Rate', 'taxRate', 0.3, 1.5, 0.05, '', '%');
+
+  // Loan summary
+  purchaseBody += '<div style="margin-top:10px">';
+  purchaseBody += '<div class="summary-row"><span class="summary-label">Loan Amount</span><span class="summary-value">' + fmt(c.loan) + '</span></div>';
+  purchaseBody += '<div class="summary-row"><span class="summary-label">Down Payment</span><span class="summary-value">' + fmt(c.dp) + '</span></div>';
+  purchaseBody += '<div class="summary-row"><span class="summary-label">Est. Closing Costs (2.5%)</span><span class="summary-value">' + fmt(c.closingBuy) + '</span></div>';
+  if (c.isJumbo) {
+    purchaseBody += '<div class="callout amber" style="margin-top:8px"><div class="callout-title">Jumbo Loan</div><div class="callout-text">Loan exceeds ' + fmt(CONFORMING_LIMIT) + ' conforming limit. Expect stricter requirements and potentially higher rates.</div></div>';
+  }
+  purchaseBody += '</div>';
+  sidebarHtml += section('purchase', 'Purchase Calculator', purchaseBody);
+
+  // Upgrades section
+  var upgradeBody = '';
+  upgradeBody += toggle('Kitchen Remodel ($50K)', 'kitchenEnabled');
+  if (S.kitchenEnabled) upgradeBody += numInput('Kitchen Budget', 'kitchenCost', 10000, 200000);
+  upgradeBody += toggle('Flooring ($15K)', 'flooringEnabled');
+  if (S.flooringEnabled) upgradeBody += numInput('Flooring Budget', 'flooringCost', 5000, 50000);
+  upgradeBody += toggle('Interior Paint ($10K)', 'paintEnabled');
+  if (S.paintEnabled) upgradeBody += numInput('Paint Budget', 'paintCost', 3000, 30000);
+  upgradeBody += toggle('Bathroom Remodel ($25K)', 'bathroomEnabled');
+  if (S.bathroomEnabled) upgradeBody += numInput('Bathroom Budget', 'bathroomCost', 5000, 100000);
+  upgradeBody += toggle('Landscaping ($25K)', 'landscapeEnabled');
+  if (S.landscapeEnabled) upgradeBody += numInput('Landscaping Budget', 'landscapeCost', 5000, 80000);
+  upgradeBody += toggle('Pool ($70K)', 'poolEnabled');
+  if (S.poolEnabled) upgradeBody += numInput('Pool Budget', 'poolCost', 30000, 150000);
+  upgradeBody += toggle('Casita / ADU ($160K)', 'casitaEnabled');
+  if (S.casitaEnabled) upgradeBody += numInput('Casita Budget', 'casitaCost', 50000, 400000);
+  if (c.upgradeCost > 0) {
+    upgradeBody += '<div class="summary-total" style="background:var(--sand-pale)"><span class="summary-label" style="font-weight:700">Total Upgrades</span><span class="summary-value" style="color:var(--terra)">' + fmt(c.upgradeCost) + '</span></div>';
+  }
+  sidebarHtml += section('upgrades', 'New Home Upgrades', upgradeBody);
+
+  // Bridge Financing section
+  var bridgeBody = '';
+  bridgeBody += toggle('Enable HELOC', 'helocEnabled');
+  if (S.helocEnabled) {
+    bridgeBody += numInput('HELOC Amount', 'helocAmount', 0, 500000, 'Available equity line of credit');
+    bridgeBody += slider('HELOC Interest Rate', 'helocRate', 5.0, 12.0, 0.25, '', '%');
+    if (S.helocAmount > 0) {
+      bridgeBody += '<div class="info-box"><div class="big">' + fmt(c.helocMo) + '/mo</div><div class="note">Interest-only HELOC payment</div></div>';
+    }
+  }
+  sidebarHtml += section('bridge', 'Bridge Financing', bridgeBody);
+
+  searchHtml += '<div class="sidebar">' + sidebarHtml + '</div>';
+
+  // Main: Neighborhoods
+  var mainHtml = '';
+  var nbBody = '';
+  var nbs = CONFIG.neighborhoods || [];
+  for (var i = 0; i < nbs.length; i++) {
+    var nb = nbs[i];
+    var badgeClass = nb.badgeColor || 'sage';
+    nbBody += '<div class="nb-card">';
+    nbBody += '<div class="nb-header"><span class="nb-name">' + nb.name + '</span>';
+    if (nb.badge) nbBody += '<span class="nb-badge ' + badgeClass + '">' + nb.badge + '</span>';
+    nbBody += '</div>';
+    nbBody += '<div class="nb-stats">';
+    nbBody += '<div class="nb-stat"><div class="nb-stat-label">Price Range</div><div class="nb-stat-value">' + nb.priceRange + '</div></div>';
+    nbBody += '<div class="nb-stat"><div class="nb-stat-label">Home Size</div><div class="nb-stat-value">' + nb.homeSize + '</div></div>';
+    nbBody += '<div class="nb-stat"><div class="nb-stat-label">Commute</div><div class="nb-stat-value">' + nb.commuteTime + '</div></div>';
+    nbBody += '</div>';
+    nbBody += '<div class="nb-desc">' + nb.description + '</div>';
+    if (nb.whyItWorks) {
+      nbBody += '<div class="nb-why"><strong>Why it works:</strong> ' + nb.whyItWorks + '</div>';
+    }
+    nbBody += '</div>';
+  }
+  if (nbs.length === 0) {
+    nbBody += '<div class="callout blue"><div class="callout-text">Neighborhood recommendations will appear here once your agent adds them.</div></div>';
+  }
+  mainHtml += section('neighborhoods', 'Recommended Neighborhoods', nbBody);
+
+  // Must-haves summary
+  if (CONFIG.mustHaves && CONFIG.mustHaves.length > 0) {
+    var mhBody = '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    for (var m = 0; m < CONFIG.mustHaves.length; m++) {
+      mhBody += '<span style="font-size:12px;font-weight:600;background:var(--sage-bg);color:var(--sage-dark);padding:4px 10px;border-radius:4px">' + CONFIG.mustHaves[m] + '</span>';
+    }
+    mhBody += '</div>';
+    if (CONFIG.targetAreas) mhBody += '<div style="margin-top:10px;font-size:12px;color:var(--neutral)"><strong>Target Areas:</strong> ' + CONFIG.targetAreas + '</div>';
+    if (CONFIG.bedsMin || CONFIG.bathsMin) {
+      mhBody += '<div style="margin-top:4px;font-size:12px;color:var(--neutral)"><strong>Minimum:</strong> ' + (CONFIG.bedsMin || '?') + ' beds / ' + (CONFIG.bathsMin || '?') + ' baths</div>';
+    }
+    mainHtml += '<div class="section open"><div class="section-header"><span class="section-title">Search Criteria</span></div><div class="section-body" style="display:block">' + mhBody + '</div></div>';
+  }
+
+  searchHtml += '<div class="main">' + mainHtml + '</div>';
+  searchHtml += '</div>'; // close layout
+  document.getElementById('tab-search').innerHTML = searchHtml;
+
+  // =============================================
+  // TAB 2: SELLING
+  // =============================================
+  var sellHtml = '';
+
+  // Property Hero
+  var propBody = '';
+  propBody += '<div class="prop-card">';
+  propBody += '<div class="prop-title">' + CONFIG.sellAddress + '</div>';
+  propBody += '<div class="prop-addr">' + CONFIG.sellCityStateZip + '</div>';
+  if (CONFIG.sellSubdivision) propBody += '<div style="font-size:11px;color:var(--neutral);margin-top:2px">' + CONFIG.sellSubdivision + '</div>';
+  propBody += '<div class="prop-summary">';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Beds / Baths</div><div class="prop-stat-value">' + CONFIG.sellBeds + ' / ' + CONFIG.sellBaths + '</div></div>';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Sq Ft</div><div class="prop-stat-value">' + CONFIG.sellSqft.toLocaleString() + '</div></div>';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Lot</div><div class="prop-stat-value">' + CONFIG.sellLotSqft.toLocaleString() + ' SF</div></div>';
+  propBody += '<div class="prop-stat"><div class="prop-stat-label">Year Built</div><div class="prop-stat-value">' + CONFIG.sellYearBuilt + '</div></div>';
+  propBody += '</div>';
+  var features = [];
+  if (CONFIG.sellPool) features.push('Pool');
+  if (CONFIG.sellStories) features.push(CONFIG.sellStories + '-Story');
+  if (CONFIG.sellPropertyHighlights) features = features.concat(CONFIG.sellPropertyHighlights);
+  if (features.length > 0) {
+    propBody += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
+    for (var f = 0; f < features.length; f++) {
+      propBody += '<span style="font-size:10px;font-weight:600;background:var(--sage-bg);color:var(--sage-dark);padding:3px 8px;border-radius:3px">' + features[f] + '</span>';
+    }
+    propBody += '</div>';
+  }
+  propBody += '</div>';
+  sellHtml += section('sell_property', 'Your Property', propBody);
+
+  // Net Proceeds Calculator
+  var netBody = '';
+  netBody += '<div class="layout"><div class="sidebar">';
+  netBody += slider('Sale Price', 'salePrice', CONFIG.estimatedSalePrice * 0.8, CONFIG.estimatedSalePrice * 1.2, 5000, '$', '');
+  netBody += slider('Broker Fee', 'brokerFeePct', 3, 8, 0.5, '', '%');
+  netBody += slider('Seller Closing Costs', 'sellerClosingPct', 0.5, 3, 0.25, '', '%');
+  netBody += numInput('Loan Payoff', 'loanPayoff', 0, CONFIG.estimatedSalePrice, '');
+  netBody += '</div><div class="main">';
+
+  // Net proceeds summary
+  netBody += '<div style="margin-top:4px">';
+  netBody += '<div class="summary-row"><span class="summary-label">Sale Price</span><span class="summary-value">' + fmt(S.salePrice) + '</span></div>';
+  netBody += '<div class="summary-row"><span class="summary-label">Broker Fees (' + S.brokerFeePct + '%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.brokerFees) + '</span></div>';
+  netBody += '<div class="summary-row"><span class="summary-label">Seller Closing (' + S.sellerClosingPct + '%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.sellerClosing) + '</span></div>';
+  netBody += '<div class="summary-row"><span class="summary-label">Loan Payoff</span><span class="summary-value" style="color:var(--negative)">-' + fmt(S.loanPayoff) + '</span></div>';
+  var npColor = c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)';
+  var npBg = c.netProceeds >= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)';
+  netBody += '<div class="summary-total" style="background:' + npBg + '"><span style="font-weight:800;font-size:15px">Net Proceeds</span><span style="font-weight:800;font-size:15px;color:' + npColor + '">' + fmt(c.netProceeds) + '</span></div>';
+  netBody += '</div>';
+
+  netBody += '</div></div>';
+  sellHtml += section('sell_net', 'Net Proceeds Calculator', netBody);
+
+  // Comparable Sales
+  var compsBody = '';
+  var comps = CONFIG.sellComps || [];
+  if (comps.length > 0) {
+    // Market metrics summary
+    var mm = CONFIG.sellMarketMetrics;
+    if (mm) {
+      compsBody += '<div class="metrics" style="margin-bottom:14px">';
+      compsBody += '<div class="metric-card"><div class="metric-label">Median Sold</div><div class="metric-value" style="color:var(--terra)">' + fmt(mm.medianSoldPrice) + '</div><div class="metric-sub">' + fmt(mm.medianPpsf) + '/SF median</div></div>';
+      compsBody += '<div class="metric-card"><div class="metric-label">Avg DOM</div><div class="metric-value">' + mm.avgDom + '</div><div class="metric-sub">' + mm.medianDom + ' median days</div></div>';
+      compsBody += '<div class="metric-card"><div class="metric-label">Sale-to-List</div><div class="metric-value">' + fmtPct(mm.saleToListRatio) + '</div><div class="metric-sub">' + mm.totalSalesInPeriod + ' sales in ' + mm.analysisPeriodMonths + ' mo</div></div>';
+      compsBody += '</div>';
+    }
+    compsBody += '<div class="comp-card-grid">';
+    for (var ci = 0; ci < comps.length; ci++) {
+      var comp = comps[ci];
+      var scoreTier = comp.matchScore >= 75 ? 'strong' : comp.matchScore >= 50 ? 'moderate' : 'weak';
+      var scoreTierLabel = comp.matchScore >= 75 ? 'STRONG' : comp.matchScore >= 50 ? 'MODERATE' : 'WEAK';
+      compsBody += '<div class="comp-card">';
+      compsBody += '<div class="comp-card-header"><div><div class="comp-card-addr">' + comp.addr + '</div>';
+      if (comp.sub) compsBody += '<div class="comp-card-sub">' + comp.sub + (comp.community && comp.community !== comp.sub ? '<span class="comm-badge">' + comp.community + '</span>' : '') + '</div>';
+      compsBody += '</div><span class="tier-badge ' + scoreTier + '">' + scoreTierLabel + '</span></div>';
+      compsBody += '<div class="score-row"><span class="score-label">Match</span><div class="score-bar"><div class="score-fill" style="width:' + comp.matchScore + '%"></div></div><span class="score-val">' + comp.matchScore + '</span></div>';
+      compsBody += '<div class="comp-details">';
+      compsBody += '<div class="comp-detail"><span class="cd-label">Sold</span><span class="cd-val">' + fmt(comp.sp) + '</span></div>';
+      compsBody += '<div class="comp-detail"><span class="cd-label">$/SF</span><span class="cd-val">' + fmt(comp.ppsf) + '</span></div>';
+      compsBody += '<div class="comp-detail"><span class="cd-label">SF</span><span class="cd-val">' + comp.sf.toLocaleString() + '</span></div>';
+      compsBody += '<div class="comp-detail"><span class="cd-label">Bed/Bath</span><span class="cd-val">' + comp.beds + '/' + comp.baths + '</span></div>';
+      compsBody += '<div class="comp-detail"><span class="cd-label">Pool</span><span class="cd-val">' + comp.pool + '</span></div>';
+      compsBody += '<div class="comp-detail"><span class="cd-label">DOM</span><span class="cd-val">' + comp.dom + '</span></div>';
+      compsBody += '</div>';
+      if (comp.note) compsBody += '<div style="font-size:11px;color:var(--neutral);font-style:italic;border-top:1px solid var(--border);padding-top:6px;margin-top:auto">' + comp.note + '</div>';
+      compsBody += '</div>';
+    }
+    compsBody += '</div>';
+  } else {
+    compsBody += '<div class="callout blue"><div class="callout-text">Comparable sales data will appear here once loaded.</div></div>';
+  }
+  sellHtml += section('sell_comps', 'Comparable Sales (' + comps.length + ')', compsBody);
+
+  // Competition Tracker
+  var compBody = '';
+  var comps2 = CONFIG.sellCompetition || [];
+  if (comps2.length > 0) {
+    for (var j = 0; j < comps2.length; j++) {
+      var cmp = comps2[j];
+      compBody += '<div class="competition-card">';
+      compBody += '<div class="competition-addr">' + cmp.address + ' <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;background:' + (cmp.status === 'Active' ? 'rgba(92,138,77,.1);color:var(--positive)' : 'var(--sand-pale);color:var(--neutral)') + '">' + cmp.status + '</span></div>';
+      compBody += '<div class="competition-meta">';
+      compBody += '<div class="competition-stat"><span class="cd-label">Price</span><span class="cd-val">' + fmt(cmp.price) + '</span></div>';
+      compBody += '<div class="competition-stat"><span class="cd-label">DOM</span><span class="cd-val">' + cmp.dom + '</span></div>';
+      compBody += '<div class="competition-stat"><span class="cd-label">Bed/Bath</span><span class="cd-val">' + cmp.beds + '/' + cmp.baths + '</span></div>';
+      compBody += '<div class="competition-stat"><span class="cd-label">SF</span><span class="cd-val">' + (cmp.sqft ? cmp.sqft.toLocaleString() : 'N/A') + '</span></div>';
+      if (cmp.pool) { compBody += '<div class="competition-stat"><span class="cd-label">Pool</span><span class="cd-val">' + cmp.pool + '</span></div>'; }
+      compBody += '</div>';
+      if (cmp.note) compBody += '<div class="competition-note">' + cmp.note + '</div>';
+      compBody += '</div>';
+    }
+  } else {
+    compBody += '<div class="callout blue"><div class="callout-text">No competing listings currently tracked.</div></div>';
+  }
+  sellHtml += section('sell_competition', 'Competition (' + comps2.length + ' Active)', compBody);
+
+  // Pricing Strategy
+  if (CONFIG.sellPricingStrategy) {
+    var pricingBody = '<div class="callout green"><div class="callout-text">' + CONFIG.sellPricingStrategy + '</div></div>';
+    if (CONFIG.sellMarketMetrics && CONFIG.sellMarketMetrics.derivedRange) {
+      var dr = CONFIG.sellMarketMetrics.derivedRange;
+      pricingBody += '<div class="info-box"><div class="big">' + fmt(dr.low) + ' \u2014 ' + fmt(dr.high) + '</div><div class="note">Recommended listing range based on ' + (CONFIG.sellMarketMetrics.compsUsedForValue || 'all') + ' comparable sales</div></div>';
+    }
+    // Market detail breakdown
+    if (CONFIG.sellMarketMetrics) {
+      var sm = CONFIG.sellMarketMetrics;
+      pricingBody += '<div style="margin-top:12px">';
+      pricingBody += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--slate-light);margin-bottom:8px">Market Detail</div>';
+      pricingBody += '<div class="summary-row"><span class="summary-label">Price/SF Range</span><span class="summary-value">' + fmt(sm.ppsfRange.low) + ' \u2014 ' + fmt(sm.ppsfRange.high) + '</span></div>';
+      pricingBody += '<div class="summary-row"><span class="summary-label">Avg $/SF</span><span class="summary-value">' + fmt(sm.avgPpsf) + '</span></div>';
+      pricingBody += '<div class="summary-row"><span class="summary-label">Subdivision Sales</span><span class="summary-value">' + sm.subdivisionSalesCount + '</span></div>';
+      pricingBody += '<div class="summary-row"><span class="summary-label">Trend</span><span class="summary-value">' + (sm.priceTrendDirection || 'N/A') + '</span></div>';
+      if (sm.priceTrendDetail) {
+        pricingBody += '<div style="font-size:11px;color:var(--neutral);font-style:italic;margin-top:6px">' + sm.priceTrendDetail + '</div>';
+      }
+      pricingBody += '<div style="font-size:10px;color:var(--slate-light);margin-top:8px">Analysis period: ' + sm.analysisPeriodMonths + ' months (' + sm.earliestSale + ' to ' + sm.latestSale + ')</div>';
+      pricingBody += '</div>';
+    }
+    sellHtml += section('sell_pricing', 'Pricing Strategy', pricingBody);
+  }
+
+  // Cromford metrics (if available)
+  var cromford = CONFIG.cromfordMetrics || [];
+  if (cromford.length > 0) {
+    var cromBody = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">';
+    for (var ci2 = 0; ci2 < cromford.length; ci2++) {
+      var cm = cromford[ci2];
+      cromBody += '<div class="metric-card"><div class="metric-label">' + (cm.label || cm.name || '') + '</div>';
+      cromBody += '<div class="metric-value" style="color:var(--terra)">' + (cm.value || '') + '</div>';
+      if (cm.note) cromBody += '<div class="metric-sub">' + cm.note + '</div>';
+      cromBody += '</div>';
+    }
+    cromBody += '</div>';
+    if (CONFIG.cromfordTakeaway) {
+      cromBody += '<div class="callout green"><div class="callout-text">' + CONFIG.cromfordTakeaway + '</div></div>';
+    }
+    if (CONFIG.cromfordSource) {
+      cromBody += '<div style="font-size:10px;color:var(--slate-light);font-style:italic;text-align:right">Source: ' + CONFIG.cromfordSource + '</div>';
+    }
+    sellHtml += section('sell_cromford', 'Market Intelligence', cromBody);
+  }
+
+  document.getElementById('tab-selling').innerHTML = sellHtml;
+
+  // =============================================
+  // TAB 3: SCHOOLS
+  // =============================================
+  var schoolHtml = '';
+  var districts = CONFIG.schoolDistricts || [];
+  if (districts.length > 0) {
+    for (var di = 0; di < districts.length; di++) {
+      var dist = districts[di];
+      schoolHtml += '<div class="school-district open" id="district-' + di + '">';
+      schoolHtml += '<div class="school-district-header" onclick="toggleDistrict(' + di + ')">';
+      schoolHtml += '<div><div class="school-district-name">' + dist.name + '</div>';
+      if (dist.description) schoolHtml += '<div class="school-district-desc">' + dist.description + '</div>';
+      schoolHtml += '</div><span class="section-arrow">&#9660;</span></div>';
+      schoolHtml += '<div class="school-district-body" style="display:block">';
+      var schools = dist.schools || [];
+      for (var si = 0; si < schools.length; si++) {
+        var sch = schools[si];
+        schoolHtml += '<div class="school-card">';
+        schoolHtml += '<div class="school-card-header"><span class="school-card-name">' + sch.name + '</span>';
+        if (sch.badge) schoolHtml += '<span class="school-card-badge">' + sch.badge + '</span>';
+        schoolHtml += '</div>';
+        schoolHtml += '<div class="school-card-meta">' + (sch.type || '') + ' &bull; Grades ' + (sch.grades || '') + ' &bull; Rating: ' + (sch.rating || 'N/A') + '</div>';
+        if (sch.description) schoolHtml += '<div class="school-card-desc">' + sch.description + '</div>';
+        if (sch.url) schoolHtml += '<div style="margin-top:6px"><a href="' + sch.url + '" target="_blank" style="font-size:11px;color:var(--terra);font-weight:600">Visit Website &rarr;</a></div>';
+        schoolHtml += '</div>';
+      }
+      schoolHtml += '</div></div>';
+    }
+  } else {
+    schoolHtml += '<div class="callout blue"><div class="callout-text">School district information will appear here once added by your agent.</div></div>';
+  }
+  if (CONFIG.schoolPreference) {
+    schoolHtml += '<div class="callout green" style="margin-top:12px"><div class="callout-title">School Preference</div><div class="callout-text">Searching within <strong>' + CONFIG.schoolPreference + '</strong> district boundaries.</div></div>';
+  }
+  document.getElementById('tab-schools').innerHTML = schoolHtml;
+
+  // =============================================
+  // TAB 4: STRATEGY
+  // =============================================
+  var stratHtml = '';
+
+  // Strategy Options
+  var opts = CONFIG.strategyOptions || [];
+  if (opts.length > 0) {
+    var stratBody = '';
+    for (var oi = 0; oi < opts.length; oi++) {
+      var opt = opts[oi];
+      stratBody += '<div class="strategy-card">';
+      stratBody += '<div class="strategy-label">' + opt.label + '</div>';
+      stratBody += '<div class="strategy-title">' + opt.title + '</div>';
+      if (opt.pros && opt.pros.length > 0) {
+        stratBody += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--positive);margin-bottom:4px">Advantages</div>';
+        stratBody += '<ul class="strategy-list pros">';
+        for (var pi = 0; pi < opt.pros.length; pi++) stratBody += '<li>' + opt.pros[pi] + '</li>';
+        stratBody += '</ul>';
+      }
+      if (opt.cons && opt.cons.length > 0) {
+        stratBody += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--negative);margin-bottom:4px;margin-top:6px">Considerations</div>';
+        stratBody += '<ul class="strategy-list cons">';
+        for (var qi = 0; qi < opt.cons.length; qi++) stratBody += '<li>' + opt.cons[qi] + '</li>';
+        stratBody += '</ul>';
+      }
+      stratBody += '</div>';
+    }
+    stratHtml += section('strategy', 'Strategy Options', stratBody);
+  }
+
+  // Cash Gap Summary
+  var gapBody = '';
+  gapBody += '<div class="gap-summary">';
+  gapBody += '<div class="gap-row"><span class="gap-label">Net Proceeds from Sale</span><span class="gap-value" style="color:var(--positive)">' + fmt(c.netProceeds) + '</span></div>';
+  gapBody += '<div class="gap-row"><span class="gap-label">Cash to Close (Purchase)</span><span class="gap-value" style="color:var(--negative)">-' + fmt(c.cashToClose) + '</span></div>';
+  if (c.upgradeCost > 0) {
+    gapBody += '<div class="gap-row"><span class="gap-label">New Home Upgrades</span><span class="gap-value" style="color:var(--negative)">-' + fmt(c.upgradeCost) + '</span></div>';
+  }
+  if (c.helocFund > 0) {
+    gapBody += '<div class="gap-row"><span class="gap-label">HELOC Bridge Funds</span><span class="gap-value" style="color:var(--positive)">+' + fmt(c.helocFund) + '</span></div>';
+  }
+  var gapTotalBg = c.cashGap <= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)';
+  var gapTotalColor = c.cashGap <= 0 ? 'var(--positive)' : 'var(--negative)';
+  gapBody += '<div class="gap-total" style="background:' + gapTotalBg + '"><span style="font-weight:800;color:var(--slate)">' + (c.cashGap <= 0 ? 'Surplus' : 'Cash Gap') + '</span><span style="font-weight:800;color:' + gapTotalColor + '">' + fmt(Math.abs(c.cashGap)) + '</span></div>';
+  gapBody += '</div>';
+  if (c.cashGap <= 0) {
+    gapBody += '<div class="callout green"><div class="callout-title">You\'re Covered</div><div class="callout-text">Your estimated sale proceeds' + (c.helocFund > 0 ? ' plus HELOC funds' : '') + ' fully cover the purchase costs with ' + fmt(Math.abs(c.cashGap)) + ' to spare.</div></div>';
+  } else {
+    gapBody += '<div class="callout amber"><div class="callout-title">Additional Funds Needed</div><div class="callout-text">You\'ll need approximately ' + fmt(c.cashGap) + ' in additional funds. Consider adjusting your purchase price, down payment, or enabling bridge financing.</div></div>';
+  }
+  stratHtml += '<div class="section open"><div class="section-header"><span class="section-title" style="color:var(--terra)">Cash Gap Analysis</span></div><div class="section-body" style="display:block">' + gapBody + '</div></div>';
+
+  // Monthly Cost Comparison
+  var costBody = '';
+  costBody += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  // Current home costs
+  costBody += '<div style="background:var(--sand-pale);border-radius:8px;padding:14px">';
+  costBody += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--slate-light);margin-bottom:8px">Current Home</div>';
+  var currentMortgage = S.loanPayoff > 0 ? pmt(5.5 / 100 / 12, 360, S.loanPayoff) : 0;
+  costBody += '<div class="summary-row"><span class="summary-label">Est. Mortgage</span><span class="summary-value">' + fmt(currentMortgage) + '</span></div>';
+  var currentTax = Math.round(S.salePrice * 0.006 / 12);
+  costBody += '<div class="summary-row"><span class="summary-label">Est. Property Tax</span><span class="summary-value">' + fmt(currentTax) + '</span></div>';
+  costBody += '<div class="summary-total" style="background:var(--card)"><span style="font-weight:700;font-size:13px">Total</span><span style="font-weight:700;font-size:13px;color:var(--slate)">' + fmt(currentMortgage + currentTax) + '/mo</span></div>';
+  costBody += '</div>';
+  // New home costs
+  costBody += '<div style="background:var(--sage-bg);border-radius:8px;padding:14px">';
+  costBody += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--sage-dark);margin-bottom:8px">New Home</div>';
+  costBody += '<div class="summary-row"><span class="summary-label">Mortgage (P&I)</span><span class="summary-value">' + fmt(c.mo) + '</span></div>';
+  costBody += '<div class="summary-row"><span class="summary-label">Property Tax</span><span class="summary-value">' + fmt(c.moTax) + '</span></div>';
+  if (c.helocMo > 0) {
+    costBody += '<div class="summary-row"><span class="summary-label">HELOC Payment</span><span class="summary-value">' + fmt(c.helocMo) + '</span></div>';
+  }
+  costBody += '<div class="summary-total" style="background:var(--card)"><span style="font-weight:700;font-size:13px">Total</span><span style="font-weight:700;font-size:13px;color:var(--terra)">' + fmt(c.monthlyPayment) + '/mo</span></div>';
+  costBody += '</div>';
+  costBody += '</div>';
+  var moDiff = c.monthlyPayment - (currentMortgage + currentTax);
+  if (moDiff > 0) {
+    costBody += '<div class="callout amber" style="margin-top:10px"><div class="callout-text">Estimated monthly increase of <strong>' + fmt(moDiff) + '</strong> compared to current housing costs.</div></div>';
+  } else if (moDiff < 0) {
+    costBody += '<div class="callout green" style="margin-top:10px"><div class="callout-text">Estimated monthly savings of <strong>' + fmt(Math.abs(moDiff)) + '</strong> compared to current housing costs.</div></div>';
+  }
+  stratHtml += '<div class="section open"><div class="section-header"><span class="section-title">Monthly Cost Comparison</span></div><div class="section-body" style="display:block">' + costBody + '</div></div>';
+
+  // Timeline
+  var tl = CONFIG.strategyTimeline || [];
+  if (tl.length > 0) {
+    var tlBody = '';
+    for (var ti = 0; ti < tl.length; ti++) {
+      var phase = tl[ti];
+      tlBody += '<div class="timeline-phase">';
+      tlBody += '<div class="timeline-phase-label">' + phase.phase + '</div>';
+      tlBody += '<div class="timeline-phase-title">' + phase.title + '</div>';
+      tlBody += '<ul class="timeline-items">';
+      for (var ii = 0; ii < phase.items.length; ii++) {
+        tlBody += '<li>' + phase.items[ii] + '</li>';
+      }
+      tlBody += '</ul></div>';
+    }
+    stratHtml += section('timeline', 'Recommended Timeline', tlBody);
+  }
+
+  document.getElementById('tab-strategy').innerHTML = stratHtml;
+
+  // =============================================
+  // TAB 5: TEAM
+  // =============================================
+  var teamHtml = '';
+
+  // Team stats
+  teamHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">';
+  teamHtml += '<div class="team-stat"><div class="team-stat-val">250+</div><div class="team-stat-lbl">Families Helped</div></div>';
+  teamHtml += '<div class="team-stat"><div class="team-stat-val">$150M+</div><div class="team-stat-lbl">In Sales Volume</div></div>';
+  teamHtml += '<div class="team-stat"><div class="team-stat-val">15+</div><div class="team-stat-lbl">Years Experience</div></div>';
+  teamHtml += '</div>';
+
+  // Agent cards
+  var members = agent.members || [];
+  for (var ai = 0; ai < members.length; ai++) {
+    var mem = members[ai];
+    teamHtml += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:center">';
+    if (mem.photo) {
+      teamHtml += '<img src="' + mem.photo + '" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="' + mem.name + '">';
+    } else {
+      teamHtml += '<div style="width:64px;height:64px;border-radius:50%;background:' + mem.gradient + ';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;flex-shrink:0">' + mem.initials + '</div>';
+    }
+    teamHtml += '<div><div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate)">' + mem.name + '</div>';
+    teamHtml += '<div style="font-size:12px;color:var(--neutral);margin-top:2px">';
+    if (mem.phone) teamHtml += '<a href="tel:' + mem.phone + '" style="color:var(--terra);text-decoration:none">' + mem.phone + '</a>';
+    if (mem.phone && mem.email) teamHtml += ' &bull; ';
+    if (mem.email) teamHtml += '<a href="mailto:' + mem.email + '" style="color:var(--terra);text-decoration:none">' + mem.email + '</a>';
+    teamHtml += '</div></div></div>';
+  }
+
+  // Reviews
+  var reviews = agent.reviews || [];
+  if (reviews.length > 0) {
+    teamHtml += '<div style="margin-top:16px">';
+    for (var ri = 0; ri < reviews.length; ri++) {
+      teamHtml += '<div class="review-card"><div class="review-text">"' + reviews[ri].text + '"</div><div class="review-author">\u2014 ' + reviews[ri].author + '</div></div>';
+    }
+    if (agent.reviewUrl) {
+      teamHtml += '<div style="text-align:center;margin-top:12px"><a href="' + agent.reviewUrl + '" target="_blank" class="email-btn" style="font-size:13px;padding:10px 24px">Read More Reviews</a></div>';
+    }
+    teamHtml += '</div>';
+  }
+
+  // CTA
+  if (CONFIG.email) {
+    teamHtml += '<div style="text-align:center;margin-top:20px;padding:20px;background:var(--sand-pale);border-radius:10px">';
+    teamHtml += '<div style="font-size:16px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:8px">Have Questions?</div>';
+    teamHtml += '<div style="font-size:12px;color:var(--neutral);margin-bottom:14px">We\'re here to guide you through every step of the buy/sell process.</div>';
+    teamHtml += '<a href="mailto:' + (agent.members[0] ? agent.members[0].email : CONFIG.email) + '?subject=Buy/Sell Dashboard Question - ' + CONFIG.clientNames + '" class="email-btn">Send Us a Message</a>';
+    teamHtml += '</div>';
+  }
+
+  document.getElementById('tab-team').innerHTML = teamHtml;
+
+  // Footer agent info
+  var footerText = agent.displayName;
+  if (agent.members && agent.members[0] && agent.members[0].phone) footerText += ' | ' + agent.members[0].phone;
+  document.getElementById('footerAgent').textContent = footerText;
+}
+render();
+</script>
+</body>
+</html>

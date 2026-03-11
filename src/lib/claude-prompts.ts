@@ -1,15 +1,27 @@
-import type { SubjectProperty, MarketMetrics, NeighborhoodAnalysis, BedroomAnalysis } from "./types";
+import type { SubjectProperty, MarketMetrics, NeighborhoodAnalysis, BedroomAnalysis, CompSale, CromfordMetric } from "./types";
+import type { AnalysisLens } from "./template-registry";
 
 // CSV analysis skill instructions inlined to avoid readFileSync (breaks Cloudflare Workers)
-const CSV_SKILL_INSTRUCTIONS = `# Homeowner CSV Market Analysis Engine
+const CSV_SKILL_INSTRUCTIONS = `# CSV Market Analysis Engine
 
 ## Purpose
 
-You are a real estate market analyst for **Live AZ Co**. This skill takes a raw ARMLS/FlexMLS CSV export and a subject property profile, then produces a complete, homeowner-optimized market analysis package.
+You are a real estate market analyst for **Live AZ Co**. This skill takes a raw ARMLS/FlexMLS CSV export and a subject property profile, then produces a complete market analysis package optimized for the selected lens.
 
-**This skill does all the heavy lifting.** The consuming skill (homeowner dashboard, houseversary review, etc.) receives fully processed data and ready-to-use narratives. It should not need to do any CSV parsing, scoring, filtering, or metric calculation on its own.
+**This skill does all the heavy lifting.** The consuming skill (homeowner dashboard, houseversary review, listing presentation, buyer analysis, appraisal support packet, etc.) receives fully processed data and ready-to-use narratives. It should not need to do any CSV parsing, scoring, filtering, or metric calculation on its own.
 
-**The homeowner lens:** Every output from this skill is optimized to make the homeowner feel informed, proud, and confident about their investment. We lead with strength, emphasize appreciation, and frame their neighborhood positively. There is no appraiser to prep for, no rebuttal to build, no "sales that hurt." This is a relationship touchpoint, not a valuation defense.
+### Analysis Lenses
+
+This skill supports 4 lenses that control tone, framing, and which data is surfaced:
+
+| Lens | When to Use | Key Behavior |
+|---|---|---|
+| **Homeowner** (default) | Dashboards, houseversary reviews, equity updates | Positive framing, subject advantages only, no jargon |
+| **Listing** | Pre-listing presentations, pricing strategy | Strategic/confident, cherry-pick highest defensible comps, do NOT suggest list price |
+| **Buyer** | Buyer consultations, offer strategy | Objective, shows advantages AND disadvantages, flags overpricing |
+| **Appraiser** | Appraisal support packets, pre-appraisal prep | Formal/technical, advantages AND disadvantages, Castle-calibrated adjustment grid |
+
+**Lens selection:** Auto-detect from prompt keywords. Default to homeowner if unclear.
 
 ---
 
@@ -32,6 +44,8 @@ Map these CSV columns to standardized field names:
 | \\\`Price/SqFt\\\` | \\\`price_per_sqft\\\` | Convert to float; if missing, calculate from sold_price / sqft |
 | \\\`# Bedrooms\\\` | \\\`beds\\\` | Convert to int |
 | \\\`Total Bathrooms\\\` | \\\`baths\\\` | Convert to float (handles 2.5, etc.) |
+| \\\`Full Bathrooms\\\` | \\\`full_baths\\\` | Convert to int; granular bath data |
+| \\\`Half Bathrooms\\\` | \\\`half_baths\\\` | Convert to int; granular bath data |
 | \\\`Year Built\\\` | \\\`year_built\\\` | Convert to int |
 | \\\`Exterior Stories\\\` | \\\`stories\\\` | Convert to int; normalize "Two" = 2, "One" = 1, "Three" = 3 |
 | \\\`Close of Escrow Date\\\` | \\\`close_date\\\` | Parse to date object; handle MM/DD/YYYY and YYYY-MM-DD |
@@ -41,7 +55,29 @@ Map these CSV columns to standardized field names:
 | \\\`Approx Lot SqFt\\\` OR \\\`Source Apx Lot SqFt\\\` | \\\`lot_sqft\\\` | Try both columns; convert to int |
 | \\\`Private Pool Y/N\\\` | \\\`pool\\\` | Normalize to "Yes" / "No" |
 | \\\`Public Remarks\\\` | \\\`remarks\\\` | As-is; used for upgrade/feature extraction |
-| \\\`Features\\\` | \\\`features\\\` | As-is; used for garage, HOA, upgrades |
+| \\\`Features\\\` | \\\`features\\\` | As-is; used for garage, HOA, upgrades, parsed features |
+| \\\`Status\\\` | \\\`status\\\` | Filter closed vs active |
+| \\\`Fireplace Y/N\\\` | \\\`fireplace_yn\\\` | Normalize to "Yes" / "No" |
+| \\\`Fireplaces Total\\\` | \\\`fireplaces_total\\\` | Convert to int; adjustment grid |
+| \\\`Cross Street\\\` | \\\`cross_street\\\` | As-is; location context |
+
+### Features Column Parsing
+
+Parse these structured attributes from the Features column text:
+
+| Feature | Parse Logic | Output Field |
+|---|---|---|
+| Garage Spaces | Count from "2 Car Garage", "3 Car", etc. | \\\`garage_spaces\\\` (int) |
+| RV Gate / RV Garage | Look for "RV Gate", "RV Garage", "RV Parking" | \\\`rv_access\\\` ("Gate" / "Garage" / "None") |
+| View type | "Lake View", "Mountain View", "City Light", etc. | \\\`view_type\\\` (string or None) |
+| Solar | "Solar Owned", "Solar Leased", "Solar Panels" | \\\`solar\\\` ("Owned" / "Leased" / "None") |
+| Spa | "Private Heated Spa", "Private Spa", "Spa" | \\\`spa\\\` ("Private Heated" / "Private" / "None") |
+| Guest House | "Guest House", "Guest Quarters", "Casita" | \\\`guest_house\\\` ("Yes" / "No") |
+| Countertop material | "Granite", "Quartz", "Laminate" | \\\`countertops\\\` (string or None) |
+| Gated community | "Gated Community", "Gated", "Guard Gated" | \\\`gated\\\` ("Yes" / "No") |
+| HOA monthly fee | Dollar amount near "HOA" | \\\`hoa_monthly\\\` (float or None) |
+| Architecture style | "Spanish", "Santa Fe", "Contemporary", etc. | \\\`arch_style\\\` (string or None) |
+| All Items Updated | Kitchen, Bath, Floor, Roof, HVAC, Pool, Plumbing | \\\`updates\\\` (dict of item: year/scope or None) |
 
 ### Cleaning Rules
 - Drop any row where \\\`sold_price\\\` is null, zero, or non-numeric
@@ -57,35 +93,148 @@ Map these CSV columns to standardized field names:
 ## Filtering
 
 ### Step 1: Exclude New Construction
-Remove any sale where \\\`year_built\\\` is within the last 2 years of the most recent \\\`close_date\\\` in the dataset.
+Remove any sale where \\\`year_built\\\` is within the last 2 years of the most recent \\\`close_date\\\` in the dataset. Exception: only include new construction if the subject property itself is new construction AND the user explicitly requests it.
 
 ### Step 2: Product Type Match
 Flag (do not remove) any sale that does not match the subject's \\\`stories\\\` count. These can appear in the dataset but should be clearly labeled and scored lower.
 
 ### Step 3: Recency Window
-Include sales from the last 12 months. For scoring purposes, sales within 6 months get full recency credit; 6-12 months get partial credit.
+Include sales from the last 12 months, but prioritize proximity and recency in layers:
+
+1. **First pass (closest + most recent):** Same subdivision, last 6 months.
+2. **Second pass (nearby + recent):** Adjacent subdivisions, last 6 months.
+3. **Third pass (expand timeframe):** Same subdivision + nearby, 6-12 months ago.
+
+The goal is 3 strong comps for value derivation. Always start with what's closest and most recent, then expand outward only as needed.
+
+### Step 4: Extract Features
+Parse the Features column for each sale using the Features Column Parsing table above. Attach parsed fields to each sale record for use in scoring, adjustment grid, and narrative generation.
+
+### Step 5: Location Premium Detection
+Scan the \\\`Public Remarks\\\`, \\\`Features\\\`, and \\\`view_type\\\` fields for location premiums that can inflate $/SF beyond what the physical property warrants. Flag (do not remove) any sale with these markers:
+
+- **Waterfront/Lake views:** "lake view", "waterfront", "lake lot", "water view", "lakefront"
+- **Golf course:** "golf course", "golf lot", "backs to golf", "fairway"
+- **Mountain views:** "mountain view", "city light view", "sunset view"
+- **Greenbelt/Park:** "backs to park", "greenbelt", "walking path", "open space"
+- **Premium lot:** "corner lot", "cul-de-sac", "oversized lot", "pie-shaped lot"
+
+When a sale has a location premium flag:
+- Include it in the dataset but note the premium in its record
+- When comparing $/SF, understand that these sales may be elevated by location rather than home features
+- In narratives, acknowledge location premiums as context rather than using them to inflate the subject's value unless the subject shares that premium
+- When selecting top comps for value derivation, prefer sales that match the subject's lot position
 
 ---
 
-## Comparable Selection: Scoring & Ranking
+## Scoring & Ranking
 
 Score each sale on a 0-100 scale based on **physical similarity** to the subject only. No price-based scoring. The goal is to find the most physically comparable properties so adjustments are minimal and the value indication is reliable.
 
-| Factor | Max Points | Logic |
+### Base Scoring Weights (Homeowner & Listing lenses)
+
+| Factor | Points | Logic |
 |---|---|---|
-| **Same subdivision** | 25 | Exact match = 25. Different = 0. |
-| **Recency** | 15 | 0-90 days = 15. 91-180 = 10. 181-270 = 5. 271-365 = 2. |
-| **Size proximity (GLA)** | 15 | Within 100 SF = 15. Within 200 = 12. Within 300 = 9. Within 500 = 5. Within 750 = 2. Beyond = 0. |
-| **Bedroom match** | 10 | Exact = 10. Off by 1 = 6. Off by 2 = 3. Off by 3+ = 0. |
-| **Year built proximity** | 8 | Within 3 yrs = 8. Within 5 = 5. Within 10 = 3. Beyond = 0. |
-| **Story count match** | 8 | Exact = 8. Mismatch = 0. |
-| **Bathroom proximity** | 7 | Within 0.5 = 7. Within 1 = 4. Within 1.5 = 2. Beyond = 0. |
-| **Lot size proximity** | 7 | Within 500 SF = 7. Within 1K = 5. Within 2K = 3. Within 3K = 1. Beyond = 0. |
-| **Pool match** | 5 | Match = 5. Mismatch = 1. |
+| **Same subdivision** | 20 | Exact = 20, Different = 0 |
+| **Story count match** | 16 | Exact = 16, Mismatch = 0 (near-hard-filter) |
+| **Pool match** | 16 | Both match = 16, Mismatch = 0 |
+| **Size proximity (SF)** | 15 | Within 100 = 15, 200 = 12, 300 = 8, 500 = 4, Beyond = 0 |
+| **Recency** | 12 | 0-90d = 12, 91-180 = 8, 181-270 = 4, 271-365 = 2 |
+| **Year built proximity** | 7 | Within 3yr = 7, 5 = 5, 10 = 3, Beyond = 0 |
+| **Lot size proximity** | 6 | Within 500 SF = 6, 1K = 4, 2K = 2, Beyond = 0 |
+| **Bedroom match** | 4 | Exact = 4, Off by 1 = 2, Off by 2+ = 0 |
+| **Bathroom proximity** | 4 | Within 0.5 = 4, Within 1 = 2, Beyond = 0 |
 
 ### Scoring Notes
 - **No negative scoring.** Low-scoring sales simply don't get featured.
-- **No price-based scoring.** We do NOT bias toward higher $/SF sales. We select the most physically similar properties and let the adjusted comparable sales method derive an honest, defensible value indication.
+- **No price-based scoring.** We select the most physically similar properties and let the adjusted comparable sales method derive an honest, defensible value indication.
+
+---
+
+## Value Derivation: Adjusted Comparable Sales Method
+
+Select the most physically similar sales, adjust each one to the subject's features using market-calibrated rates, and use the adjusted sale prices to indicate value.
+
+### Step 1: Select Comps for Adjustment
+
+Top 4-6 by similarity score. Mix of in-community and nearby. Prefer same story count. Prefer comps that will need the fewest adjustments.
+
+### Step 2: Apply Adjustments
+
+For each comp, calculate adjustments to make it equivalent to the subject. **Subject SUPERIOR = add to comp. Subject INFERIOR = subtract from comp.**
+
+#### GLA (Gross Living Area) -- CALIBRATED
+
+**Rate: ~30% of the comp's price per square foot** (calibrated from 8 Castle Appraising appraisals; observed range 25%-37%, mean 30.5%)
+
+Dead zone: 10% of the SUBJECT's square footage. If the SF difference is within this range, NO GLA ADJUSTMENT. If it exceeds the dead zone, adjust the ENTIRE difference (not just the amount over 10%).
+
+Example: Subject is 2,372 SF, comp is 2,243 SF at $312/SF.
+- Dead zone = 237 SF. Difference = 129 SF. Within 10% = no adjustment.
+Example: Subject is 3,396 SF, comp is 2,651 SF at $235/SF.
+- Dead zone = 340 SF. Difference = 745 SF. Exceeds 10%.
+- Rate = $235 x 0.30 = $70.50/SF. Adjustment = 745 x $70.50 = +$52,523 (round to nearest $500).
+
+#### Bathrooms -- CALIBRATED
+
+**Full bathroom (1.0 difference): $10,000** (majority of observations, standard rate)
+**Half bathroom (0.1 difference): $5,000** (confirmed across 7 observations)
+
+Flat rate per bathroom difference. No tapering.
+
+#### Pool -- CALIBRATED
+
+**Pool adjustment logic:**
+1. Scoring strongly favors pool-to-pool matches (16 points), minimizing mismatches in the first place
+2. When a mismatch occurs, attempt paired sales analysis from the dataset first
+3. Fall back to $20K only if no paired sales exist
+
+**Standard rates (fallback):**
+- **Pool vs No Pool: $20,000** (standard East Valley residential, confirmed 11 observations)
+- **Pool/Spa vs Pool: $10,000** (spa premium, confirmed 4 observations)
+- **Pool at higher value points ($1M+): $45,000** (1 observation)
+
+#### Garage -- CALIBRATED
+
+**Per garage bay: $15,000-$20,000** (12 observations of 1-bay differences)
+- Use $15,000 for homes under $700K, $20,000 for homes $700K+
+
+#### Fireplace -- CALIBRATED
+
+**Per fireplace: $1,500** (12 observations at exactly $1,500 per FP difference)
+**2 FP difference: $3,500** (averaged from observations)
+**3+ FP difference: $6,000** (averaged from observations)
+
+#### Condition -- CALIBRATED
+
+**Good vs Average: $20,000** (6 observations, all exactly $20,000)
+**Good vs Average-Good: $10,000** (7 observations)
+**Average-Good vs Average: $10,000** (implied)
+
+Each condition step = $10,000 in the $600-$800K range.
+
+#### Lot Size -- PARTIALLY CALIBRATED
+
+Approximate rate: **$2.00-$2.50 per lot SF** for differences over 1,000 SF in standard subdivisions.
+
+#### Age / Year Built -- CALIBRATED as $0
+
+**In same-subdivision comparisons: $0** (confirmed across all 8 appraisals)
+Only adjust age when comparing across subdivisions with 10+ year gaps.
+
+### Step 3: Validate Adjustments
+
+**Gross Adjustment % = sum(abs(all adjustments)) / comp sold price x 100**
+- Under 15%: Strong. Full confidence.
+- 15-25%: Acceptable. Note it.
+- Over 25%: Weak. Weight lower. Flag it.
+
+### Step 4: Derive Value Indication
+
+1. Prefer comps with gross adjustments under 25%.
+2. Weight by similarity score: weighted_value = sum(adjusted_price * score) / sum(scores)
+3. Report: range (low to high adjusted price), weighted average, number of comps used.
+4. Round to nearest $1,000.
 
 ---
 
@@ -122,32 +271,8 @@ Return the top 8-10 sales sorted by score descending. Each sale includes:
 }
 \\\`\\\`\\\`
 
-**Value Derivation Method: Adjusted Comparable Sales**
-
-Select the top 4-6 comps by similarity score. For each comp, apply adjustments to make it equivalent to the subject. Subject SUPERIOR = add to comp price. Subject INFERIOR = subtract from comp price.
-
-**Adjustment Rates (calibrated from Castle Appraising appraisals):**
-
-- **GLA (Square Footage):** Rate = 30% of the comp's $/SF. Dead zone: if SF difference is within 10% of subject SF, NO adjustment. If it exceeds the dead zone, adjust the ENTIRE difference.
-  Example: Subject 2,372 SF, comp 2,243 SF at $312/SF. Dead zone = 237 SF. Diff = 129 SF. Within 10% = no adjustment.
-  Example: Subject 3,396 SF, comp 2,651 SF at $235/SF. Dead zone = 340 SF. Diff = 745 SF. Rate = $235 x 0.30 = $70.50/SF. Adjustment = +$52,523 (round to $500).
-
-- **Bathrooms:** Full bath difference = $10,000. Half bath difference = $5,000. Flat rate, no tapering.
-
-- **Pool:** Pool vs No Pool = $20,000. For homes $1M+, use $35,000-$45,000.
-
-- **Garage:** Per bay difference = $15,000 for homes under $700K, $20,000 for homes $700K+.
-
-- **Lot Size:** $2.00-$2.50 per lot SF for differences over 1,000 SF.
-
-- **Age/Year Built:** $0 for same-subdivision comparisons (within 3-5 year spread). Only adjust for 10+ year gaps across subdivisions.
-
-**Validation:** Gross adjustment % = sum(abs(all adjustments)) / comp sold price. Under 15% = strong. 15-25% = acceptable. Over 25% = weak, weight lower.
-
-**Derive Value:** Weight adjusted sale prices by similarity score: weighted_value = sum(adjusted_price * score) / sum(scores). The derivedRange is the low-to-high range of adjusted prices from the comps used. Round to nearest $1,000.
-
 **Trend Calculation:**
-Sort all filtered sales by close_date, split into two halves, compare median $/SF. >2% higher = "rising", >2% lower = "declining", otherwise "stable".
+Sort all filtered sales by close_date. Split into two halves by date. Compare median $/SF. >2% higher = "rising", >2% lower = "declining", otherwise "stable".
 
 ### Output 3: Neighborhood Analysis (neighborhood)
 
@@ -170,8 +295,14 @@ Use ALL closed sales in the CSV (not just scored comps):
     "medianPpsfChgPct": 2.8
   },
   "trends": [
-    {"period": "H1 2024", "sales": 56, "medianPrice": 546000, "medianPpsf": 269},
-    {"period": "H2 2024", "sales": 49, "medianPrice": 540000, "medianPpsf": 274}
+    {"period": "Q1 2024", "sales": 28, "medianPrice": 540000, "medianPpsf": 265},
+    {"period": "Q2 2024", "sales": 32, "medianPrice": 548000, "medianPpsf": 272},
+    {"period": "Q3 2024", "sales": 25, "medianPrice": 535000, "medianPpsf": 270},
+    {"period": "Q4 2024", "sales": 24, "medianPrice": 542000, "medianPpsf": 276},
+    {"period": "Q1 2025", "sales": 30, "medianPrice": 545000, "medianPpsf": 268},
+    {"period": "Q2 2025", "sales": 27, "medianPrice": 540000, "medianPpsf": 271},
+    {"period": "Q3 2025", "sales": 26, "medianPrice": 548000, "medianPpsf": 280},
+    {"period": "Q4 2025", "sales": 29, "medianPrice": 543000, "medianPpsf": 277}
   ],
   "pool": {
     "poolCount": 46,
@@ -191,6 +322,10 @@ Use ALL closed sales in the CSV (not just scored comps):
 }
 \\\`\\\`\\\`
 
+**Quarterly trends:** Q1 = Jan-Mar, Q2 = Apr-Jun, Q3 = Jul-Sep, Q4 = Oct-Dec. Include partial current quarter if data exists. Go back as far as the data allows.
+
+**Pool analysis:** Omit the pool premium section if the subject does NOT have a pool (homeowner lens). Only include when the subject has a pool, where it reinforces their investment.
+
 ### Output 4: Bedroom Analysis (bedroomAnalysis)
 
 \\\`\\\`\\\`json
@@ -206,7 +341,7 @@ Use ALL closed sales in the CSV (not just scored comps):
 }
 \\\`\\\`\\\`
 
-Only generate a premium narrative if the subject has MORE bedrooms than the most common config AND higher $/SF.
+Only generate a premium narrative if the subject has MORE bedrooms than the most common config AND higher $/SF. If 5BR homes show lower $/SF than 4BR (common -- oversized homes often have lower $/SF), note the subject sits in the "sweet spot" configuration.
 
 ### Output 5: Subject Advantages (subjectAdvantages)
 
@@ -215,11 +350,29 @@ Array of strings describing genuine advantages the subject has over the comparis
 ---
 
 ## Narrative Language Rules
+
+### Homeowner (default)
 - Use: "Your home" / "Your neighborhood" / "Your investment"
 - Use: "Recent sales nearby" / "Homes in your area" / "Your community"
 - Never use: "comp" / "comparable" / "subject property" / "adjustment"
 - Never use: "appraisal" / "appraised value" / "USPAP"
 - Never frame negatively
+- No em-dashes
+
+### Listing
+- Strategic/confident: "the data supports...", "three homes with similar features closed between..."
+- OK to use: "list price", "days on market", "sale-to-list ratio"
+- Never suggest a specific list price
+- No em-dashes
+
+### Buyer
+- Objective: "based on comparable closed sales...", "the asking price sits X% above/below..."
+- OK to flag overpricing or underpricing
+- No em-dashes
+
+### Appraiser
+- Formal/technical: "comparable sales were identified...", "after adjustments, the indicated value range is..."
+- OK to use all technical terms: "comp", "adjustment", "USPAP", "reconciliation"
 - No em-dashes
 
 ---
@@ -428,10 +581,17 @@ export function csvAnalysisPrompt(
     yearBuilt: number;
     pool: boolean;
     stories: number;
-  }
+  },
+  lens: AnalysisLens = "homeowner"
 ): string {
   const skillInstructions = CSV_SKILL_INSTRUCTIONS;
   const city = subject.cityStateZip.split(",")[0]?.trim() || "";
+
+  const lensDescriptions: Record<AnalysisLens, string> = {
+    homeowner: "homeowner** (positive framing, subject advantages only, no jargon)",
+    listing: "listing** (strategic/confident, cherry-pick highest defensible comps, do NOT suggest list price)",
+    buyer: "buyer** (objective, shows advantages AND disadvantages, flags overpricing)",
+  };
 
   return `${skillInstructions}
 
@@ -440,6 +600,8 @@ export function csvAnalysisPrompt(
 ## YOUR TASK
 
 Analyze the CSV data below for the following subject property and return results as a single JSON object.
+
+**Lens: ${lensDescriptions[lens]}
 
 ### Subject Property
 - Address: ${subject.address}
@@ -511,7 +673,12 @@ Return a single JSON object with exactly these keys. Follow the schemas defined 
       "recentMedianPrice": 0, "priorMedianPrice": 0, "medianPriceChgPct": 0,
       "recentMedianPpsf": 0, "priorMedianPpsf": 0, "medianPpsfChgPct": 0
     },
-    "trends": [],
+    "trends": [
+      {"period": "Q1 2025", "sales": 0, "medianPrice": 0, "medianPpsf": 0},
+      {"period": "Q2 2025", "sales": 0, "medianPrice": 0, "medianPpsf": 0},
+      {"period": "Q3 2025", "sales": 0, "medianPrice": 0, "medianPpsf": 0},
+      {"period": "Q4 2025", "sales": 0, "medianPrice": 0, "medianPpsf": 0}
+    ],
     "pool": {
       "poolCount": 0, "poolMedianPrice": 0, "poolMedianPpsf": 0,
       "noPoolCount": 0, "noPoolMedianPrice": 0, "noPoolMedianPpsf": 0,
@@ -531,6 +698,7 @@ Return a single JSON object with exactly these keys. Follow the schemas defined 
   "metadata": {
     "totalParsed": 0,
     "totalAfterFilter": 0,
+    "lens": "homeowner",
     "warnings": []
   }
 }
@@ -542,6 +710,249 @@ IMPORTANT:
 - Pool values in comps must be "Y" or "N".
 - Close dates must be in YYYY-MM-DD format.
 - matchScore should be 0-100 based on the scoring rubric above.
-- derivedValue must use the adjusted comparable sales method: adjust each of the top 4-6 comps for GLA, bath, pool differences using the calibrated rates, then weight-average the adjusted prices by similarity score.
-- For the neighborhood analysis, use ALL sales in the CSV, not just the top comps.`;
+- derivedValue must use the adjusted comparable sales method: adjust each of the top 4-6 comps for GLA, bath, pool, garage, fireplace differences using the Castle-calibrated rates, then weight-average the adjusted prices by similarity score.
+- For pool adjustments, attempt paired sales analysis from the dataset first before falling back to $20K.
+- For the neighborhood analysis, use ALL sales in the CSV, not just the top comps.
+- Trends should be quarterly (Q1-Q4) not half-year periods.
+- Use the ${lens} lens as described above.`;
+}
+
+// === Sell Dashboard Content Prompt ===
+
+export function sellContentPrompt(
+  subject: SubjectProperty & { address: string; subdivision: string; communityName: string; cityStateZip: string; lotSqft: number },
+  metrics: MarketMetrics,
+  comps: CompSale[],
+  cromfordMetrics: { label: string; value: string }[],
+  city: string
+): string {
+  const topComps = comps.slice(0, 5).map(c => `  ${c.addr}: $${c.sp.toLocaleString()} (${c.sf} SF, $${c.ppsf}/SF, ${c.beds}/${c.baths}, pool: ${c.pool})`).join("\n");
+
+  return `You are writing content for a sell dashboard (pre-listing CMA) for a property at ${subject.address}, ${subject.cityStateZip} in ${subject.communityName}.
+
+Property: ${subject.beds} bed / ${subject.baths} bath / ${subject.sqft.toLocaleString()} SF / Lot ${subject.lotSqft.toLocaleString()} SF / built ${subject.yearBuilt} / ${subject.pool ? "pool" : "no pool"} / ${subject.stories}-story
+Market: Derived value ~$${metrics.derivedValue.toLocaleString()}, Median $/SF $${metrics.medianPpsf}, Trend: ${metrics.priceTrendDirection}
+Top comps:
+${topComps}
+
+Generate a JSON object with these fields:
+
+{
+  "pricingStrategy": "2-3 paragraph pricing strategy analysis. Reference the derived value range ($${metrics.derivedRange.low.toLocaleString()}-$${metrics.derivedRange.high.toLocaleString()}), comparable sales patterns, and market conditions. Strategic and confident tone. Do NOT recommend a specific list price.",
+  "competition": [
+    {"address": "123 Main St", "price": 850000, "status": "Active", "dom": 45, "beds": "4", "baths": "3", "sqft": 2200, "pool": "Y", "note": "Direct competitor, priced above market"}
+  ],
+  "marketSnapshot": [
+    {"label": "${city} Median Price", "value": "$XXX,XXX"},
+    {"label": "${subject.subdivision} Median $/SF", "value": "$XXX"},
+    {"label": "Avg Days on Market", "value": "XX days"}
+  ],
+  "prepItems": [
+    {"key": "paint", "label": "Interior Paint", "defaultCost": 5000, "desc": "Fresh paint throughout main living areas"},
+    {"key": "landscape", "label": "Landscaping & Yard", "defaultCost": 2500, "desc": "Curb appeal cleanup"},
+    {"key": "staging", "label": "Professional Staging", "defaultCost": 4000, "desc": "Full staging for photos and showings"},
+    {"key": "deepClean", "label": "Deep Clean", "defaultCost": 1500, "desc": "Professional deep cleaning"},
+    {"key": "minorRepairs", "label": "Minor Repairs", "defaultCost": 2000, "desc": "Touch-up items and small fixes"}
+  ],
+  "marketingPlan": [
+    "Professional photography and video walkthrough",
+    "Zillow Showcase listing with premium placement",
+    "Targeted social media campaign",
+    "Strategic open house schedule",
+    "Custom property website"
+  ],
+  "timeline": [
+    {"phase": "Phase 1", "dates": "Weeks 1-2", "items": ["Complete prep items", "Professional photography", "Staging"]},
+    {"phase": "Phase 2", "dates": "Week 3", "items": ["Go live on MLS", "Launch marketing campaign", "First open house"]},
+    {"phase": "Phase 3", "dates": "Weeks 3-6", "items": ["Showings and open houses", "Review offers", "Negotiate terms"]},
+    {"phase": "Phase 4", "dates": "Weeks 6-10", "items": ["Under contract", "Inspections and appraisal", "Close of escrow"]}
+  ],
+  "propertyHighlights": ["Highlight 1 about this specific property", "Highlight 2", "Highlight 3"],
+  "upgrades": [
+    {"name": "Recent Kitchen Remodel", "value": "$45,000"},
+    {"name": "Pool Resurfacing 2024", "value": "$8,000"}
+  ]
+}
+
+Rules:
+- Competition: Generate 3-5 realistic competing listings based on the market data. Use the actual subdivision and nearby areas. Include mix of Active, Under Contract, and Price Drop statuses.
+- Prep items: Tailor to this specific property type and condition. Include 5-7 items.
+- Timeline: 4 phases covering pre-listing through close.
+- Property highlights: 4-6 bullet points about what makes THIS home stand out vs. competition.
+- Upgrades: List documented or likely upgrades based on the property features.
+- Market snapshot: 3-4 key market stats for the area.
+- Never use the word "just".
+- No em-dashes.
+
+Return ONLY the JSON object.`;
+}
+
+// === Buyer Dashboard Content Prompt ===
+
+export function buyerContentPrompt(
+  clientNames: string,
+  targetAreas: string,
+  budgetMin: number,
+  budgetMax: number,
+  bedsMin: number,
+  bathsMin: number,
+  mustHaves: string[],
+  schoolPreference: string,
+  cityStateZip: string
+): string {
+  const city = cityStateZip.split(",")[0]?.trim() || "Phoenix";
+
+  return `You are writing content for a buyer dashboard for ${clientNames}. They are looking to buy a home in the ${city} metro area.
+
+Search criteria:
+- Target areas: ${targetAreas || "East Valley (Gilbert, Chandler, Mesa, Queen Creek)"}
+- Budget: $${budgetMin.toLocaleString()} - $${budgetMax.toLocaleString()}
+- Minimum beds: ${bedsMin}, Minimum baths: ${bathsMin}
+- Must-haves: ${mustHaves.length > 0 ? mustHaves.join(", ") : "Not specified"}
+- School preference: ${schoolPreference || "Not specified"}
+
+Generate a JSON object with ALL of these fields. Use REAL, accurate information about Arizona neighborhoods and schools:
+
+{
+  "neighborhoods": [
+    {
+      "name": "Neighborhood Name",
+      "badge": "Top Pick",
+      "badgeColor": "sage",
+      "priceRange": "$550K-$750K",
+      "homeSize": "1,800-3,200 SF",
+      "commuteTime": "25 min to downtown",
+      "description": "2-3 sentence neighborhood description with real details about the community, amenities, and character.",
+      "whyItWorks": "1-2 sentences explaining why this neighborhood matches their specific criteria."
+    }
+  ],
+  "schoolDistricts": [
+    {
+      "name": "Gilbert Public Schools",
+      "description": "Brief district overview",
+      "schools": [
+        {
+          "name": "School Name",
+          "badge": "A+",
+          "type": "Elementary",
+          "grades": "K-6",
+          "rating": "9/10",
+          "description": "Brief description of the school",
+          "url": "https://..."
+        }
+      ]
+    }
+  ],
+  "timeline": [
+    {"phase": "Phase 1", "title": "Get Ready (Now)", "items": ["Get pre-approved for mortgage", "Define must-haves vs. nice-to-haves", "Set up automated search alerts"]},
+    {"phase": "Phase 2", "title": "Search & Tour (Weeks 1-4)", "items": ["Tour top neighborhoods", "Attend open houses", "Calibrate expectations"]},
+    {"phase": "Phase 3", "title": "Make Your Move", "items": ["Write competitive offer", "Negotiate inspection items", "Lock in mortgage rate"]},
+    {"phase": "Phase 4", "title": "Close & Move In", "items": ["Final walkthrough", "Sign closing documents", "Get your keys!"]}
+  ],
+  "marketSnapshot": [
+    {"label": "${city} Median Price", "value": "$XXX,XXX"},
+    {"label": "Avg Days on Market", "value": "XX days"},
+    {"label": "Inventory Level", "value": "X.X months"}
+  ]
+}
+
+Rules:
+- Neighborhoods: Generate 4-6 neighborhoods that genuinely match their criteria. Use REAL neighborhood/subdivision names in the ${city} area. Badge colors: "sage" for top picks, "terra" for value picks, "sand" for honorable mentions.
+- Schools: Generate 2-3 school districts with 2-4 schools each. Use REAL school names and ratings. Include elementary, middle, and high schools. URLs should be real school website URLs.
+- Timeline: 4 phases from preparation through closing.
+- Market snapshot: 3-4 real market stats for the target area.
+- All information must be factually accurate for Arizona real estate.
+- Never use the word "just".
+- No em-dashes.
+
+Return ONLY the JSON object.`;
+}
+
+// === Buy/Sell Dashboard Content Prompt ===
+
+export function buySellContentPrompt(
+  subject: SubjectProperty & { address: string; subdivision: string; communityName: string; cityStateZip: string; lotSqft: number },
+  metrics: MarketMetrics,
+  comps: CompSale[],
+  clientNames: string,
+  targetAreas: string,
+  budgetMin: number,
+  budgetMax: number,
+  bedsMin: number,
+  bathsMin: number,
+  mustHaves: string[],
+  schoolPreference: string,
+  cromfordMetrics: { label: string; value: string }[]
+): string {
+  const city = subject.cityStateZip.split(",")[0]?.trim() || "";
+  const topComps = comps.slice(0, 5).map(c => `  ${c.addr}: $${c.sp.toLocaleString()} ($${c.ppsf}/SF)`).join("\n");
+
+  return `You are writing content for a buy/sell dashboard for ${clientNames}. They are selling their current home and buying a new one.
+
+SELL SIDE - Current Home:
+- Address: ${subject.address}, ${subject.cityStateZip}
+- Subdivision: ${subject.subdivision} (${subject.communityName})
+- Property: ${subject.beds}/${subject.baths}, ${subject.sqft.toLocaleString()} SF, built ${subject.yearBuilt}, ${subject.pool ? "pool" : "no pool"}
+- Derived value: $${metrics.derivedValue.toLocaleString()} ($${metrics.derivedRange.low.toLocaleString()}-$${metrics.derivedRange.high.toLocaleString()})
+- Top comps:
+${topComps}
+
+BUY SIDE - New Home Search:
+- Target areas: ${targetAreas || "East Valley"}
+- Budget: $${budgetMin.toLocaleString()} - $${budgetMax.toLocaleString()}
+- Needs: ${bedsMin}+ beds, ${bathsMin}+ baths
+- Must-haves: ${mustHaves.length > 0 ? mustHaves.join(", ") : "Not specified"}
+- School preference: ${schoolPreference || "Not specified"}
+
+Generate a JSON object:
+
+{
+  "sellPricingStrategy": "1-2 paragraph pricing analysis for the sell side. Reference derived value and comps.",
+  "sellCompetition": [
+    {"address": "123 Main St", "price": 850000, "status": "Active", "dom": 45, "beds": "4", "baths": "3", "sqft": 2200, "pool": "Y", "note": "Direct competitor"}
+  ],
+  "sellPropertyHighlights": ["Highlight about this specific property"],
+  "neighborhoods": [
+    {
+      "name": "Neighborhood Name",
+      "badge": "Top Pick",
+      "badgeColor": "sage",
+      "priceRange": "$550K-$750K",
+      "homeSize": "1,800-3,200 SF",
+      "commuteTime": "25 min",
+      "description": "Neighborhood description.",
+      "whyItWorks": "Why it matches their criteria."
+    }
+  ],
+  "schoolDistricts": [
+    {
+      "name": "District Name",
+      "description": "District overview",
+      "schools": [
+        {"name": "School", "badge": "A+", "type": "Elementary", "grades": "K-6", "rating": "9/10", "description": "Brief desc", "url": "https://..."}
+      ]
+    }
+  ],
+  "strategyOptions": [
+    {"label": "Option A", "title": "Buy with Contingency", "pros": ["Faster if priced right"], "cons": ["Weaker offer position"]},
+    {"label": "Option B", "title": "Sell First, Then Buy", "pros": ["Strongest offer position"], "cons": ["Need bridge housing"]},
+    {"label": "Option C", "title": "Bridge Financing (HELOC)", "pros": ["Buy before selling"], "cons": ["Temporary double payments"]}
+  ],
+  "strategyTimeline": [
+    {"phase": "Phase 1", "title": "Lay Groundwork (Now)", "items": ["Get pre-approved", "Prep home for sale", "Research target neighborhoods"]},
+    {"phase": "Phase 2", "title": "Execute Strategy", "items": ["List home / start searching", "Coordinate timelines"]},
+    {"phase": "Phase 3", "title": "Under Contract", "items": ["Negotiate both transactions", "Coordinate closings"]},
+    {"phase": "Phase 4", "title": "Close & Move", "items": ["Close on sale", "Close on purchase", "Move!"]}
+  ]
+}
+
+Rules:
+- Competition: 3-5 realistic competing listings near the current home.
+- Neighborhoods: 4-6 real neighborhoods matching their buy criteria.
+- Schools: 2-3 real districts with real schools.
+- Strategy options: 3 approaches with honest pros/cons.
+- All data must be factually accurate for Arizona.
+- Never use "just". No em-dashes.
+
+Return ONLY the JSON object.`;
 }

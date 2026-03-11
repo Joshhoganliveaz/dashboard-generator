@@ -7,6 +7,7 @@ import type {
   BedroomAnalysis,
   SubjectProperty,
 } from "./types";
+import type { AnalysisLens } from "./template-registry";
 
 // --- Full Analysis Result ---
 
@@ -253,12 +254,14 @@ const KEEP_COLUMNS = new Set([
   "House Number", "Compass", "Street Name", "St Suffix",
   "Sold Price", "List Price", "Original List Price",
   "Approx SQFT", "Price/SqFt",
-  "# Bedrooms", "Total Bathrooms",
+  "# Bedrooms", "Total Bathrooms", "Full Bathrooms", "Half Bathrooms",
   "Year Built", "Exterior Stories",
   "Close of Escrow Date", "Days on Market",
   "Subdivision", "Dwelling Styles",
   "Source Apx Lot SqFt", "Approx Lot SqFt",
   "Private Pool Y/N", "Status",
+  "Fireplace Y/N", "Fireplaces Total",
+  "Cross Street", "Features",
 ]);
 
 function trimCSVColumns(csvText: string): string {
@@ -299,7 +302,8 @@ export async function runFullAnalysis(
     communityName: string;
     cityStateZip: string;
     address: string;
-  }
+  },
+  lens: AnalysisLens = "homeowner"
 ): Promise<CSVAnalysisResult> {
   // Decode CSV as latin-1
   let csvText: string;
@@ -322,7 +326,7 @@ export async function runFullAnalysis(
   csvText = trimCSVColumns(csvText);
 
   // Build prompt and call Claude
-  const prompt = csvAnalysisPrompt(csvText, subject);
+  const prompt = csvAnalysisPrompt(csvText, subject, lens);
 
   try {
     const response = await askClaude(prompt, {
