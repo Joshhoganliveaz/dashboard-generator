@@ -8,6 +8,7 @@ import type {
   SubjectProperty,
 } from "./types";
 import type { AnalysisLens } from "./template-registry";
+import { deriveValueFromComps } from "./comp-adjustments";
 
 // --- Full Analysis Result ---
 
@@ -539,12 +540,13 @@ export async function runFullAnalysis(
         low: Math.min(...ppsfValues),
         high: Math.max(...ppsfValues),
       };
-      result.marketMetrics.derivedValue = Math.round(medianPpsf * subject.sqft);
-      result.marketMetrics.derivedRange = {
-        low: Math.round(Math.min(...ppsfValues) * subject.sqft),
-        high: Math.round(Math.max(...ppsfValues) * subject.sqft),
-      };
-      result.marketMetrics.compsUsedForValue = result.comps.length;
+
+      // Adjusted Comparable Sales Method — adjust each comp for GLA/bath/pool
+      // differences, then derive value via weighted average by similarity score
+      const adjusted = deriveValueFromComps(result.comps, subject);
+      result.marketMetrics.derivedValue = adjusted.derivedValue;
+      result.marketMetrics.derivedRange = adjusted.derivedRange;
+      result.marketMetrics.compsUsedForValue = adjusted.compsUsedForValue;
     }
 
     console.log(`CSV analysis: ${result.comps.length} comps, derivedValue=$${result.marketMetrics.derivedValue}, medianPpsf=$${result.marketMetrics.medianPpsf}, totalParsed=${result.metadata.totalParsed}`);

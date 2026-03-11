@@ -93,6 +93,7 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      let streamClosed = false;
       try {
         // === STEP 1: Extract from MLS PDF ===
         let subject: SubjectProperty = { beds: 0, baths: 0, sqft: 0, yearBuilt: 0, pool: false, stories: 1 };
@@ -276,6 +277,7 @@ export async function POST(request: Request) {
               refinances: extractedRefinances,
             } : null,
           });
+          streamClosed = true;
           controller.close();
           return;
         }
@@ -480,7 +482,7 @@ export async function POST(request: Request) {
           message: (err as Error).message || "Unknown error",
         });
       } finally {
-        controller.close();
+        if (!streamClosed) controller.close();
       }
     },
   });

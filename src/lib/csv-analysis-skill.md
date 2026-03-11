@@ -121,7 +121,7 @@ Return the top 8-10 sales sorted by score descending. Each sale includes:
 ```
 
 **Value Derivation Method:**
-Use the top 6 scored comps. Take the median $/SF of those comps, multiply by subject SF. The derivedRange is +/- 3% of derivedValue, rounded to nearest $1,000.
+Adjusted Comparable Sales Method. Adjust each comp's sold price for GLA, bathroom, and pool differences from the subject using calibrated rates (see claude-prompts.ts). Filter to comps with gross adjustment under 25%, then derive value as a weighted average by similarity score. The derivedRange is the lowest to highest adjusted price among qualifying comps, rounded to nearest $1,000.
 
 **Trend Calculation:**
 Sort all filtered sales by close_date, split into two halves, compare median $/SF. >2% higher = "rising", >2% lower = "declining", otherwise "stable".

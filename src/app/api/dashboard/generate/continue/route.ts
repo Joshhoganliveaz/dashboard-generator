@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { askClaudeWithPDF, askClaudeWithImages, askClaudeWithWebSearch, askClaude } from "@/lib/claude-api";
 import { MLS_EXTRACTION_PROMPT, TAX_RECORDS_EXTRACTION_PROMPT, CROMFORD_EXTRACTION_PROMPT, webResearchPrompt, contentGenerationPrompt, sellContentPrompt, buyerContentPrompt, buySellContentPrompt } from "@/lib/claude-prompts";
 import { injectConfig } from "@/lib/template-engine";
+import { deriveValueFromComps } from "@/lib/comp-adjustments";
 import { getTemplateHtml } from "@/lib/template-loader";
 import { validateDashboardConfig } from "@/lib/types";
 import { estimateCurrentBalance } from "@/lib/loan-estimator";
@@ -38,7 +39,7 @@ function median(values: number[]): number {
 function recalcMetricsFromComps(
   baseMetrics: MarketMetrics,
   approvedComps: CompSale[],
-  subjectSqft: number,
+  subject: SubjectProperty,
 ): MarketMetrics {
   if (approvedComps.length === 0) return baseMetrics;
 
@@ -46,20 +47,19 @@ function recalcMetricsFromComps(
   const medianPpsf = median(ppsfValues);
   const avgPpsf = ppsfValues.reduce((a, b) => a + b, 0) / ppsfValues.length;
   const ppsfRange = { low: Math.min(...ppsfValues), high: Math.max(...ppsfValues) };
-  const derivedValue = Math.round(medianPpsf * subjectSqft);
-  const derivedRange = {
-    low: Math.round(ppsfRange.low * subjectSqft),
-    high: Math.round(ppsfRange.high * subjectSqft),
-  };
+
+  // Adjusted Comparable Sales Method — adjust each comp for GLA/bath/pool
+  // differences, then derive value via weighted average by similarity score
+  const adjusted = deriveValueFromComps(approvedComps, subject);
 
   return {
     ...baseMetrics,
     medianPpsf,
     avgPpsf,
     ppsfRange,
-    derivedValue,
-    derivedRange,
-    compsUsedForValue: approvedComps.length,
+    derivedValue: adjusted.derivedValue,
+    derivedRange: adjusted.derivedRange,
+    compsUsedForValue: adjusted.compsUsedForValue,
   };
 }
 
@@ -127,8 +127,12 @@ export async function POST(request: Request) {
   let { purchasePrice: mlsPurchasePrice, purchaseDate: mlsPurchaseDate } = mlsData;
   const { lotSqft, propertyHighlights } = mlsData;
 
+  // Read Phase 1-extracted purchase data (from tax records / MLS)
+  const extractedPurchasePriceRaw = formData.get("extractedPurchasePrice") as string | null;
+  const extractedPurchaseDateRaw = formData.get("extractedPurchaseDate") as string | null;
+
   // Recalculate comp-dependent metrics from approved comps
-  const recalcedMetrics = recalcMetricsFromComps(csvResultData.marketMetrics, approvedComps, subject.sqft);
+  const recalcedMetrics = recalcMetricsFromComps(csvResultData.marketMetrics, approvedComps, subject);
 
   // Reassemble csvResult with approved comps
   const csvResult = {
@@ -189,6 +193,15 @@ export async function POST(request: Request) {
         let purchasePrice = clientDetails.purchasePrice || 0;
         let purchaseDate = clientDetails.purchaseDate || "";
         let loanBalance = clientDetails.loanBalance || 0;
+
+        // Phase 1 extraction overrides form values (tax records / MLS data from Phase 1)
+        if (extractedPurchasePriceRaw) {
+          const parsed = parseInt(extractedPurchasePriceRaw, 10);
+          if (!isNaN(parsed) && parsed > 0) purchasePrice = parsed;
+        }
+        if (extractedPurchaseDateRaw) {
+          purchaseDate = extractedPurchaseDateRaw;
+        }
 
         if (verifiedLoanBalance !== null && !isNaN(verifiedLoanBalance)) {
           // User directly overrode the balance — use as-is

@@ -8,6 +8,7 @@ import CompReviewPanel from "@/components/CompReviewPanel";
 import { TEMPLATE_REGISTRY, isFileRequired, isFileRelevant } from "@/lib/template-registry";
 import type { TemplateType } from "@/lib/template-registry";
 import type { ClientRecord } from "@/hooks/useClients";
+import type { SubjectProperty } from "@/lib/types";
 
 const AGENT_OPTIONS = [
   { value: "josh_jacqui", label: "Josh & Jacqui" },
@@ -698,7 +699,7 @@ export default function HomePage() {
           {step === "review_comps" && reviewComps && (
             <CompReviewPanel
               comps={reviewComps}
-              subjectSqft={(mlsDataCache as { subject?: { sqft?: number } })?.subject?.sqft || 0}
+              subject={(mlsDataCache as { subject?: SubjectProperty })?.subject || { beds: 0, baths: 0, sqft: 0, yearBuilt: 0, pool: false, stories: 1 }}
               loanData={loanDataCache}
               onContinue={(approved, loanOverride) => continueWithComps(approved, loanOverride)}
               onCancel={cancel}

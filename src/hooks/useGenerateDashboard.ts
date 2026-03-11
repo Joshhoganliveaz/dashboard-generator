@@ -136,6 +136,45 @@ export function useGenerateDashboard() {
           }
         }
       }
+
+      // Flush any remaining data in the buffer (last chunk may not end with \n)
+      if (buffer.trim().startsWith("data: ")) {
+        try {
+          const data = JSON.parse(buffer.trim().slice(6));
+
+          if (data.step === "complete" && data.html) {
+            setState((s) => ({
+              ...s,
+              step: "complete",
+              message: "Dashboard ready!",
+              progress: 100,
+              html: data.html,
+              error: null,
+              templateType: data.templateType || s.templateType,
+            }));
+          } else if (data.step === "review_comps") {
+            setState((s) => ({
+              ...s,
+              step: "review_comps",
+              message: "Review comparable sales",
+              progress: 36,
+              reviewComps: data.comps,
+              csvResultCache: data.csvResult,
+              mlsDataCache: data.mlsData,
+              loanDataCache: data.loanData || null,
+            }));
+          } else if (data.step === "error") {
+            setState((s) => ({
+              ...s,
+              step: "error",
+              error: data.message || "Unknown error",
+              message: "Generation failed",
+            }));
+          }
+        } catch {
+          // Ignore parse errors for partial data
+        }
+      }
     } finally {
       reader.cancel().catch(() => {});
     }
@@ -204,6 +243,13 @@ export function useGenerateDashboard() {
     setState((s) => {
       if (s.csvResultCache) fd.append("csvResult", JSON.stringify(s.csvResultCache));
       if (s.mlsDataCache) fd.append("mlsData", JSON.stringify(s.mlsDataCache));
+      // Pass Phase 1-extracted purchase data so Phase 2 doesn't lose it
+      if (s.loanDataCache?.purchasePrice) {
+        fd.append("extractedPurchasePrice", String(s.loanDataCache.purchasePrice));
+      }
+      if (s.loanDataCache?.purchaseDate) {
+        fd.append("extractedPurchaseDate", s.loanDataCache.purchaseDate);
+      }
       return { ...s, step: "reading_cromford", message: STEP_LABELS.reading_cromford, reviewComps: null, loanDataCache: null };
     });
 

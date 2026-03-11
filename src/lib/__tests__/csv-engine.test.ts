@@ -169,8 +169,11 @@ describe("runFullAnalysis", () => {
     const result = await runFullAnalysis(csvBuffer, subject);
 
     expect(result.comps.length).toBe(2);
-    // derivedValue is recalculated from selected comps: median(270.83, 310.81) * 1920 sqft
-    expect(result.marketMetrics.derivedValue).toBe(558374);
+    // derivedValue uses adjusted comparable sales method:
+    // Comp 1 (sf=1850, baths=2, pool=Y): +$5K baths adj → $580K adjusted
+    // Comp 2 (sf=1920, baths=2.5, pool=N): +$20K pool adj → $540K adjusted
+    // Weighted avg by matchScore, rounded to nearest $1K
+    expect(result.marketMetrics.derivedValue).toBe(565000);
   });
 
   it("returns empty result with warning on Claude API failure", async () => {

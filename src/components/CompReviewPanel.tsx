@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from "react";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
-import type { CompSale } from "@/lib/types";
+import type { CompSale, SubjectProperty } from "@/lib/types";
 import type { LoanData } from "@/hooks/useGenerateDashboard";
+import { deriveValueFromComps } from "@/lib/comp-adjustments";
 
 interface CompReviewPanelProps {
   comps: CompSale[];
-  subjectSqft: number;
+  subject: SubjectProperty;
   loanData: LoanData | null;
   onContinue: (approvedComps: CompSale[], loanOverride?: { originalLoanAmount: number; loanBalance?: number }) => void;
   onCancel: () => void;
@@ -20,7 +21,7 @@ function median(values: number[]): number {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-export default function CompReviewPanel({ comps, subjectSqft, loanData, onContinue, onCancel }: CompReviewPanelProps) {
+export default function CompReviewPanel({ comps, subject, loanData, onContinue, onCancel }: CompReviewPanelProps) {
   const [selected, setSelected] = useState<Set<string>>(() => {
     return new Set(comps.map((c) => `${c.addr}|${c.close}`));
   });
@@ -39,7 +40,10 @@ export default function CompReviewPanel({ comps, subjectSqft, loanData, onContin
   }, [comps, selected]);
 
   const selectedMedianPpsf = useMemo(() => median(selectedComps.map((c) => c.ppsf)), [selectedComps]);
-  const estimatedValue = useMemo(() => Math.round(selectedMedianPpsf * subjectSqft), [selectedMedianPpsf, subjectSqft]);
+  const estimatedValue = useMemo(
+    () => subject.sqft > 0 ? deriveValueFromComps(selectedComps, subject).derivedValue : 0,
+    [selectedComps, subject],
+  );
 
   function toggleComp(comp: CompSale) {
     const key = `${comp.addr}|${comp.close}`;
@@ -235,7 +239,7 @@ export default function CompReviewPanel({ comps, subjectSqft, loanData, onContin
       <div className="mt-5 flex items-center justify-between border-t border-sand-pale pt-4">
         <div className="text-sm text-slate">
           <span className="font-semibold">{selectedComps.length}</span> of {comps.length} comps selected
-          {selectedComps.length >= 2 && subjectSqft > 0 && (
+          {selectedComps.length >= 2 && subject.sqft > 0 && (
             <span className="text-slate-light ml-3">
               Est. value: <span className="font-semibold text-slate">${estimatedValue.toLocaleString()}</span>
             </span>
