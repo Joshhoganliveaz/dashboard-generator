@@ -29,6 +29,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateConfig> = {
     pipelineSteps: [
       { key: "extracting_mls", label: "MLS" },
       { key: "parsing_csv", label: "Comps" },
+      { key: "review_comps", label: "Review" },
       { key: "reading_cromford", label: "Cromford" },
       { key: "reading_tax_records", label: "Tax" },
       { key: "researching", label: "Research" },
@@ -47,6 +48,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateConfig> = {
     pipelineSteps: [
       { key: "extracting_mls", label: "MLS" },
       { key: "parsing_csv", label: "Comps" },
+      { key: "review_comps", label: "Review" },
       { key: "reading_cromford", label: "Cromford" },
       { key: "generating_content", label: "Content" },
       { key: "assembling", label: "Build" },
@@ -62,6 +64,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateConfig> = {
     optionalFiles: ["csv"],
     pipelineSteps: [
       { key: "parsing_csv", label: "Comps" },
+      { key: "review_comps", label: "Review" },
       { key: "generating_content", label: "Content" },
       { key: "assembling", label: "Build" },
       { key: "complete", label: "Done" },
@@ -77,6 +80,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateConfig> = {
     pipelineSteps: [
       { key: "extracting_mls", label: "MLS" },
       { key: "parsing_csv", label: "Comps" },
+      { key: "review_comps", label: "Review" },
       { key: "reading_cromford", label: "Cromford" },
       { key: "generating_content", label: "Content" },
       { key: "assembling", label: "Build" },

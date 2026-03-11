@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { GenerationStepName } from "@/lib/types";
+import type { GenerationStepName, CompSale } from "@/lib/types";
 
 interface GenerationState {
   step: GenerationStepName | "idle";
@@ -13,11 +13,15 @@ interface GenerationState {
   templateType: string;
   isEditing: boolean;
   editError: string | null;
+  reviewComps: CompSale[] | null;
+  csvResultCache: Record<string, unknown> | null;
+  mlsDataCache: Record<string, unknown> | null;
 }
 
 const STEP_LABELS: Record<string, string> = {
   parsing_csv: "Analyzing comparable sales from ARMLS data...",
   extracting_mls: "Extracting property details from MLS listing...",
+  review_comps: "Review comparable sales...",
   reading_cromford: "Reading market trends from Cromford screenshots...",
   reading_tax_records: "Extracting purchase price & loan data from tax records...",
   researching: "Researching nearby developments & neighborhood news...",
@@ -27,29 +31,115 @@ const STEP_LABELS: Record<string, string> = {
   error: "Generation failed",
 };
 
+const INITIAL_STATE: GenerationState = {
+  step: "idle",
+  message: "",
+  progress: 0,
+  html: null,
+  error: null,
+  warnings: [],
+  templateType: "houseversary",
+  isEditing: false,
+  editError: null,
+  reviewComps: null,
+  csvResultCache: null,
+  mlsDataCache: null,
+};
+
 export function useGenerateDashboard() {
-  const [state, setState] = useState<GenerationState>({
-    step: "idle",
-    message: "",
-    progress: 0,
-    html: null,
-    error: null,
-    warnings: [],
-    templateType: "houseversary",
-    isEditing: false,
-    editError: null,
-  });
+  const [state, setState] = useState<GenerationState>(INITIAL_STATE);
   const abortRef = useRef<AbortController | null>(null);
   const editAbortRef = useRef<AbortController | null>(null);
+  const formDataRef = useRef<FormData | null>(null);
+
+  const consumeSSEStream = useCallback(async (res: Response) => {
+    const reader = res.body?.getReader();
+    if (!reader) {
+      setState((s) => ({ ...s, step: "error", error: "No response body", message: "Generation failed" }));
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.step === "complete" && data.html) {
+                setState((s) => ({
+                  ...s,
+                  step: "complete",
+                  message: "Dashboard ready!",
+                  progress: 100,
+                  html: data.html,
+                  error: null,
+                  templateType: data.templateType || s.templateType,
+                }));
+              } else if (data.step === "review_comps") {
+                setState((s) => ({
+                  ...s,
+                  step: "review_comps",
+                  message: "Review comparable sales",
+                  progress: 36,
+                  reviewComps: data.comps,
+                  csvResultCache: data.csvResult,
+                  mlsDataCache: data.mlsData,
+                }));
+              } else if (data.step === "warning") {
+                setState((s) => ({
+                  ...s,
+                  warnings: [...s.warnings, data.message],
+                  message: data.message,
+                  progress: data.progress || s.progress,
+                }));
+              } else if (data.step === "error") {
+                setState((s) => ({
+                  ...s,
+                  step: "error",
+                  error: data.message || "Unknown error",
+                  message: "Generation failed",
+                }));
+              } else {
+                setState((s) => ({
+                  ...s,
+                  step: data.step,
+                  message: STEP_LABELS[data.step] || data.message || "",
+                  progress: data.progress || s.progress,
+                }));
+              }
+            } catch {
+              // Ignore parse errors for partial lines
+            }
+          }
+        }
+      }
+    } finally {
+      reader.cancel().catch(() => {});
+    }
+  }, []);
 
   const generate = useCallback(async (formData: FormData) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // Store formData for Phase 2
+    formDataRef.current = formData;
+
     const formTemplateType = formData.get("templateType") as string || "houseversary";
 
-    setState({ step: "parsing_csv", message: "Starting...", progress: 0, html: null, error: null, warnings: [], templateType: formTemplateType, isEditing: false, editError: null });
+    setState({ ...INITIAL_STATE, step: "parsing_csv", message: "Starting...", templateType: formTemplateType });
 
     try {
       const res = await fetch("/api/dashboard/generate", {
@@ -64,70 +154,7 @@ export function useGenerateDashboard() {
         return;
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) {
-        setState((s) => ({ ...s, step: "error", error: "No response body", message: "Generation failed" }));
-        return;
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-
-                if (data.step === "complete" && data.html) {
-                  setState((s) => ({
-                    ...s,
-                    step: "complete",
-                    message: "Dashboard ready!",
-                    progress: 100,
-                    html: data.html,
-                    error: null,
-                    templateType: data.templateType || s.templateType,
-                  }));
-                } else if (data.step === "warning") {
-                  setState((s) => ({
-                    ...s,
-                    warnings: [...s.warnings, data.message],
-                    message: data.message,
-                    progress: data.progress || s.progress,
-                  }));
-                } else if (data.step === "error") {
-                  setState((s) => ({
-                    ...s,
-                    step: "error",
-                    error: data.message || "Unknown error",
-                    message: "Generation failed",
-                  }));
-                } else {
-                  setState((s) => ({
-                    ...s,
-                    step: data.step,
-                    message: STEP_LABELS[data.step] || data.message || "",
-                    progress: data.progress || s.progress,
-                  }));
-                }
-              } catch {
-                // Ignore parse errors for partial lines
-              }
-            }
-          }
-        }
-      } finally {
-        reader.cancel().catch(() => {});
-      }
+      await consumeSSEStream(res);
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setState((s) => ({
@@ -137,7 +164,64 @@ export function useGenerateDashboard() {
         message: "Generation failed",
       }));
     }
-  }, []);
+  }, [consumeSSEStream]);
+
+  const continueWithComps = useCallback(async (approvedComps: CompSale[]) => {
+    const originalFormData = formDataRef.current;
+    if (!originalFormData) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    // Build Phase 2 FormData
+    const fd = new FormData();
+    fd.append("templateType", originalFormData.get("templateType") as string);
+    fd.append("clientDetails", originalFormData.get("clientDetails") as string);
+    fd.append("approvedComps", JSON.stringify(approvedComps));
+
+    // Use cached csvResult and mlsData from Phase 1
+    setState((s) => {
+      if (s.csvResultCache) fd.append("csvResult", JSON.stringify(s.csvResultCache));
+      if (s.mlsDataCache) fd.append("mlsData", JSON.stringify(s.mlsDataCache));
+      return { ...s, step: "reading_cromford", message: STEP_LABELS.reading_cromford, reviewComps: null };
+    });
+
+    // Re-attach file blobs from original FormData
+    const taxRecords = originalFormData.get("taxRecords");
+    if (taxRecords instanceof File && taxRecords.size > 0) {
+      fd.append("taxRecords", taxRecords);
+    }
+    for (const [key, value] of originalFormData.entries()) {
+      if (key === "cromford" && value instanceof File) {
+        fd.append("cromford", value);
+      }
+    }
+
+    try {
+      const res = await fetch("/api/dashboard/generate/continue", {
+        method: "POST",
+        body: fd,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        setState((s) => ({ ...s, step: "error", error: errText, message: "Generation failed" }));
+        return;
+      }
+
+      await consumeSSEStream(res);
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      setState((s) => ({
+        ...s,
+        step: "error",
+        error: (err as Error).message,
+        message: "Generation failed",
+      }));
+    }
+  }, [consumeSSEStream]);
 
   const applyEdit = useCallback(async (instruction: string): Promise<boolean> => {
     if (!state.html) return false;
@@ -172,13 +256,13 @@ export function useGenerateDashboard() {
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
-    setState({ step: "idle", message: "", progress: 0, html: null, error: null, warnings: [], templateType: "houseversary", isEditing: false, editError: null });
+    setState(INITIAL_STATE);
   }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
-    setState({ step: "idle", message: "", progress: 0, html: null, error: null, warnings: [], templateType: "houseversary", isEditing: false, editError: null });
+    setState(INITIAL_STATE);
   }, []);
 
-  return { ...state, generate, cancel, reset, applyEdit };
+  return { ...state, generate, cancel, reset, applyEdit, continueWithComps };
 }

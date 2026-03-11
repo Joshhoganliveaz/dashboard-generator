@@ -4,6 +4,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Upload, FileText, Image, Download, Copy, Check, X, Loader2, CheckCircle2, AlertCircle, Home, TrendingUp, Search, ArrowLeftRight, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { useGenerateDashboard } from "@/hooks/useGenerateDashboard";
 import ClientPicker from "@/components/ClientPicker";
+import CompReviewPanel from "@/components/CompReviewPanel";
 import { TEMPLATE_REGISTRY, isFileRequired, isFileRelevant } from "@/lib/template-registry";
 import type { TemplateType } from "@/lib/template-registry";
 import type { ClientRecord } from "@/hooks/useClients";
@@ -80,7 +81,7 @@ export default function HomePage() {
   const cromfordInputRef = useRef<HTMLInputElement>(null!);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const { step, message, progress, html, error, warnings, generate, cancel, reset, applyEdit, isEditing, editError } = useGenerateDashboard();
+  const { step, message, progress, html, error, warnings, generate, cancel, reset, applyEdit, isEditing, editError, reviewComps, mlsDataCache, continueWithComps } = useGenerateDashboard();
   const [editOpen, setEditOpen] = useState(false);
   const [editInstruction, setEditInstruction] = useState("");
   const [copied, setCopied] = useState(false);
@@ -88,7 +89,7 @@ export default function HomePage() {
   const templateConfig = TEMPLATE_REGISTRY[templateType];
   const pipelineSteps = templateConfig.pipelineSteps;
 
-  const isGenerating = step !== "idle" && step !== "complete" && step !== "error";
+  const isGenerating = step !== "idle" && step !== "complete" && step !== "error" && step !== "review_comps";
 
   const showBuyerFields = templateType === "buyer" || templateType === "buysell";
   const showSellFields = templateType === "sell" || templateType === "buysell";
@@ -664,10 +665,14 @@ export default function HomePage() {
           </div>
 
           {/* Progress — full width below the grid */}
-          {isGenerating && (
+          {(isGenerating || step === "review_comps") && (
             <div className="bg-white rounded-xl shadow-sm p-5 mt-6">
               <div className="flex items-center gap-3 mb-3">
-                <Loader2 className="w-5 h-5 text-terra animate-spin flex-shrink-0" />
+                {isGenerating ? (
+                  <Loader2 className="w-5 h-5 text-terra animate-spin flex-shrink-0" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-sage flex-shrink-0" />
+                )}
                 <span className="font-semibold text-slate text-sm">{message}</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -687,6 +692,16 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Comp Review Panel */}
+          {step === "review_comps" && reviewComps && (
+            <CompReviewPanel
+              comps={reviewComps}
+              subjectSqft={(mlsDataCache as { subject?: { sqft?: number } })?.subject?.sqft || 0}
+              onContinue={(approved) => continueWithComps(approved)}
+              onCancel={cancel}
+            />
           )}
           </>
         )}

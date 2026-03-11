@@ -463,6 +463,7 @@ export function validateDashboardConfig(config: Record<string, unknown>): Dashbo
 export type GenerationStepName =
   | "parsing_csv"
   | "extracting_mls"
+  | "review_comps"
   | "reading_cromford"
   | "reading_tax_records"
   | "researching"

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { runFullAnalysis } from "@/lib/csv-engine";
 import { askClaudeWithPDF, askClaudeWithImages, askClaudeWithWebSearch, askClaude } from "@/lib/claude-api";
 import { MLS_EXTRACTION_PROMPT, TAX_RECORDS_EXTRACTION_PROMPT, CROMFORD_EXTRACTION_PROMPT, webResearchPrompt, contentGenerationPrompt, sellContentPrompt, buyerContentPrompt, buySellContentPrompt } from "@/lib/claude-prompts";
 import { injectConfig } from "@/lib/template-engine";
@@ -8,9 +7,9 @@ import { validateDashboardConfig } from "@/lib/types";
 import { estimateCurrentBalance } from "@/lib/loan-estimator";
 import { TEMPLATE_REGISTRY, isFileRelevant } from "@/lib/template-registry";
 import type { TemplateType } from "@/lib/template-registry";
-import type { ClientDetails, DashboardConfig, SellDashboardConfig, BuyerDashboardConfig, BuySellDashboardConfig, AnyDashboardConfig, SubjectProperty, Feature, CromfordMetric, Development, Upgrade } from "@/lib/types";
+import type { ClientDetails, DashboardConfig, SellDashboardConfig, BuyerDashboardConfig, BuySellDashboardConfig, AnyDashboardConfig, SubjectProperty, Feature, CompSale, MarketMetrics, CromfordMetric, Development, Upgrade, NeighborhoodAnalysis, BedroomAnalysis } from "@/lib/types";
 
-export const maxDuration = 300; // 5 min timeout for long generation
+export const maxDuration = 300;
 
 function sendSSE(controller: ReadableStreamDefaultController, data: Record<string, unknown>) {
   const encoder = new TextEncoder();
@@ -19,62 +18,129 @@ function sendSSE(controller: ReadableStreamDefaultController, data: Record<strin
 
 function parseJSONFromClaude(text: string): Record<string, unknown> {
   let cleaned = text.trim();
-
-  // Strip markdown code fences if present
   const fenceMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (fenceMatch) {
-    return JSON.parse(fenceMatch[1].trim());
-  }
-
-  // Try parsing as-is first
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // Claude sometimes adds prose before/after the JSON — extract the outermost { }
+  if (fenceMatch) return JSON.parse(fenceMatch[1].trim());
+  try { return JSON.parse(cleaned); } catch {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
-    if (start !== -1 && end > start) {
-      return JSON.parse(cleaned.slice(start, end + 1));
-    }
+    if (start !== -1 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
     throw new Error(`No JSON object found in response: ${cleaned.slice(0, 100)}...`);
   }
+}
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function recalcMetricsFromComps(
+  baseMetrics: MarketMetrics,
+  approvedComps: CompSale[],
+  subjectSqft: number,
+): MarketMetrics {
+  if (approvedComps.length === 0) return baseMetrics;
+
+  const ppsfValues = approvedComps.map((c) => c.ppsf);
+  const medianPpsf = median(ppsfValues);
+  const avgPpsf = ppsfValues.reduce((a, b) => a + b, 0) / ppsfValues.length;
+  const ppsfRange = { low: Math.min(...ppsfValues), high: Math.max(...ppsfValues) };
+  const derivedValue = Math.round(medianPpsf * subjectSqft);
+  const derivedRange = {
+    low: Math.round(ppsfRange.low * subjectSqft),
+    high: Math.round(ppsfRange.high * subjectSqft),
+  };
+
+  return {
+    ...baseMetrics,
+    medianPpsf,
+    avgPpsf,
+    ppsfRange,
+    derivedValue,
+    derivedRange,
+    compsUsedForValue: approvedComps.length,
+  };
+}
+
+function extractDomainLabel(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    const path = new URL(url).pathname;
+    const parts = path.split("/").filter(Boolean);
+    const addressPart = parts.find(p => /\d+.*(?:st|rd|ave|dr|ln|ct|way|blvd|cir|pl)/i.test(p));
+    if (addressPart) return addressPart.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    return hostname;
+  } catch { return url; }
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
 
-  // Parse template type
   const templateType = (formData.get("templateType") as TemplateType) || "houseversary";
   const templateConfig = TEMPLATE_REGISTRY[templateType];
   if (!templateConfig) {
     return NextResponse.json({ error: `Unknown template type: ${templateType}` }, { status: 400 });
   }
 
-  // Parse client details from form
+  // Parse JSON fields from FormData
   const clientDetailsRaw = formData.get("clientDetails") as string;
   let clientDetails: ClientDetails & {
-    targetAreas?: string;
-    budgetMin?: number;
-    budgetMax?: number;
-    bedsMin?: number;
-    bathsMin?: number;
-    mustHaves?: string[];
-    schoolPreference?: string;
-    homeSearchUrl?: string;
-    sellAddress?: string;
-    sellCityStateZip?: string;
-    loanPayoff?: number;
-    compLinks?: string;
+    targetAreas?: string; budgetMin?: number; budgetMax?: number;
+    bedsMin?: number; bathsMin?: number; mustHaves?: string[];
+    schoolPreference?: string; homeSearchUrl?: string;
+    sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number; compLinks?: string;
   };
-  try {
-    clientDetails = JSON.parse(clientDetailsRaw);
-  } catch {
+  try { clientDetails = JSON.parse(clientDetailsRaw); } catch {
     return NextResponse.json({ error: "Invalid client details" }, { status: 400 });
   }
 
-  // Get uploaded files
-  const csvFile = formData.get("csv") as File | null;
-  const mlsPdf = formData.get("mlsPdf") as File | null;
+  let approvedComps: CompSale[];
+  try { approvedComps = JSON.parse(formData.get("approvedComps") as string); } catch {
+    return NextResponse.json({ error: "Invalid approvedComps" }, { status: 400 });
+  }
+
+  let csvResultData: {
+    marketMetrics: MarketMetrics;
+    neighborhood: Record<string, unknown>;
+    bedroomAnalysis: Record<string, unknown>;
+    subjectAdvantages: string[];
+    metadata: Record<string, unknown>;
+  };
+  try { csvResultData = JSON.parse(formData.get("csvResult") as string); } catch {
+    return NextResponse.json({ error: "Invalid csvResult" }, { status: 400 });
+  }
+
+  let mlsData: {
+    subject: SubjectProperty;
+    features: Feature[];
+    purchasePrice: number | null;
+    purchaseDate: string | null;
+    lotSqft: number;
+    propertyHighlights: string[];
+  };
+  try { mlsData = JSON.parse(formData.get("mlsData") as string); } catch {
+    return NextResponse.json({ error: "Invalid mlsData" }, { status: 400 });
+  }
+
+  const { subject, features } = mlsData;
+  let { purchasePrice: mlsPurchasePrice, purchaseDate: mlsPurchaseDate } = mlsData;
+  const { lotSqft, propertyHighlights } = mlsData;
+
+  // Recalculate comp-dependent metrics from approved comps
+  const recalcedMetrics = recalcMetricsFromComps(csvResultData.marketMetrics, approvedComps, subject.sqft);
+
+  // Reassemble csvResult with approved comps
+  const csvResult = {
+    comps: approvedComps,
+    marketMetrics: recalcedMetrics,
+    neighborhood: csvResultData.neighborhood as unknown as NeighborhoodAnalysis,
+    bedroomAnalysis: csvResultData.bedroomAnalysis as unknown as BedroomAnalysis,
+    subjectAdvantages: csvResultData.subjectAdvantages,
+    metadata: csvResultData.metadata,
+  };
+
+  // Get file uploads
   const taxRecordsPdf = formData.get("taxRecords") as File | null;
   const cromfordFiles: File[] = [];
   for (const [key, value] of formData.entries()) {
@@ -83,99 +149,9 @@ export async function POST(request: Request) {
     }
   }
 
-  // Validate required files
-  if (templateConfig.requiredFiles.includes("csv") && !csvFile) {
-    return NextResponse.json({ error: "CSV file is required for this dashboard type" }, { status: 400 });
-  }
-  if (templateConfig.requiredFiles.includes("mlsPdf") && !mlsPdf) {
-    return NextResponse.json({ error: "MLS PDF is required for this dashboard type" }, { status: 400 });
-  }
-
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // === STEP 1: Extract from MLS PDF ===
-        let subject: SubjectProperty = { beds: 0, baths: 0, sqft: 0, yearBuilt: 0, pool: false, stories: 1 };
-        let features: Feature[] = [];
-        let mlsPurchasePrice: number | null = null;
-        let mlsPurchaseDate: string | null = null;
-        let lotSqft = 0;
-        let propertyHighlights: string[] = [];
-
-        if (mlsPdf && isFileRelevant(templateType, "mlsPdf")) {
-          sendSSE(controller, { step: "extracting_mls", progress: 5 });
-
-          const pdfBuffer = Buffer.from(await mlsPdf.arrayBuffer());
-          const pdfBase64 = pdfBuffer.toString("base64");
-
-          const mlsResponse = await askClaudeWithPDF(MLS_EXTRACTION_PROMPT, pdfBase64, { maxTokens: 2048 });
-          const mlsData = parseJSONFromClaude(mlsResponse) as {
-            beds: number; baths: number; sqft: number; yearBuilt: number;
-            pool: boolean; stories: number; features: Feature[];
-            purchasePrice?: number | null; purchaseDate?: string | null;
-            lotSqft?: number; highlights?: string[];
-          };
-
-          if (mlsData.purchasePrice) mlsPurchasePrice = mlsData.purchasePrice;
-          if (mlsData.purchaseDate) mlsPurchaseDate = mlsData.purchaseDate;
-
-          subject = {
-            beds: mlsData.beds,
-            baths: mlsData.baths,
-            sqft: mlsData.sqft,
-            yearBuilt: mlsData.yearBuilt,
-            pool: mlsData.pool,
-            stories: mlsData.stories,
-          };
-          features = mlsData.features || [];
-          lotSqft = mlsData.lotSqft || 0;
-          propertyHighlights = mlsData.highlights || [];
-
-          sendSSE(controller, { step: "extracting_mls", progress: 15 });
-        }
-
-        // === STEP 2: CSV Analysis ===
-        let csvResult = null;
-        if (csvFile && isFileRelevant(templateType, "csv")) {
-          sendSSE(controller, { step: "parsing_csv", progress: 18 });
-
-          const csvBuffer = Buffer.from(await csvFile.arrayBuffer());
-          csvResult = await runFullAnalysis(csvBuffer, {
-            ...subject,
-            subdivision: clientDetails.subdivision,
-            communityName: clientDetails.communityName,
-            cityStateZip: clientDetails.cityStateZip,
-            address: clientDetails.address,
-          }, templateConfig.lens);
-
-          if (csvResult.comps.length === 0) {
-            const reason = csvResult.metadata.warnings.length > 0
-              ? csvResult.metadata.warnings.join('; ')
-              : "No comparable sales found in CSV data";
-            sendSSE(controller, { step: "error", message: `CSV analysis failed: ${reason}. Cannot generate dashboard without comps.` });
-            throw new Error(`CSV analysis produced 0 comps: ${reason}`);
-          } else {
-            sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Analyzed ${csvResult.metadata.totalParsed} sales, selected ${csvResult.comps.length} comps` });
-          }
-
-          // Pause for comp review — emit comps + pass-through data, then close stream
-          sendSSE(controller, {
-            step: "review_comps",
-            progress: 36,
-            comps: csvResult.comps,
-            csvResult: {
-              marketMetrics: csvResult.marketMetrics,
-              neighborhood: csvResult.neighborhood,
-              bedroomAnalysis: csvResult.bedroomAnalysis,
-              subjectAdvantages: csvResult.subjectAdvantages,
-              metadata: csvResult.metadata,
-            },
-            mlsData: { subject, features, purchasePrice: mlsPurchasePrice, purchaseDate: mlsPurchaseDate, lotSqft, propertyHighlights },
-          });
-          controller.close();
-          return;
-        }
-
         // === STEP 3: Read Cromford Screenshots ===
         let cromfordMetrics: CromfordMetric[] = [];
         let cromfordTakeaway = "";
@@ -187,18 +163,13 @@ export async function POST(request: Request) {
           const images = await Promise.all(
             cromfordFiles.map(async (f) => {
               const buf = Buffer.from(await f.arrayBuffer());
-              return {
-                base64: buf.toString("base64"),
-                mediaType: f.type || "image/png",
-              };
+              return { base64: buf.toString("base64"), mediaType: f.type || "image/png" };
             })
           );
 
           const cromfordResponse = await askClaudeWithImages(CROMFORD_EXTRACTION_PROMPT, images, { maxTokens: 2048 });
           const cromfordData = parseJSONFromClaude(cromfordResponse) as {
-            metrics: CromfordMetric[];
-            takeaway: string;
-            source: string;
+            metrics: CromfordMetric[]; takeaway: string; source: string;
           };
 
           cromfordMetrics = cromfordData.metrics || [];
@@ -208,7 +179,7 @@ export async function POST(request: Request) {
           sendSSE(controller, { step: "reading_cromford", progress: 48 });
         }
 
-        // === STEP 3.5: Extract from Tax Records (houseversary only) ===
+        // === STEP 3.5: Extract from Tax Records ===
         let purchasePrice = clientDetails.purchasePrice || 0;
         let purchaseDate = clientDetails.purchaseDate || "";
         let loanBalance = clientDetails.loanBalance || 0;
@@ -222,33 +193,24 @@ export async function POST(request: Request) {
           try {
             const taxResponse = await askClaudeWithPDF(TAX_RECORDS_EXTRACTION_PROMPT, taxBase64, { maxTokens: 2048 });
             const taxData = parseJSONFromClaude(taxResponse) as {
-              purchasePrice: number | null;
-              purchaseDate: string | null;
-              originalLoanAmount: number | null;
-              loanDate: string | null;
+              purchasePrice: number | null; purchaseDate: string | null;
+              originalLoanAmount: number | null; loanDate: string | null;
               refinances: { date: string; amount: number }[] | null;
-              assessedValue: number | null;
-              taxYear: number | null;
-              legalDescription: string | null;
+              assessedValue: number | null; taxYear: number | null; legalDescription: string | null;
             };
 
             if (taxData.purchasePrice) purchasePrice = taxData.purchasePrice;
             if (taxData.purchaseDate) purchaseDate = taxData.purchaseDate;
 
-            // Validation: detect misclassified original loan (e.g., cash-out refi placed in originalLoanAmount)
             if (taxData.originalLoanAmount && taxData.purchasePrice && taxData.originalLoanAmount < taxData.purchasePrice * 0.50) {
               const refinances = taxData.refinances || [];
               const betterMatch = refinances.find(r => r.amount >= taxData.purchasePrice! * 0.50 && r.amount <= taxData.purchasePrice! * 1.05);
               if (betterMatch) {
-                console.log(`Loan swap: originalLoanAmount $${taxData.originalLoanAmount} looks like a refi (<50% of $${taxData.purchasePrice}). Swapping with refinance of $${betterMatch.amount}.`);
-                // Move misclassified original into refinances, promote the correct one
                 taxData.refinances = refinances.filter(r => r !== betterMatch);
                 taxData.refinances.push({ date: taxData.loanDate || taxData.purchaseDate || betterMatch.date, amount: taxData.originalLoanAmount });
                 taxData.refinances.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                 taxData.originalLoanAmount = betterMatch.amount;
                 taxData.loanDate = betterMatch.date;
-              } else {
-                console.warn(`Warning: originalLoanAmount $${taxData.originalLoanAmount} is <50% of purchasePrice $${taxData.purchasePrice}, but no better candidate found in refinances. Proceeding with available data.`);
               }
             }
 
@@ -260,7 +222,6 @@ export async function POST(request: Request) {
                 purchasePrice || undefined,
               );
               loanBalance = estimate.estimatedBalance;
-              console.log(`Loan estimate: $${estimate.estimatedBalance} at ${estimate.rate}% (payment: $${estimate.monthlyPayment}/mo)`);
             }
           } catch (err) {
             console.error("Tax records extraction failed, continuing:", err);
@@ -269,29 +230,21 @@ export async function POST(request: Request) {
           sendSSE(controller, { step: "reading_tax_records", progress: 58 });
         }
 
-        // Merge MLS purchase data as fallback
         if (!purchasePrice && mlsPurchasePrice) purchasePrice = mlsPurchasePrice;
         if (!purchaseDate && mlsPurchaseDate) purchaseDate = mlsPurchaseDate;
 
         // === STEP 4: Web Research (houseversary only) ===
         const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
-
         let developments: Development[] = [];
         let infrastructure: Development[] = [];
         let areaHighlights: Development[] = [];
 
         if (templateType === "houseversary") {
           sendSSE(controller, { step: "researching", progress: 60 });
-
           try {
-            const researchResponse = await askClaudeWithWebSearch(
-              webResearchPrompt(city),
-              { maxTokens: 4096 }
-            );
+            const researchResponse = await askClaudeWithWebSearch(webResearchPrompt(city), { maxTokens: 4096 });
             const researchData = parseJSONFromClaude(researchResponse) as {
-              developments: Development[];
-              infrastructure: Development[];
-              areaHighlights: Development[];
+              developments: Development[]; infrastructure: Development[]; areaHighlights: Development[];
             };
             developments = researchData.developments || [];
             infrastructure = researchData.infrastructure || [];
@@ -301,14 +254,12 @@ export async function POST(request: Request) {
             console.error("Web research failed, continuing:", errMsg);
             sendSSE(controller, { step: "warning", message: `City research failed: ${errMsg}` });
           }
-
           sendSSE(controller, { step: "researching", progress: 70 });
         }
 
         // === STEP 5: Generate Content ===
         sendSSE(controller, { step: "generating_content", progress: 72 });
 
-        // Parse comp links from textarea
         const compLinks: string[] = clientDetails.compLinks
           ? clientDetails.compLinks.split("\n").map(s => s.trim()).filter(s => s.startsWith("http"))
           : [];
@@ -317,20 +268,23 @@ export async function POST(request: Request) {
 
         if (templateType === "houseversary") {
           finalConfig = await buildHouseversaryConfig(
-            clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
+            clientDetails, subject, features, csvResult as Parameters<typeof buildHouseversaryConfig>[3],
+            cromfordMetrics, cromfordTakeaway, cromfordSource,
             purchaseDate, purchasePrice, loanBalance,
             developments, infrastructure, areaHighlights, controller
           );
         } else if (templateType === "sell") {
           finalConfig = await buildSellConfig(
-            clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
+            clientDetails, subject, features, csvResult as Parameters<typeof buildSellConfig>[3],
+            cromfordMetrics, cromfordTakeaway, cromfordSource,
             lotSqft, propertyHighlights, compLinks, controller
           );
         } else if (templateType === "buyer") {
-          finalConfig = await buildBuyerConfig(clientDetails, csvResult, controller);
+          finalConfig = await buildBuyerConfig(clientDetails, csvResult as Parameters<typeof buildBuyerConfig>[1], controller);
         } else {
           finalConfig = await buildBuySellConfig(
-            clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
+            clientDetails, subject, features, csvResult as Parameters<typeof buildBuySellConfig>[3],
+            cromfordMetrics, cromfordTakeaway, cromfordSource,
             lotSqft, propertyHighlights, compLinks, controller
           );
         }
@@ -344,10 +298,7 @@ export async function POST(request: Request) {
         sendSSE(controller, { step: "complete", progress: 100, html: finalHtml, templateType });
       } catch (err) {
         console.error("Generation error:", err);
-        sendSSE(controller, {
-          step: "error",
-          message: (err as Error).message || "Unknown error",
-        });
+        sendSSE(controller, { step: "error", message: (err as Error).message || "Unknown error" });
       } finally {
         controller.close();
       }
@@ -363,13 +314,13 @@ export async function POST(request: Request) {
   });
 }
 
-// === Houseversary Pipeline (existing logic) ===
+// === Builder functions (mirrored from Phase 1 route) ===
 
 async function buildHouseversaryConfig(
   clientDetails: ClientDetails,
   subject: SubjectProperty,
   features: Feature[],
-  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics; neighborhood: NeighborhoodAnalysis; bedroomAnalysis: BedroomAnalysis; subjectAdvantages: string[] } | null,
   cromfordMetrics: CromfordMetric[],
   cromfordTakeaway: string,
   cromfordSource: string,
@@ -455,7 +406,6 @@ async function buildHouseversaryConfig(
 
   const config: DashboardConfig = validateDashboardConfig(rawConfig);
 
-  // Check for negative equity
   const estimatedEquity = csvResult.marketMetrics.derivedValue - loanBalance;
   if (estimatedEquity < 0) {
     sendSSE(controller, {
@@ -468,13 +418,11 @@ async function buildHouseversaryConfig(
   return config;
 }
 
-// === Sell Pipeline ===
-
 async function buildSellConfig(
   clientDetails: ClientDetails & { loanPayoff?: number },
   subject: SubjectProperty,
   features: Feature[],
-  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
   cromfordMetrics: CromfordMetric[],
   cromfordTakeaway: string,
   cromfordSource: string,
@@ -485,15 +433,13 @@ async function buildSellConfig(
 ): Promise<SellDashboardConfig> {
   if (!csvResult) throw new Error("CSV analysis result is required for sell dashboard");
 
-  const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
-
   const contentResponse = await askClaude(
     sellContentPrompt(
       { ...subject, address: clientDetails.address, subdivision: clientDetails.subdivision, communityName: clientDetails.communityName, cityStateZip: clientDetails.cityStateZip, lotSqft },
       csvResult.marketMetrics,
       csvResult.comps,
       cromfordMetrics,
-      city
+      clientDetails.cityStateZip.split(",")[0]?.trim() || ""
     ),
     { maxTokens: 4096 }
   );
@@ -549,34 +495,13 @@ async function buildSellConfig(
   };
 }
 
-function extractDomainLabel(url: string): string {
-  try {
-    const hostname = new URL(url).hostname.replace("www.", "");
-    const path = new URL(url).pathname;
-    // Try to extract address-like info from path
-    const parts = path.split("/").filter(Boolean);
-    const addressPart = parts.find(p => /\d+.*(?:st|rd|ave|dr|ln|ct|way|blvd|cir|pl)/i.test(p));
-    if (addressPart) return addressPart.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    return hostname;
-  } catch {
-    return url;
-  }
-}
-
-// === Buyer Pipeline ===
-
 async function buildBuyerConfig(
   clientDetails: ClientDetails & {
-    targetAreas?: string;
-    budgetMin?: number;
-    budgetMax?: number;
-    bedsMin?: number;
-    bathsMin?: number;
-    mustHaves?: string[];
-    schoolPreference?: string;
-    homeSearchUrl?: string;
+    targetAreas?: string; budgetMin?: number; budgetMax?: number;
+    bedsMin?: number; bathsMin?: number; mustHaves?: string[];
+    schoolPreference?: string; homeSearchUrl?: string;
   },
-  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
   controller: ReadableStreamDefaultController,
 ): Promise<BuyerDashboardConfig> {
   const contentResponse = await askClaude(
@@ -623,25 +548,16 @@ async function buildBuyerConfig(
   };
 }
 
-// === Buy/Sell Pipeline ===
-
 async function buildBuySellConfig(
   clientDetails: ClientDetails & {
-    targetAreas?: string;
-    budgetMin?: number;
-    budgetMax?: number;
-    bedsMin?: number;
-    bathsMin?: number;
-    mustHaves?: string[];
-    schoolPreference?: string;
-    homeSearchUrl?: string;
-    sellAddress?: string;
-    sellCityStateZip?: string;
-    loanPayoff?: number;
+    targetAreas?: string; budgetMin?: number; budgetMax?: number;
+    bedsMin?: number; bathsMin?: number; mustHaves?: string[];
+    schoolPreference?: string; homeSearchUrl?: string;
+    sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number;
   },
   subject: SubjectProperty,
   features: Feature[],
-  csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
+  csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
   cromfordMetrics: CromfordMetric[],
   cromfordTakeaway: string,
   cromfordSource: string,
