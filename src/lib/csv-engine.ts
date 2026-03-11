@@ -53,6 +53,68 @@ function emptyResult(): CSVAnalysisResult {
   };
 }
 
+// --- Deterministic match score calculation ---
+// Mirrors the exact rubric from claude-prompts.ts so scores cannot be improvised.
+
+function computeMatchScore(
+  comp: CompSale,
+  subject: { subdivision: string; stories: number; pool: boolean; sqft: number; yearBuilt: number; beds: number; baths: number },
+  referenceDate: Date
+): number {
+  let score = 0;
+
+  // Same subdivision: 20 pts
+  if (comp.sub.toLowerCase().trim() === subject.subdivision.toLowerCase().trim()) {
+    score += 20;
+  }
+
+  // Story count match: 16 pts
+  if (comp.stories === subject.stories) {
+    score += 16;
+  }
+
+  // Pool match: 16 pts
+  const compPool = comp.pool.toUpperCase() === "Y";
+  if (compPool === subject.pool) {
+    score += 16;
+  }
+
+  // Size proximity (SF): 15 pts
+  const sfDiff = Math.abs(comp.sf - subject.sqft);
+  if (sfDiff <= 100) score += 15;
+  else if (sfDiff <= 200) score += 12;
+  else if (sfDiff <= 300) score += 8;
+  else if (sfDiff <= 500) score += 4;
+
+  // Recency: 12 pts (days from reference date)
+  const closeDate = new Date(comp.close);
+  const daysDiff = Math.max(0, Math.floor((referenceDate.getTime() - closeDate.getTime()) / (1000 * 60 * 60 * 24)));
+  if (daysDiff <= 90) score += 12;
+  else if (daysDiff <= 180) score += 8;
+  else if (daysDiff <= 270) score += 4;
+  else if (daysDiff <= 365) score += 2;
+
+  // Year built proximity: 7 pts
+  const yrDiff = Math.abs(comp.yearBuilt - subject.yearBuilt);
+  if (yrDiff <= 3) score += 7;
+  else if (yrDiff <= 5) score += 5;
+  else if (yrDiff <= 10) score += 3;
+
+  // Bedroom match: 4 pts
+  const compBeds = parseInt(comp.beds, 10) || 0;
+  const bedDiff = Math.abs(compBeds - subject.beds);
+  if (bedDiff === 0) score += 4;
+  else if (bedDiff === 1) score += 2;
+
+  // Bathroom proximity: 4 pts
+  const compBaths = parseFloat(comp.baths) || 0;
+  const bathDiff = Math.abs(compBaths - subject.baths);
+  if (bathDiff <= 0.5) score += 4;
+  else if (bathDiff <= 1) score += 2;
+
+  return score;
+}
+
 // --- Parse JSON from Claude response (handles fences, leading text, etc.) ---
 
 function parseJSONResponse(text: string): Record<string, unknown> {
@@ -448,6 +510,19 @@ export async function runFullAnalysis(
     });
     const parsed = parseJSONResponse(response);
     const result = validateResponse(parsed);
+
+    // Deterministic score recalculation — overrides Claude's scores with exact rubric
+    const referenceDate = new Date();
+    for (const comp of result.comps) {
+      const claudeScore = comp.matchScore;
+      comp.matchScore = computeMatchScore(comp, subject, referenceDate);
+      if (claudeScore !== comp.matchScore) {
+        console.log(`  Score override: ${comp.addr} — Claude=${claudeScore}, Rubric=${comp.matchScore}`);
+      }
+    }
+    // Re-sort by deterministic score descending
+    result.comps.sort((a, b) => b.matchScore - a.matchScore);
+
     console.log(`CSV analysis: ${result.comps.length} comps, derivedValue=$${result.marketMetrics.derivedValue}, medianPpsf=$${result.marketMetrics.medianPpsf}, totalParsed=${result.metadata.totalParsed}`);
     if (result.metadata.warnings.length > 0) {
       console.warn("CSV analysis warnings:", result.metadata.warnings);

@@ -8,6 +8,13 @@ const CSV_SKILL_INSTRUCTIONS = `# CSV Market Analysis Engine
 
 You are a real estate market analyst for **Live AZ Co**. This skill takes a raw ARMLS/FlexMLS CSV export and a subject property profile, then produces a complete market analysis package optimized for the selected lens.
 
+**CRITICAL OPERATING RULES:**
+1. Follow every instruction in this prompt LITERALLY. Do not improvise, estimate, or use judgment where a formula or rule is provided.
+2. Never fabricate data. If a field is missing from the CSV, use null/zero — never invent values.
+3. The CSV has been pre-filtered to closed sales only (Status = C). If you see any non-closed row, skip it.
+4. Your output will be validated server-side. Scores will be recalculated, comps with missing sold prices or close dates will be removed, and data will be cross-checked against the CSV. Hallucinated data will be caught and flagged.
+5. When in doubt between two interpretations of an instruction, choose the more literal one.
+
 **This skill does all the heavy lifting.** The consuming skill (homeowner dashboard, houseversary review, listing presentation, buyer analysis, appraisal support packet, etc.) receives fully processed data and ready-to-use narratives. It should not need to do any CSV parsing, scoring, filtering, or metric calculation on its own.
 
 ### Analysis Lenses
@@ -130,25 +137,30 @@ When a sale has a location premium flag:
 
 ## Scoring & Ranking
 
+**IMPORTANT: Match scores will be recalculated server-side using the exact formula below. Your scores are advisory only — the server overwrites them. However, you MUST still apply this rubric when selecting which comps to include, since only your top 8-10 are returned.**
+
 Score each sale on a 0-100 scale based on **physical similarity** to the subject only. No price-based scoring. The goal is to find the most physically comparable properties so adjustments are minimal and the value indication is reliable.
 
 ### Base Scoring Weights (Homeowner & Listing lenses)
 
+Apply this as a **strict formula** — add points per factor, no rounding, no judgment adjustments:
+
 | Factor | Points | Logic |
 |---|---|---|
-| **Same subdivision** | 20 | Exact = 20, Different = 0 |
-| **Story count match** | 16 | Exact = 16, Mismatch = 0 (near-hard-filter) |
+| **Same subdivision** | 20 | Exact match = 20, Different = 0 |
+| **Story count match** | 16 | Exact match = 16, Mismatch = 0 (near-hard-filter) |
 | **Pool match** | 16 | Both match = 16, Mismatch = 0 |
-| **Size proximity (SF)** | 15 | Within 100 = 15, 200 = 12, 300 = 8, 500 = 4, Beyond = 0 |
-| **Recency** | 12 | 0-90d = 12, 91-180 = 8, 181-270 = 4, 271-365 = 2 |
-| **Year built proximity** | 7 | Within 3yr = 7, 5 = 5, 10 = 3, Beyond = 0 |
-| **Lot size proximity** | 6 | Within 500 SF = 6, 1K = 4, 2K = 2, Beyond = 0 |
+| **Size proximity (SF)** | 15 | ≤100 = 15, ≤200 = 12, ≤300 = 8, ≤500 = 4, >500 = 0 |
+| **Recency** | 12 | 0-90 days = 12, 91-180 = 8, 181-270 = 4, 271-365 = 2, >365 = 0 |
+| **Year built proximity** | 7 | ≤3yr = 7, ≤5 = 5, ≤10 = 3, >10 = 0 |
+| **Lot size proximity** | 6 | ≤500 SF = 6, ≤1K = 4, ≤2K = 2, >2K = 0 |
 | **Bedroom match** | 4 | Exact = 4, Off by 1 = 2, Off by 2+ = 0 |
-| **Bathroom proximity** | 4 | Within 0.5 = 4, Within 1 = 2, Beyond = 0 |
+| **Bathroom proximity** | 4 | ≤0.5 diff = 4, ≤1 = 2, >1 = 0 |
 
-### Scoring Notes
+### Scoring Rules
 - **No negative scoring.** Low-scoring sales simply don't get featured.
 - **No price-based scoring.** We select the most physically similar properties and let the adjusted comparable sales method derive an honest, defensible value indication.
+- **No subjective adjustments.** Do not add or subtract points for "overall feel", upgrades, condition, or any factor not in the table above. The score is the sum of the formula — nothing more.
 
 ---
 
@@ -717,12 +729,13 @@ IMPORTANT:
 - priceTrendDirection must be exactly one of: "rising", "stable", "declining".
 - Pool values in comps must be "Y" or "N".
 - Close dates must be in YYYY-MM-DD format.
-- matchScore should be 0-100 based on the scoring rubric above.
+- matchScore must be computed using the exact scoring formula above (sum of factor points). Do not round, estimate, or adjust. Scores will be recalculated and overwritten server-side.
 - derivedValue must use the adjusted comparable sales method: adjust each of the top 4-6 comps for GLA, bath, pool, garage, fireplace differences using the Castle-calibrated rates, then weight-average the adjusted prices by similarity score.
 - For pool adjustments, attempt paired sales analysis from the dataset first before falling back to $20K.
 - For the neighborhood analysis, use ALL sales in the CSV, not just the top comps.
 - Trends should be quarterly (Q1-Q4) not half-year periods.
-- Use the ${lens} lens as described above.`;
+- Use the ${lens} lens as described above.
+- Every data point (sold price, close date, sqft, beds, baths, year built, etc.) must come directly from a CSV row. Never estimate, interpolate, or fabricate any value.`;
 }
 
 // === Sell Dashboard Content Prompt ===
