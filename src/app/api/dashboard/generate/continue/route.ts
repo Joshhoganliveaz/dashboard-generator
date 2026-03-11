@@ -140,7 +140,9 @@ export async function POST(request: Request) {
     metadata: csvResultData.metadata,
   };
 
-  // Get user-verified loan balance from Phase 1 comp review (if provided, skip tax re-extraction)
+  // Get user-verified loan overrides from Phase 1 comp review
+  const verifiedOriginalLoanRaw = formData.get("verifiedOriginalLoan") as string | null;
+  const verifiedOriginalLoan = verifiedOriginalLoanRaw ? parseInt(verifiedOriginalLoanRaw, 10) : null;
   const verifiedLoanBalanceRaw = formData.get("verifiedLoanBalance") as string | null;
   const verifiedLoanBalance = verifiedLoanBalanceRaw ? parseInt(verifiedLoanBalanceRaw, 10) : null;
 
@@ -189,9 +191,25 @@ export async function POST(request: Request) {
         let loanBalance = clientDetails.loanBalance || 0;
 
         if (verifiedLoanBalance !== null && !isNaN(verifiedLoanBalance)) {
-          // User verified the loan balance during comp review — skip re-extraction
+          // User directly overrode the balance — use as-is
           loanBalance = verifiedLoanBalance;
           console.log(`Using user-verified loan balance: $${verifiedLoanBalance}`);
+        } else if (verifiedOriginalLoan !== null && !isNaN(verifiedOriginalLoan) && verifiedOriginalLoan > 0) {
+          // User corrected the original loan amount — re-run amortization
+          const loanDate = clientDetails.purchaseDate || purchaseDate;
+          if (loanDate) {
+            const estimate = estimateCurrentBalance(
+              verifiedOriginalLoan,
+              loanDate,
+              [], // refinances already accounted for in Phase 1
+              purchasePrice || undefined,
+            );
+            loanBalance = estimate.estimatedBalance;
+            console.log(`Re-amortized from user-corrected original loan $${verifiedOriginalLoan}: balance $${estimate.estimatedBalance} at ${estimate.rate}%`);
+          } else {
+            console.warn(`No loan date available for re-amortization, using original loan as balance`);
+            loanBalance = verifiedOriginalLoan;
+          }
         } else if (taxRecordsPdf && isFileRelevant(templateType, "taxRecords")) {
           // Fallback: extract from tax records if no verified balance provided
           sendSSE(controller, { step: "reading_tax_records", progress: 50 });

@@ -163,6 +163,9 @@ export async function POST(request: Request) {
           let purchaseDate = clientDetails.purchaseDate || "";
           let loanBalance = clientDetails.loanBalance || 0;
           let taxExtracted = false;
+          let extractedOriginalLoanAmount = 0;
+          let extractedLoanDate = "";
+          let extractedRefinances: { date: string; amount: number }[] = [];
 
           if (taxRecordsPdf && isFileRelevant(templateType, "taxRecords")) {
             sendSSE(controller, { step: "reading_tax_records", progress: 35 });
@@ -226,6 +229,11 @@ export async function POST(request: Request) {
                 }
               }
 
+              // Capture extraction details for UI
+              extractedOriginalLoanAmount = taxData.originalLoanAmount || 0;
+              extractedLoanDate = taxData.loanDate || taxData.purchaseDate || "";
+              extractedRefinances = taxData.refinances || [];
+
               if (taxData.originalLoanAmount && (taxData.loanDate || taxData.purchaseDate)) {
                 const estimate = estimateCurrentBalance(
                   taxData.originalLoanAmount,
@@ -259,7 +267,14 @@ export async function POST(request: Request) {
               metadata: csvResult.metadata,
             },
             mlsData: { subject, features, purchasePrice: mlsPurchasePrice, purchaseDate: mlsPurchaseDate, lotSqft, propertyHighlights },
-            loanData: taxExtracted ? { purchasePrice, purchaseDate, loanBalance } : null,
+            loanData: taxExtracted ? {
+              purchasePrice,
+              purchaseDate,
+              loanBalance,
+              originalLoanAmount: extractedOriginalLoanAmount,
+              loanDate: extractedLoanDate,
+              refinances: extractedRefinances,
+            } : null,
           });
           controller.close();
           return;

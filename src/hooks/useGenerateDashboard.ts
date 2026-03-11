@@ -7,6 +7,9 @@ export interface LoanData {
   purchasePrice: number;
   purchaseDate: string;
   loanBalance: number;
+  originalLoanAmount: number;
+  loanDate: string;
+  refinances: { date: string; amount: number }[];
 }
 
 interface GenerationState {
@@ -175,7 +178,7 @@ export function useGenerateDashboard() {
     }
   }, [consumeSSEStream]);
 
-  const continueWithComps = useCallback(async (approvedComps: CompSale[], verifiedLoanBalance?: number) => {
+  const continueWithComps = useCallback(async (approvedComps: CompSale[], loanOverride?: { originalLoanAmount: number; loanBalance?: number }) => {
     const originalFormData = formDataRef.current;
     if (!originalFormData) return;
 
@@ -189,9 +192,12 @@ export function useGenerateDashboard() {
     fd.append("clientDetails", originalFormData.get("clientDetails") as string);
     fd.append("approvedComps", JSON.stringify(approvedComps));
 
-    // Pass user-verified loan balance so Phase 2 skips re-extraction
-    if (verifiedLoanBalance !== undefined) {
-      fd.append("verifiedLoanBalance", String(verifiedLoanBalance));
+    // Pass user-verified loan data so Phase 2 can re-run amortization
+    if (loanOverride) {
+      fd.append("verifiedOriginalLoan", String(loanOverride.originalLoanAmount));
+      if (loanOverride.loanBalance !== undefined) {
+        fd.append("verifiedLoanBalance", String(loanOverride.loanBalance));
+      }
     }
 
     // Use cached csvResult and mlsData from Phase 1

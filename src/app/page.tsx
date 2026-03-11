@@ -700,7 +700,7 @@ export default function HomePage() {
               comps={reviewComps}
               subjectSqft={(mlsDataCache as { subject?: { sqft?: number } })?.subject?.sqft || 0}
               loanData={loanDataCache}
-              onContinue={(approved, verifiedLoan) => continueWithComps(approved, verifiedLoan)}
+              onContinue={(approved, loanOverride) => continueWithComps(approved, loanOverride)}
               onCancel={cancel}
             />
           )}

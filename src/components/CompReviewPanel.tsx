@@ -9,7 +9,7 @@ interface CompReviewPanelProps {
   comps: CompSale[];
   subjectSqft: number;
   loanData: LoanData | null;
-  onContinue: (approvedComps: CompSale[], verifiedLoanBalance?: number) => void;
+  onContinue: (approvedComps: CompSale[], loanOverride?: { originalLoanAmount: number; loanBalance?: number }) => void;
   onCancel: () => void;
 }
 
@@ -24,9 +24,13 @@ export default function CompReviewPanel({ comps, subjectSqft, loanData, onContin
   const [selected, setSelected] = useState<Set<string>>(() => {
     return new Set(comps.map((c) => `${c.addr}|${c.close}`));
   });
+  const [originalLoan, setOriginalLoan] = useState<string>(
+    loanData?.originalLoanAmount ? String(loanData.originalLoanAmount) : ""
+  );
   const [loanBalance, setLoanBalance] = useState<string>(
     loanData?.loanBalance ? String(loanData.loanBalance) : ""
   );
+  const originalLoanChanged = loanData?.originalLoanAmount ? String(loanData.originalLoanAmount) !== originalLoan : false;
 
   const groupMedianPpsf = useMemo(() => median(comps.map((c) => c.ppsf)), [comps]);
 
@@ -140,12 +144,14 @@ export default function CompReviewPanel({ comps, subjectSqft, loanData, onContin
         })}
       </div>
 
-      {/* Loan Balance Verification */}
+      {/* Loan Verification */}
       {loanData && (
         <div className="mt-5 border-t border-sand-pale pt-4">
           <h3 className="text-sm font-semibold text-slate mb-2">Verify Loan Details</h3>
           <p className="text-xs text-slate-light mb-3">Extracted from tax records. Adjust if needed.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+          {/* Row 1: Purchase info */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             {loanData.purchasePrice > 0 && (
               <div className="text-xs">
                 <span className="text-slate-light">Purchase Price: </span>
@@ -158,24 +164,70 @@ export default function CompReviewPanel({ comps, subjectSqft, loanData, onContin
                 <span className="text-slate font-medium">{loanData.purchaseDate}</span>
               </div>
             )}
+          </div>
+
+          {/* Row 2: Original loan (editable) + loan date */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-light whitespace-nowrap">Est. Loan Balance:</label>
+              <label className="text-xs text-slate-light whitespace-nowrap">Original Loan:</label>
               <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-light">$</span>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={loanBalance ? Number(loanBalance).toLocaleString() : ""}
+                  value={originalLoan ? Number(originalLoan).toLocaleString() : ""}
                   onChange={(e) => {
                     const raw = e.target.value.replace(/[^0-9]/g, "");
-                    setLoanBalance(raw);
+                    setOriginalLoan(raw);
                   }}
-                  className="w-32 pl-5 pr-2 py-1 text-xs border border-sand rounded-md text-slate font-medium focus:outline-none focus:ring-1 focus:ring-sage"
+                  className="w-36 pl-5 pr-2 py-1 text-xs border border-sand rounded-md text-slate font-medium focus:outline-none focus:ring-1 focus:ring-sage"
                   placeholder="0"
                 />
               </div>
             </div>
+            {loanData.loanDate && (
+              <div className="text-xs flex items-center">
+                <span className="text-slate-light">Loan Date: </span>
+                <span className="text-slate font-medium ml-1">{loanData.loanDate}</span>
+              </div>
+            )}
           </div>
+
+          {/* Row 3: Refinances */}
+          {loanData.refinances.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-slate-light mb-1">Refinances detected:</p>
+              <div className="space-y-0.5">
+                {loanData.refinances.map((r, i) => (
+                  <p key={i} className="text-xs text-slate ml-3">
+                    &bull; ${r.amount.toLocaleString()} ({r.date})
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Row 4: Estimated current balance (editable) */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-light whitespace-nowrap">Est. Current Balance:</label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-light">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={loanBalance ? Number(loanBalance).toLocaleString() : ""}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                  setLoanBalance(raw);
+                }}
+                className="w-36 pl-5 pr-2 py-1 text-xs border border-sand rounded-md text-slate font-medium focus:outline-none focus:ring-1 focus:ring-sage"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          {originalLoanChanged && (
+            <p className="text-xs text-amber-600 mt-1">Balance will be recalculated from the corrected original loan amount.</p>
+          )}
         </div>
       )}
 
@@ -198,8 +250,12 @@ export default function CompReviewPanel({ comps, subjectSqft, loanData, onContin
           </button>
           <button
             onClick={() => {
-              const verified = loanBalance ? parseInt(loanBalance, 10) : undefined;
-              onContinue(selectedComps, verified);
+              const origLoan = originalLoan ? parseInt(originalLoan, 10) : 0;
+              const balance = loanBalance ? parseInt(loanBalance, 10) : undefined;
+              const loanOverride = origLoan > 0
+                ? { originalLoanAmount: origLoan, loanBalance: originalLoanChanged ? undefined : balance }
+                : undefined;
+              onContinue(selectedComps, loanOverride);
             }}
             disabled={selectedComps.length < 2}
             className="bg-terra text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-terra-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
