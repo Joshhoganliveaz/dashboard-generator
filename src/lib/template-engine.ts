@@ -95,7 +95,7 @@ var CONFIG = ${configStr};
  * Uses Function constructor to safely evaluate the JS literal. Server-side only.
  */
 export function extractConfig(html: string): Record<string, unknown> {
-  const match = html.match(/var CONFIG\s*=\s*(\{[\s\S]*?\});?\s*\n\s*\/\/ ={5,}/);
+  const match = html.match(/var CONFIG\s*=\s*([\s\S]*?);\s*\n\s*\/\/ ={5,}\s*\n\s*\/\/\s*===\s*END CONFIG/);
   if (!match) throw new Error("Could not extract CONFIG from HTML");
   const fn = new Function(`return ${match[1]}`);
   return fn();
