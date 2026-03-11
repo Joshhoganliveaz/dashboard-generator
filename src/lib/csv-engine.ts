@@ -523,6 +523,30 @@ export async function runFullAnalysis(
     // Re-sort by deterministic score descending
     result.comps.sort((a, b) => b.matchScore - a.matchScore);
 
+    // Deterministic metric recalculation — override Claude's ppsf-derived metrics
+    // Claude's ppsfRange often uses all sales, not just selected comps
+    if (result.comps.length > 0) {
+      const ppsfValues = result.comps.map(c => c.ppsf).sort((a, b) => a - b);
+      const mid = Math.floor(ppsfValues.length / 2);
+      const medianPpsf = ppsfValues.length % 2
+        ? ppsfValues[mid]
+        : (ppsfValues[mid - 1] + ppsfValues[mid]) / 2;
+      const avgPpsf = ppsfValues.reduce((a, b) => a + b, 0) / ppsfValues.length;
+
+      result.marketMetrics.medianPpsf = Math.round(medianPpsf * 100) / 100;
+      result.marketMetrics.avgPpsf = Math.round(avgPpsf * 100) / 100;
+      result.marketMetrics.ppsfRange = {
+        low: Math.min(...ppsfValues),
+        high: Math.max(...ppsfValues),
+      };
+      result.marketMetrics.derivedValue = Math.round(medianPpsf * subject.sqft);
+      result.marketMetrics.derivedRange = {
+        low: Math.round(Math.min(...ppsfValues) * subject.sqft),
+        high: Math.round(Math.max(...ppsfValues) * subject.sqft),
+      };
+      result.marketMetrics.compsUsedForValue = result.comps.length;
+    }
+
     console.log(`CSV analysis: ${result.comps.length} comps, derivedValue=$${result.marketMetrics.derivedValue}, medianPpsf=$${result.marketMetrics.medianPpsf}, totalParsed=${result.metadata.totalParsed}`);
     if (result.metadata.warnings.length > 0) {
       console.warn("CSV analysis warnings:", result.metadata.warnings);

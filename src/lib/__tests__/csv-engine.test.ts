@@ -169,7 +169,8 @@ describe("runFullAnalysis", () => {
     const result = await runFullAnalysis(csvBuffer, subject);
 
     expect(result.comps.length).toBe(2);
-    expect(result.marketMetrics.derivedValue).toBe(558000);
+    // derivedValue is recalculated from selected comps: median(270.83, 310.81) * 1920 sqft
+    expect(result.marketMetrics.derivedValue).toBe(558374);
   });
 
   it("returns empty result with warning on Claude API failure", async () => {
