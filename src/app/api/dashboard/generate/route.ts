@@ -158,6 +158,94 @@ export async function POST(request: Request) {
             sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Analyzed ${csvResult.metadata.totalParsed} sales, selected ${csvResult.comps.length} comps` });
           }
 
+          // === STEP 2.5: Extract from Tax Records (before comp review so user can verify) ===
+          let purchasePrice = clientDetails.purchasePrice || 0;
+          let purchaseDate = clientDetails.purchaseDate || "";
+          let loanBalance = clientDetails.loanBalance || 0;
+          let taxExtracted = false;
+
+          if (taxRecordsPdf && isFileRelevant(templateType, "taxRecords")) {
+            sendSSE(controller, { step: "reading_tax_records", progress: 35 });
+
+            const taxBuffer = Buffer.from(await taxRecordsPdf.arrayBuffer());
+            const taxBase64 = taxBuffer.toString("base64");
+
+            try {
+              const taxResponse = await askClaudeWithPDF(TAX_RECORDS_EXTRACTION_PROMPT, taxBase64, { maxTokens: 2048 });
+              const taxData = parseJSONFromClaude(taxResponse) as {
+                purchasePrice: number | null;
+                purchaseDate: string | null;
+                originalLoanAmount: number | null;
+                loanDate: string | null;
+                refinances: { date: string; amount: number }[] | null;
+                assessedValue: number | null;
+                taxYear: number | null;
+                legalDescription: string | null;
+              };
+
+              if (taxData.purchasePrice) purchasePrice = taxData.purchasePrice;
+              if (taxData.purchaseDate) purchaseDate = taxData.purchaseDate;
+
+              // Validation: detect misclassified original loan
+              const refinances = taxData.refinances || [];
+              let needsSwap = false;
+              let swapReason = "";
+
+              if (taxData.originalLoanAmount && taxData.purchasePrice && taxData.originalLoanAmount < taxData.purchasePrice * 0.50) {
+                needsSwap = true;
+                swapReason = `originalLoanAmount $${taxData.originalLoanAmount} is <50% of purchasePrice $${taxData.purchasePrice} (likely HELOC/second lien)`;
+              } else if (taxData.loanDate && taxData.purchaseDate) {
+                const loanTime = new Date(taxData.loanDate).getTime();
+                const purchaseTime = new Date(taxData.purchaseDate).getTime();
+                const monthsApart = Math.abs(loanTime - purchaseTime) / (1000 * 60 * 60 * 24 * 30);
+                if (monthsApart > 6) {
+                  needsSwap = true;
+                  swapReason = `loanDate ${taxData.loanDate} is ${Math.round(monthsApart)} months from purchaseDate ${taxData.purchaseDate} (likely a later refi, not original mortgage)`;
+                }
+              }
+
+              if (needsSwap && taxData.originalLoanAmount && taxData.purchasePrice) {
+                const purchaseTime = taxData.purchaseDate ? new Date(taxData.purchaseDate).getTime() : 0;
+                const betterMatch = refinances
+                  .filter(r => r.amount >= taxData.purchasePrice! * 0.50 && r.amount <= taxData.purchasePrice! * 1.05)
+                  .sort((a, b) => {
+                    const aDist = Math.abs(new Date(a.date).getTime() - purchaseTime);
+                    const bDist = Math.abs(new Date(b.date).getTime() - purchaseTime);
+                    return aDist - bDist;
+                  })[0];
+
+                if (betterMatch) {
+                  console.log(`Loan swap: ${swapReason}. Swapping with refinance of $${betterMatch.amount} from ${betterMatch.date}.`);
+                  taxData.refinances = refinances.filter(r => r !== betterMatch);
+                  taxData.refinances.push({ date: taxData.loanDate || taxData.purchaseDate || betterMatch.date, amount: taxData.originalLoanAmount });
+                  taxData.refinances.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                  taxData.originalLoanAmount = betterMatch.amount;
+                  taxData.loanDate = betterMatch.date;
+                } else {
+                  console.warn(`Warning: ${swapReason}, but no better candidate found in refinances. Proceeding with available data.`);
+                }
+              }
+
+              if (taxData.originalLoanAmount && (taxData.loanDate || taxData.purchaseDate)) {
+                const estimate = estimateCurrentBalance(
+                  taxData.originalLoanAmount,
+                  taxData.loanDate || taxData.purchaseDate!,
+                  taxData.refinances || [],
+                  purchasePrice || undefined,
+                );
+                loanBalance = estimate.estimatedBalance;
+                taxExtracted = true;
+                console.log(`Loan estimate: $${estimate.estimatedBalance} at ${estimate.rate}% (payment: $${estimate.monthlyPayment}/mo)`);
+              }
+            } catch (err) {
+              console.error("Tax records extraction failed, continuing:", err);
+            }
+          }
+
+          // Merge MLS purchase data as fallback
+          if (!purchasePrice && mlsPurchasePrice) purchasePrice = mlsPurchasePrice;
+          if (!purchaseDate && mlsPurchaseDate) purchaseDate = mlsPurchaseDate;
+
           // Pause for comp review — emit comps + pass-through data, then close stream
           sendSSE(controller, {
             step: "review_comps",
@@ -171,6 +259,7 @@ export async function POST(request: Request) {
               metadata: csvResult.metadata,
             },
             mlsData: { subject, features, purchasePrice: mlsPurchasePrice, purchaseDate: mlsPurchaseDate, lotSqft, propertyHighlights },
+            loanData: taxExtracted ? { purchasePrice, purchaseDate, loanBalance } : null,
           });
           controller.close();
           return;

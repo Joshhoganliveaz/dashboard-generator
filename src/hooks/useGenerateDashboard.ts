@@ -3,6 +3,12 @@
 import { useState, useCallback, useRef } from "react";
 import type { GenerationStepName, CompSale } from "@/lib/types";
 
+export interface LoanData {
+  purchasePrice: number;
+  purchaseDate: string;
+  loanBalance: number;
+}
+
 interface GenerationState {
   step: GenerationStepName | "idle";
   message: string;
@@ -16,6 +22,7 @@ interface GenerationState {
   reviewComps: CompSale[] | null;
   csvResultCache: Record<string, unknown> | null;
   mlsDataCache: Record<string, unknown> | null;
+  loanDataCache: LoanData | null;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -44,6 +51,7 @@ const INITIAL_STATE: GenerationState = {
   reviewComps: null,
   csvResultCache: null,
   mlsDataCache: null,
+  loanDataCache: null,
 };
 
 export function useGenerateDashboard() {
@@ -95,6 +103,7 @@ export function useGenerateDashboard() {
                   reviewComps: data.comps,
                   csvResultCache: data.csvResult,
                   mlsDataCache: data.mlsData,
+                  loanDataCache: data.loanData || null,
                 }));
               } else if (data.step === "warning") {
                 setState((s) => ({
@@ -166,7 +175,7 @@ export function useGenerateDashboard() {
     }
   }, [consumeSSEStream]);
 
-  const continueWithComps = useCallback(async (approvedComps: CompSale[]) => {
+  const continueWithComps = useCallback(async (approvedComps: CompSale[], verifiedLoanBalance?: number) => {
     const originalFormData = formDataRef.current;
     if (!originalFormData) return;
 
@@ -180,18 +189,19 @@ export function useGenerateDashboard() {
     fd.append("clientDetails", originalFormData.get("clientDetails") as string);
     fd.append("approvedComps", JSON.stringify(approvedComps));
 
+    // Pass user-verified loan balance so Phase 2 skips re-extraction
+    if (verifiedLoanBalance !== undefined) {
+      fd.append("verifiedLoanBalance", String(verifiedLoanBalance));
+    }
+
     // Use cached csvResult and mlsData from Phase 1
     setState((s) => {
       if (s.csvResultCache) fd.append("csvResult", JSON.stringify(s.csvResultCache));
       if (s.mlsDataCache) fd.append("mlsData", JSON.stringify(s.mlsDataCache));
-      return { ...s, step: "reading_cromford", message: STEP_LABELS.reading_cromford, reviewComps: null };
+      return { ...s, step: "reading_cromford", message: STEP_LABELS.reading_cromford, reviewComps: null, loanDataCache: null };
     });
 
-    // Re-attach file blobs from original FormData
-    const taxRecords = originalFormData.get("taxRecords");
-    if (taxRecords instanceof File && taxRecords.size > 0) {
-      fd.append("taxRecords", taxRecords);
-    }
+    // Re-attach file blobs from original FormData (cromford only — tax records already extracted in Phase 1)
     for (const [key, value] of originalFormData.entries()) {
       if (key === "cromford" && value instanceof File) {
         fd.append("cromford", value);

@@ -81,7 +81,7 @@ export default function HomePage() {
   const cromfordInputRef = useRef<HTMLInputElement>(null!);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const { step, message, progress, html, error, warnings, generate, cancel, reset, applyEdit, isEditing, editError, reviewComps, mlsDataCache, continueWithComps } = useGenerateDashboard();
+  const { step, message, progress, html, error, warnings, generate, cancel, reset, applyEdit, isEditing, editError, reviewComps, mlsDataCache, loanDataCache, continueWithComps } = useGenerateDashboard();
   const [editOpen, setEditOpen] = useState(false);
   const [editInstruction, setEditInstruction] = useState("");
   const [copied, setCopied] = useState(false);
@@ -699,7 +699,8 @@ export default function HomePage() {
             <CompReviewPanel
               comps={reviewComps}
               subjectSqft={(mlsDataCache as { subject?: { sqft?: number } })?.subject?.sqft || 0}
-              onContinue={(approved) => continueWithComps(approved)}
+              loanData={loanDataCache}
+              onContinue={(approved, verifiedLoan) => continueWithComps(approved, verifiedLoan)}
               onCancel={cancel}
             />
           )}

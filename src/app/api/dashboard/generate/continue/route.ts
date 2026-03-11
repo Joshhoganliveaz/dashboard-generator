@@ -140,6 +140,10 @@ export async function POST(request: Request) {
     metadata: csvResultData.metadata,
   };
 
+  // Get user-verified loan balance from Phase 1 comp review (if provided, skip tax re-extraction)
+  const verifiedLoanBalanceRaw = formData.get("verifiedLoanBalance") as string | null;
+  const verifiedLoanBalance = verifiedLoanBalanceRaw ? parseInt(verifiedLoanBalanceRaw, 10) : null;
+
   // Get file uploads
   const taxRecordsPdf = formData.get("taxRecords") as File | null;
   const cromfordFiles: File[] = [];
@@ -179,12 +183,17 @@ export async function POST(request: Request) {
           sendSSE(controller, { step: "reading_cromford", progress: 48 });
         }
 
-        // === STEP 3.5: Extract from Tax Records ===
+        // === STEP 3.5: Loan balance — use verified value from Phase 1 comp review ===
         let purchasePrice = clientDetails.purchasePrice || 0;
         let purchaseDate = clientDetails.purchaseDate || "";
         let loanBalance = clientDetails.loanBalance || 0;
 
-        if (taxRecordsPdf && isFileRelevant(templateType, "taxRecords")) {
+        if (verifiedLoanBalance !== null && !isNaN(verifiedLoanBalance)) {
+          // User verified the loan balance during comp review — skip re-extraction
+          loanBalance = verifiedLoanBalance;
+          console.log(`Using user-verified loan balance: $${verifiedLoanBalance}`);
+        } else if (taxRecordsPdf && isFileRelevant(templateType, "taxRecords")) {
+          // Fallback: extract from tax records if no verified balance provided
           sendSSE(controller, { step: "reading_tax_records", progress: 50 });
 
           const taxBuffer = Buffer.from(await taxRecordsPdf.arrayBuffer());
