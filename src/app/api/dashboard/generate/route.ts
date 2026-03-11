@@ -405,6 +405,7 @@ export async function POST(request: Request) {
         // Merge MLS purchase data as fallback
         if (!purchasePrice && mlsPurchasePrice) purchasePrice = mlsPurchasePrice;
         if (!purchaseDate && mlsPurchaseDate) purchaseDate = mlsPurchaseDate;
+        if (!purchaseDate && clientDetails.closingDate) purchaseDate = clientDetails.closingDate;
 
         // === STEP 4: Web Research (houseversary only) ===
         const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";

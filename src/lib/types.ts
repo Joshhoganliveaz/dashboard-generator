@@ -7,6 +7,7 @@ export interface ClientDetails {
   cityStateZip: string;
   subdivision: string;
   communityName: string;
+  closingDate?: string;
   purchaseDate?: string;
   purchasePrice?: number;
   loanBalance?: number;

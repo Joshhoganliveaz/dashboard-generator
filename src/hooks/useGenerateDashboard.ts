@@ -62,6 +62,7 @@ export function useGenerateDashboard() {
   const abortRef = useRef<AbortController | null>(null);
   const editAbortRef = useRef<AbortController | null>(null);
   const formDataRef = useRef<FormData | null>(null);
+  const phase1CacheRef = useRef<{ csvResult: Record<string, unknown> | null; mlsData: Record<string, unknown> | null; loanData: LoanData | null }>({ csvResult: null, mlsData: null, loanData: null });
 
   const consumeSSEStream = useCallback(async (res: Response) => {
     const reader = res.body?.getReader();
@@ -98,6 +99,11 @@ export function useGenerateDashboard() {
                   templateType: data.templateType || s.templateType,
                 }));
               } else if (data.step === "review_comps") {
+                phase1CacheRef.current = {
+                  csvResult: data.csvResult,
+                  mlsData: data.mlsData,
+                  loanData: data.loanData || null,
+                };
                 setState((s) => ({
                   ...s,
                   step: "review_comps",
@@ -153,6 +159,11 @@ export function useGenerateDashboard() {
               templateType: data.templateType || s.templateType,
             }));
           } else if (data.step === "review_comps") {
+            phase1CacheRef.current = {
+              csvResult: data.csvResult,
+              mlsData: data.mlsData,
+              loanData: data.loanData || null,
+            };
             setState((s) => ({
               ...s,
               step: "review_comps",
@@ -239,19 +250,18 @@ export function useGenerateDashboard() {
       }
     }
 
-    // Use cached csvResult and mlsData from Phase 1
-    setState((s) => {
-      if (s.csvResultCache) fd.append("csvResult", JSON.stringify(s.csvResultCache));
-      if (s.mlsDataCache) fd.append("mlsData", JSON.stringify(s.mlsDataCache));
-      // Pass Phase 1-extracted purchase data so Phase 2 doesn't lose it
-      if (s.loanDataCache?.purchasePrice) {
-        fd.append("extractedPurchasePrice", String(s.loanDataCache.purchasePrice));
-      }
-      if (s.loanDataCache?.purchaseDate) {
-        fd.append("extractedPurchaseDate", s.loanDataCache.purchaseDate);
-      }
-      return { ...s, step: "reading_cromford", message: STEP_LABELS.reading_cromford, reviewComps: null, loanDataCache: null };
-    });
+    // Read cached Phase 1 data from ref (synchronous — no React batching race)
+    const { csvResult: cachedCsvResult, mlsData: cachedMlsData, loanData: cachedLoanData } = phase1CacheRef.current;
+    if (cachedCsvResult) fd.append("csvResult", JSON.stringify(cachedCsvResult));
+    if (cachedMlsData) fd.append("mlsData", JSON.stringify(cachedMlsData));
+    if (cachedLoanData?.purchasePrice != null) {
+      fd.append("extractedPurchasePrice", String(cachedLoanData.purchasePrice));
+    }
+    if (cachedLoanData?.purchaseDate) {
+      fd.append("extractedPurchaseDate", cachedLoanData.purchaseDate);
+    }
+
+    setState((s) => ({ ...s, step: "reading_cromford", message: STEP_LABELS.reading_cromford, reviewComps: null, loanDataCache: null }));
 
     // Re-attach file blobs from original FormData (cromford only — tax records already extracted in Phase 1)
     for (const [key, value] of originalFormData.entries()) {

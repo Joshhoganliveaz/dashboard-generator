@@ -32,6 +32,7 @@ interface FormFields {
   cityStateZip: string;
   subdivision: string;
   communityName: string;
+  closingDate: string;
   agentKey: string;
   targetAreas: string;
   budgetMin: string;
@@ -55,6 +56,7 @@ export default function HomePage() {
     cityStateZip: "",
     subdivision: "",
     communityName: "",
+    closingDate: "",
     agentKey: "josh_jacqui",
     targetAreas: "",
     budgetMin: "400000",
@@ -124,6 +126,7 @@ export default function HomePage() {
           email: client.email,
           address: client.address,
           cityStateZip: client.cityStateZip,
+          closingDate: client.closingDate,
           subdivision,
           communityName,
         }));
@@ -140,6 +143,7 @@ export default function HomePage() {
       email: client.email,
       address: client.address,
       cityStateZip: client.cityStateZip,
+      closingDate: client.closingDate,
       subdivision: "",
       communityName: "",
     }));
@@ -206,6 +210,7 @@ export default function HomePage() {
       cityStateZip: form.cityStateZip,
       subdivision: form.subdivision,
       communityName: form.communityName,
+      closingDate: form.closingDate,
       agentKey: form.agentKey,
     };
 

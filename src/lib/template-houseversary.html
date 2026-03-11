@@ -249,7 +249,7 @@ function showSubTab(id){
 }
 function fmt(n){if(n==null||isNaN(n))return"$0";var a=Math.abs(Math.round(n));var s=a.toLocaleString("en-US");return n<0?"-$"+s:"$"+s}
 function fmtK(n){return"$"+Math.round(n/1000)+"k"}
-function fmtPct(n){return(n*100).toFixed(1)+"%"}
+function fmtPct(n){return isFinite(n)?(n*100).toFixed(1)+"%":"—"}
 function section(sKey,title,bodyHtml,titleStyle){
   var isOpen=S['sec_'+sKey];
   var tStyle=titleStyle?' style="'+titleStyle+'"':'';
@@ -553,10 +553,10 @@ function render(){
 
   var equity = S.currentValue - S.loanBalance;
   var appreciation = S.currentValue - S.purchasePrice;
-  var appreciationPct = ((S.currentValue - S.purchasePrice) / S.purchasePrice);
-  var purchaseDateObj = new Date(CONFIG.purchaseDate);
-  var yearsOwned = Math.max(1, Math.round((new Date() - purchaseDateObj) / (365.25 * 24 * 60 * 60 * 1000)));
-  var annualizedRate = Math.pow(S.currentValue / S.purchasePrice, 1/yearsOwned) - 1;
+  var appreciationPct = S.purchasePrice > 0 ? ((S.currentValue - S.purchasePrice) / S.purchasePrice) : 0;
+  var purchaseDateObj = CONFIG.purchaseDate ? new Date(CONFIG.purchaseDate) : new Date();
+  var yearsOwned = CONFIG.purchaseDate ? Math.max(1, Math.round((new Date() - purchaseDateObj) / (365.25 * 24 * 60 * 60 * 1000))) : 1;
+  var annualizedRate = S.purchasePrice > 0 ? Math.pow(S.currentValue / S.purchasePrice, 1/yearsOwned) - 1 : 0;
 
   // ===== TAB 1: YOUR HOME =====
   var t1='';
