@@ -90,6 +90,36 @@ var CONFIG = ${configStr};
 }
 
 /**
+ * Scan generated HTML for common rendering bugs (NaN, undefined, Infinity, etc.)
+ * Returns an array of warning strings. Empty array = clean.
+ */
+export function scanHtmlForRenderBugs(html: string): string[] {
+  const warnings: string[] = [];
+
+  // Extract the CONFIG block to scan data values (not template code)
+  const configMatch = html.match(/var CONFIG\s*=\s*([\s\S]*?);\s*\n\s*\/\/ ={5,}\s*\n\s*\/\/\s*===\s*END CONFIG/);
+  if (configMatch) {
+    const configBlock = configMatch[1];
+    if (/\bNaN\b/.test(configBlock)) warnings.push("CONFIG contains NaN — a numeric field was not set correctly");
+    if (/\bInfinity\b/.test(configBlock)) warnings.push("CONFIG contains Infinity — likely a division by zero");
+    if (/\bundefined\b/.test(configBlock)) warnings.push("CONFIG contains undefined — a required field is missing");
+  }
+
+  // Scan for specific known-bad patterns in rendered output context
+  // purchasePrice: 0 with a houseversary template is almost always wrong
+  if (/purchasePrice:\s*0\b/.test(html) && /houseversary/i.test(html)) {
+    warnings.push("Purchase price is $0 — appreciation and equity calculations will be incorrect. Check tax records or enter manually.");
+  }
+
+  // Empty purchaseDate on houseversary
+  if (/purchaseDate:\s*""/.test(html) && /houseversary/i.test(html)) {
+    warnings.push("Purchase date is empty — houseversary year and timeline will default to 1 year. Check tax records or Google Sheet closing date.");
+  }
+
+  return warnings;
+}
+
+/**
  * Extract the CONFIG object from generated HTML.
  * CONFIG is a JS object literal (not JSON) between markers.
  * Uses Function constructor to safely evaluate the JS literal. Server-side only.

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { askClaudeWithPDF, askClaudeWithImages, askClaudeWithWebSearch, askClaude } from "@/lib/claude-api";
 import { MLS_EXTRACTION_PROMPT, TAX_RECORDS_EXTRACTION_PROMPT, CROMFORD_EXTRACTION_PROMPT, webResearchPrompt, contentGenerationPrompt, sellContentPrompt, buyerContentPrompt, buySellContentPrompt } from "@/lib/claude-prompts";
-import { injectConfig } from "@/lib/template-engine";
+import { injectConfig, scanHtmlForRenderBugs } from "@/lib/template-engine";
 import { deriveValueFromComps } from "@/lib/comp-adjustments";
 import { getTemplateHtml } from "@/lib/template-loader";
 import { validateDashboardConfig } from "@/lib/types";
@@ -363,6 +363,11 @@ export async function POST(request: Request) {
 
         const templateHtml = getTemplateHtml(templateType);
         const finalHtml = injectConfig(templateHtml, finalConfig);
+
+        const renderWarnings = scanHtmlForRenderBugs(finalHtml);
+        for (const w of renderWarnings) {
+          sendSSE(controller, { step: "warning", progress: 95, message: w });
+        }
 
         sendSSE(controller, { step: "complete", progress: 100, html: finalHtml, templateType });
       } catch (err) {
