@@ -425,7 +425,7 @@ Return a JSON object with EXACTLY these fields:
 {
   "purchasePrice": (number or null) - the price paid in the most recent purchase deed/sale,
   "purchaseDate": (string "YYYY-MM-DD" or null) - the date of the most recent purchase,
-  "originalLoanAmount": (number or null) - the original mortgage/deed of trust amount at purchase,
+  "originalLoanAmount": (number or null) - the FIRST mortgage/deed of trust recorded at or near the purchase date,
   "loanDate": (string "YYYY-MM-DD" or null) - the date of the original mortgage recording,
   "refinances": [
     {"date": "YYYY-MM-DD", "amount": 468000}
@@ -441,13 +441,19 @@ Instructions:
 - Return null for any field not found in the document.
 - If there are no refinances, return an empty array for refinances.
 
-Classifying original mortgage vs refinances:
-- The original purchase mortgage (originalLoanAmount/loanDate) is the recording CLOSEST to the purchase date whose amount is CONSISTENT with typical financing (70-97% of purchase price).
-- If multiple recordings exist near the purchase date, the LARGEST is almost certainly the purchase mortgage.
-- Recordings with amounts SIGNIFICANTLY SMALLER than purchase price (less than 50% of purchase price) are likely HELOCs, second liens, or cash-out refis — place these in refinances[].
-- Recordings dated well AFTER the purchase date (more than 6 months later) go in refinances[] regardless of amount.
-- Tiebreaker: largest recording closest to purchase date wins originalLoanAmount.
-- Sort refinances[] by date ascending.
+CRITICAL — Classifying original purchase mortgage vs refinances:
+Step 1: Find the purchase date from the deed of sale, warranty deed, or transfer deed.
+Step 2: Find the mortgage/deed of trust recorded CLOSEST to that purchase date (within 60 days). That is the original purchase mortgage → originalLoanAmount/loanDate. It is typically 70-97% of the purchase price (conventional or FHA financing).
+Step 3: ALL other mortgages/deeds of trust go into refinances[], regardless of amount.
+
+Common patterns to get right:
+- Original purchase mortgage (e.g., $480,000 on a $500,000 purchase in 2019) = originalLoanAmount. This is the FIRST mortgage, not the most recent.
+- A later recording for a SMALLER amount (e.g., $250,000 in 2022) = cash-out refi or HELOC → goes in refinances[].
+- A later recording for a SIMILAR or LARGER amount (e.g., $460,000 in 2023) = rate-and-term or cash-out refi → goes in refinances[].
+- DO NOT use the most recent recording as originalLoanAmount. The original mortgage is always the one recorded at the time of purchase.
+- If multiple recordings exist near the purchase date, the LARGEST consistent with typical financing (70-97% LTV) is the purchase mortgage.
+
+Sort refinances[] by date ascending.
 
 Return ONLY the JSON object, no other text.`;
 

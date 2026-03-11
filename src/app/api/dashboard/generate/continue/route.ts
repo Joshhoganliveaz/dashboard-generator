@@ -202,15 +202,43 @@ export async function POST(request: Request) {
             if (taxData.purchasePrice) purchasePrice = taxData.purchasePrice;
             if (taxData.purchaseDate) purchaseDate = taxData.purchaseDate;
 
+            // Validation: detect misclassified original loan
+            const refinances = taxData.refinances || [];
+            let needsSwap = false;
+            let swapReason = "";
+
             if (taxData.originalLoanAmount && taxData.purchasePrice && taxData.originalLoanAmount < taxData.purchasePrice * 0.50) {
-              const refinances = taxData.refinances || [];
-              const betterMatch = refinances.find(r => r.amount >= taxData.purchasePrice! * 0.50 && r.amount <= taxData.purchasePrice! * 1.05);
+              needsSwap = true;
+              swapReason = `originalLoanAmount $${taxData.originalLoanAmount} is <50% of purchasePrice $${taxData.purchasePrice}`;
+            } else if (taxData.loanDate && taxData.purchaseDate) {
+              const loanTime = new Date(taxData.loanDate).getTime();
+              const purchaseTime = new Date(taxData.purchaseDate).getTime();
+              const monthsApart = Math.abs(loanTime - purchaseTime) / (1000 * 60 * 60 * 24 * 30);
+              if (monthsApart > 6) {
+                needsSwap = true;
+                swapReason = `loanDate ${taxData.loanDate} is ${Math.round(monthsApart)} months from purchaseDate ${taxData.purchaseDate}`;
+              }
+            }
+
+            if (needsSwap && taxData.originalLoanAmount && taxData.purchasePrice) {
+              const purchaseTime = taxData.purchaseDate ? new Date(taxData.purchaseDate).getTime() : 0;
+              const betterMatch = refinances
+                .filter(r => r.amount >= taxData.purchasePrice! * 0.50 && r.amount <= taxData.purchasePrice! * 1.05)
+                .sort((a, b) => {
+                  const aDist = Math.abs(new Date(a.date).getTime() - purchaseTime);
+                  const bDist = Math.abs(new Date(b.date).getTime() - purchaseTime);
+                  return aDist - bDist;
+                })[0];
+
               if (betterMatch) {
+                console.log(`Loan swap: ${swapReason}. Swapping with $${betterMatch.amount} from ${betterMatch.date}.`);
                 taxData.refinances = refinances.filter(r => r !== betterMatch);
                 taxData.refinances.push({ date: taxData.loanDate || taxData.purchaseDate || betterMatch.date, amount: taxData.originalLoanAmount });
                 taxData.refinances.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                 taxData.originalLoanAmount = betterMatch.amount;
                 taxData.loanDate = betterMatch.date;
+              } else {
+                console.warn(`Warning: ${swapReason}, but no better candidate found in refinances.`);
               }
             }
 
