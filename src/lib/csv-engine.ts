@@ -84,7 +84,7 @@ function validateResponse(data: Record<string, unknown>): CSVAnalysisResult {
   const defaults = emptyResult();
 
   // Validate comps array
-  const comps: CompSale[] = Array.isArray(data.comps)
+  const rawComps: CompSale[] = Array.isArray(data.comps)
     ? (data.comps as Record<string, unknown>[]).map((c) => ({
         addr: String(c.addr || ""),
         sub: String(c.sub || ""),
@@ -103,6 +103,10 @@ function validateResponse(data: Record<string, unknown>): CSVAnalysisResult {
         note: String(c.note || ""),
       }))
     : [];
+
+  // Guard: filter out comps with no sold price or no close date (hallucination catch)
+  const comps = rawComps.filter((c) => c.sp > 0 && c.close !== "");
+  const droppedComps = rawComps.length - comps.length;
 
   // Validate marketMetrics
   const mm = data.marketMetrics && typeof data.marketMetrics === "object"
@@ -214,6 +218,11 @@ function validateResponse(data: Record<string, unknown>): CSVAnalysisResult {
     ? data.metadata as Record<string, unknown>
     : {};
 
+  const warnings = Array.isArray(meta.warnings) ? (meta.warnings as unknown[]).map(String) : [];
+  if (droppedComps > 0) {
+    warnings.push(`Removed ${droppedComps} comp(s) with missing sold price or close date`);
+  }
+
   return {
     comps,
     marketMetrics,
@@ -225,7 +234,7 @@ function validateResponse(data: Record<string, unknown>): CSVAnalysisResult {
     metadata: {
       totalParsed: Number(meta.totalParsed) || 0,
       totalAfterFilter: Number(meta.totalAfterFilter) || 0,
-      warnings: Array.isArray(meta.warnings) ? (meta.warnings as unknown[]).map(String) : [],
+      warnings,
     },
   };
 }
@@ -353,11 +362,28 @@ function trimCSVColumns(csvText: string): string {
   // Find the Features column index among the kept columns
   const featuresColOrigIdx = headerFields.findIndex((h) => h.trim() === "Features");
 
+  // Find the Status column index for hard-filtering non-closed rows
+  const statusColIdx = headerFields.findIndex((h) => h.trim() === "Status");
+  if (statusColIdx < 0) {
+    console.warn("CSV row filter: no Status column found — skipping closed-only filter");
+  }
+
   const trimmedLines: string[] = [];
   let isHeader = true;
+  let droppedNonClosed = 0;
   for (const line of lines) {
     if (!line.trim()) continue;
     const fields = parseCSVLine(line);
+
+    // Hard-filter: skip any non-header row where Status !== "C"
+    if (!isHeader && statusColIdx >= 0) {
+      const status = (fields[statusColIdx] ?? "").trim().toUpperCase();
+      if (status !== "C") {
+        droppedNonClosed++;
+        continue;
+      }
+    }
+
     const kept = keepIndices.map((i) => {
       let val = fields[i] ?? "";
       // Pre-parse Features column into compact summary (skip header row)
@@ -371,6 +397,10 @@ function trimCSVColumns(csvText: string): string {
     });
     trimmedLines.push(kept.join(","));
     isHeader = false;
+  }
+
+  if (droppedNonClosed > 0) {
+    console.log(`CSV row filter: dropped ${droppedNonClosed} non-closed rows (kept Status=C only)`);
   }
 
   return trimmedLines.join("\n");

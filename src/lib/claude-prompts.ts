@@ -56,7 +56,7 @@ Map these CSV columns to standardized field names:
 | \\\`Private Pool Y/N\\\` | \\\`pool\\\` | Normalize to "Yes" / "No" |
 | \\\`Public Remarks\\\` | \\\`remarks\\\` | As-is; used for upgrade/feature extraction |
 | \\\`Features\\\` | \\\`features\\\` | As-is; used for garage, HOA, upgrades, parsed features |
-| \\\`Status\\\` | \\\`status\\\` | Filter closed vs active |
+| \\\`Status\\\` | \\\`status\\\` | Pre-filtered to closed sales only (Status = C). If any non-closed row appears, ignore it. |
 | \\\`Fireplace Y/N\\\` | \\\`fireplace_yn\\\` | Normalize to "Yes" / "No" |
 | \\\`Fireplaces Total\\\` | \\\`fireplaces_total\\\` | Convert to int; adjustment grid |
 | \\\`Cross Street\\\` | \\\`cross_street\\\` | As-is; location context |
@@ -87,6 +87,7 @@ Parse these structured attributes from the Features column text:
 - Normalize \\\`stories\\\` text values: "One" = 1, "Two" = 2, "Three" = 3, "Split" = 2
 - Strip all currency formatting ($, commas) before numeric conversion
 - Handle both date formats: MM/DD/YYYY and YYYY-MM-DD
+- CRITICAL: Only use rows with Status = "C" (Closed). Never use Active (A), Pending (P), or any other status. Active listings have no sold price or close date -- do not fabricate these values.
 
 ---
 
