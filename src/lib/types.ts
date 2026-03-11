@@ -38,6 +38,7 @@ export interface CompSale {
   stories: number;
   matchScore: number;
   note: string;
+  url?: string;
 }
 
 export interface MarketMetrics {
@@ -205,6 +206,8 @@ export interface SellDashboardConfig {
   cromfordSource: string;
   // Features from MLS
   features: Feature[];
+  // Links
+  referenceLinks?: { url: string; label?: string }[];
 }
 
 // --- Buyer Dashboard Types ---
@@ -257,6 +260,8 @@ export interface BuyerDashboardConfig {
   timeline: { phase: string; title: string; items: string[] }[];
   // Optional market context from CSV
   marketSnapshot: { label: string; value: string }[];
+  // Links
+  homeSearchUrl?: string;
 }
 
 // --- Buy/Sell Dashboard Types ---
@@ -306,6 +311,9 @@ export interface BuySellDashboardConfig {
   cromfordSource: string;
   // Features from MLS
   features: Feature[];
+  // Links
+  homeSearchUrl?: string;
+  sellReferenceLinks?: { url: string; label?: string }[];
 }
 
 // --- Houseversary Dashboard Types (existing) ---

@@ -542,7 +542,11 @@ function render(){
 
     compBody += '<div class="comp-card">';
     compBody += '<div class="comp-card-header">';
-    compBody += '<div><div class="comp-card-addr">' + comp.addr + '</div>';
+    if (comp.url) {
+      compBody += '<div><div class="comp-card-addr"><a href="' + comp.url + '" target="_blank" rel="noopener" style="color:var(--terra);text-decoration:underline">' + comp.addr + '</a></div>';
+    } else {
+      compBody += '<div><div class="comp-card-addr">' + comp.addr + '</div>';
+    }
     compBody += '<div class="comp-card-sub">' + comp.sub + (inSub ? ' <span class="comm-badge">SAME AREA</span>' : '') + '</div></div>';
     compBody += '<span class="tier-badge ' + tier + '">' + tierLabel + '</span>';
     compBody += '</div>';
@@ -583,6 +587,22 @@ function render(){
   compBody += '</div>';
 
   t2 += section('comps', 'Comparable Sales', compBody);
+
+  // Reference Links
+  if (CONFIG.referenceLinks && CONFIG.referenceLinks.length > 0) {
+    var refBody = '';
+    refBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:10px">Additional listing and market reference links.</div>';
+    for (var ri = 0; ri < CONFIG.referenceLinks.length; ri++) {
+      var rl = CONFIG.referenceLinks[ri];
+      refBody += '<a href="' + rl.url + '" target="_blank" rel="noopener" style="display:block;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--slate);font-size:12px;font-weight:600;transition:background .15s"';
+      refBody += ' onmouseover="this.style.background=\'var(--sand-pale)\'" onmouseout="this.style.background=\'transparent\'">';
+      refBody += '<span style="color:var(--terra);margin-right:6px">\u2197</span>';
+      refBody += (rl.label || rl.url);
+      refBody += '<span style="display:block;font-weight:400;color:var(--neutral);font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + rl.url + '</span>';
+      refBody += '</a>';
+    }
+    t2 += section('reflinks', 'Helpful Links', refBody);
+  }
 
   // Pricing Strategy
   var priceBody = '';

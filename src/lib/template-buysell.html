@@ -561,6 +561,9 @@ function render(){
     }
     mainHtml += '<div class="section open"><div class="section-header"><span class="section-title">Search Criteria</span></div><div class="section-body" style="display:block">' + mhBody + '</div></div>';
   }
+  if (CONFIG.homeSearchUrl) {
+    mainHtml += '<div style="text-align:center;padding:16px 0"><a href="' + CONFIG.homeSearchUrl + '" target="_blank" rel="noopener" style="display:inline-block;background:var(--terra);color:#fff;font-weight:700;font-size:13px;padding:10px 24px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">View Your Personalized Home Search \u2192</a></div>';
+  }
 
   searchHtml += '<div class="main">' + mainHtml + '</div>';
   searchHtml += '</div>'; // close layout
@@ -639,7 +642,11 @@ function render(){
       var scoreTier = comp.matchScore >= 75 ? 'strong' : comp.matchScore >= 50 ? 'moderate' : 'weak';
       var scoreTierLabel = comp.matchScore >= 75 ? 'STRONG' : comp.matchScore >= 50 ? 'MODERATE' : 'WEAK';
       compsBody += '<div class="comp-card">';
-      compsBody += '<div class="comp-card-header"><div><div class="comp-card-addr">' + comp.addr + '</div>';
+      if (comp.url) {
+        compsBody += '<div class="comp-card-header"><div><div class="comp-card-addr"><a href="' + comp.url + '" target="_blank" rel="noopener" style="color:var(--terra);text-decoration:underline">' + comp.addr + '</a></div>';
+      } else {
+        compsBody += '<div class="comp-card-header"><div><div class="comp-card-addr">' + comp.addr + '</div>';
+      }
       if (comp.sub) compsBody += '<div class="comp-card-sub">' + comp.sub + (comp.community && comp.community !== comp.sub ? '<span class="comm-badge">' + comp.community + '</span>' : '') + '</div>';
       compsBody += '</div><span class="tier-badge ' + scoreTier + '">' + scoreTierLabel + '</span></div>';
       compsBody += '<div class="score-row"><span class="score-label">Match</span><div class="score-bar"><div class="score-fill" style="width:' + comp.matchScore + '%"></div></div><span class="score-val">' + comp.matchScore + '</span></div>';
@@ -659,6 +666,22 @@ function render(){
     compsBody += '<div class="callout blue"><div class="callout-text">Comparable sales data will appear here once loaded.</div></div>';
   }
   sellHtml += section('sell_comps', 'Comparable Sales (' + comps.length + ')', compsBody);
+
+  // Reference Links (sell side)
+  if (CONFIG.sellReferenceLinks && CONFIG.sellReferenceLinks.length > 0) {
+    var refBody2 = '';
+    refBody2 += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:10px">Additional listing and market reference links.</div>';
+    for (var rli = 0; rli < CONFIG.sellReferenceLinks.length; rli++) {
+      var rl2 = CONFIG.sellReferenceLinks[rli];
+      refBody2 += '<a href="' + rl2.url + '" target="_blank" rel="noopener" style="display:block;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--slate);font-size:12px;font-weight:600;transition:background .15s"';
+      refBody2 += ' onmouseover="this.style.background=\'var(--sand-pale)\'" onmouseout="this.style.background=\'transparent\'">';
+      refBody2 += '<span style="color:var(--terra);margin-right:6px">\u2197</span>';
+      refBody2 += (rl2.label || rl2.url);
+      refBody2 += '<span style="display:block;font-weight:400;color:var(--neutral);font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + rl2.url + '</span>';
+      refBody2 += '</a>';
+    }
+    sellHtml += section('sell_reflinks', 'Helpful Links', refBody2);
+  }
 
   // Competition Tracker
   var compBody = '';

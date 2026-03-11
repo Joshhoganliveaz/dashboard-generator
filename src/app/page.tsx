@@ -39,8 +39,10 @@ interface FormFields {
   bathsMin: string;
   mustHaves: string;
   schoolPreference: string;
+  homeSearchUrl: string;
   // Sell-specific
   loanPayoff: string;
+  compLinks: string;
 }
 
 export default function HomePage() {
@@ -61,7 +63,9 @@ export default function HomePage() {
     bathsMin: "2",
     mustHaves: "",
     schoolPreference: "",
+    homeSearchUrl: "",
     loanPayoff: "",
+    compLinks: "",
   });
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -217,10 +221,12 @@ export default function HomePage() {
       clientDetailsPayload.bathsMin = parseInt(form.bathsMin) || 2;
       clientDetailsPayload.mustHaves = form.mustHaves ? form.mustHaves.split(",").map(s => s.trim()).filter(Boolean) : [];
       clientDetailsPayload.schoolPreference = form.schoolPreference;
+      if (form.homeSearchUrl) clientDetailsPayload.homeSearchUrl = form.homeSearchUrl;
     }
 
     if (showSellFields) {
       clientDetailsPayload.loanPayoff = parseInt(form.loanPayoff) || 0;
+      if (form.compLinks) clientDetailsPayload.compLinks = form.compLinks;
     }
 
     formData.append("clientDetails", JSON.stringify(clientDetailsPayload));
@@ -402,6 +408,7 @@ export default function HomePage() {
                     <Input label="Min Bathrooms" placeholder="2" value={form.bathsMin} onChange={(v) => updateField("bathsMin", v)} type="number" />
                     <Input label="Must-Haves" placeholder="Pool, single story, RV gate" value={form.mustHaves} onChange={(v) => updateField("mustHaves", v)} className="col-span-2" />
                     <Input label="School Preference" placeholder="Gilbert Public Schools, Higley Unified" value={form.schoolPreference} onChange={(v) => updateField("schoolPreference", v)} className="col-span-2" />
+                    <Input label="Home Search Link" placeholder="https://liveazco.com/..." value={form.homeSearchUrl} onChange={(v) => updateField("homeSearchUrl", v)} className="col-span-2" type="url" />
                   </div>
                 </div>
               )}
@@ -412,6 +419,17 @@ export default function HomePage() {
                   <h2 className="text-lg font-display font-bold text-slate mb-4">Loan Details</h2>
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Estimated Loan Payoff" placeholder="340000" value={form.loanPayoff} onChange={(v) => updateField("loanPayoff", v)} type="number" />
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-slate mb-1">Comp & Listing Links</label>
+                    <textarea
+                      value={form.compLinks}
+                      onChange={(e) => updateField("compLinks", e.target.value)}
+                      placeholder={"Paste URLs, one per line\nhttps://www.redfin.com/AZ/Mesa/...\nhttps://www.zillow.com/homedetails/..."}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-sand-pale rounded-lg text-slate text-sm focus:outline-none focus:border-terra resize-y"
+                    />
+                    <p className="text-xs text-slate-light mt-1">Optional. Links to comp listings or reference URLs included in the dashboard.</p>
                   </div>
                 </div>
               )}

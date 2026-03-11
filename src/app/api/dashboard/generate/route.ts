@@ -60,9 +60,11 @@ export async function POST(request: Request) {
     bathsMin?: number;
     mustHaves?: string[];
     schoolPreference?: string;
+    homeSearchUrl?: string;
     sellAddress?: string;
     sellCityStateZip?: string;
     loanPayoff?: number;
+    compLinks?: string;
   };
   try {
     clientDetails = JSON.parse(clientDetailsRaw);
@@ -268,6 +270,11 @@ export async function POST(request: Request) {
         // === STEP 5: Generate Content ===
         sendSSE(controller, { step: "generating_content", progress: 72 });
 
+        // Parse comp links from textarea
+        const compLinks: string[] = clientDetails.compLinks
+          ? clientDetails.compLinks.split("\n").map(s => s.trim()).filter(s => s.startsWith("http"))
+          : [];
+
         let finalConfig: AnyDashboardConfig;
 
         if (templateType === "houseversary") {
@@ -279,14 +286,14 @@ export async function POST(request: Request) {
         } else if (templateType === "sell") {
           finalConfig = await buildSellConfig(
             clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
-            lotSqft, propertyHighlights, controller
+            lotSqft, propertyHighlights, compLinks, controller
           );
         } else if (templateType === "buyer") {
           finalConfig = await buildBuyerConfig(clientDetails, csvResult, controller);
         } else {
           finalConfig = await buildBuySellConfig(
             clientDetails, subject, features, csvResult, cromfordMetrics, cromfordTakeaway, cromfordSource,
-            lotSqft, propertyHighlights, controller
+            lotSqft, propertyHighlights, compLinks, controller
           );
         }
 
@@ -435,6 +442,7 @@ async function buildSellConfig(
   cromfordSource: string,
   lotSqft: number,
   propertyHighlights: string[],
+  compLinks: string[],
   controller: ReadableStreamDefaultController,
 ): Promise<SellDashboardConfig> {
   if (!csvResult) throw new Error("CSV analysis result is required for sell dashboard");
@@ -497,7 +505,24 @@ async function buildSellConfig(
     cromfordTakeaway,
     cromfordSource,
     features,
+    referenceLinks: compLinks.length > 0
+      ? compLinks.map(url => ({ url, label: extractDomainLabel(url) }))
+      : undefined,
   };
+}
+
+function extractDomainLabel(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    const path = new URL(url).pathname;
+    // Try to extract address-like info from path
+    const parts = path.split("/").filter(Boolean);
+    const addressPart = parts.find(p => /\d+.*(?:st|rd|ave|dr|ln|ct|way|blvd|cir|pl)/i.test(p));
+    if (addressPart) return addressPart.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    return hostname;
+  } catch {
+    return url;
+  }
 }
 
 // === Buyer Pipeline ===
@@ -511,6 +536,7 @@ async function buildBuyerConfig(
     bathsMin?: number;
     mustHaves?: string[];
     schoolPreference?: string;
+    homeSearchUrl?: string;
   },
   csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
   controller: ReadableStreamDefaultController,
@@ -555,6 +581,7 @@ async function buildBuyerConfig(
     schoolDistricts: contentData.schoolDistricts || [],
     timeline: contentData.timeline || [],
     marketSnapshot: contentData.marketSnapshot || [],
+    homeSearchUrl: clientDetails.homeSearchUrl || undefined,
   };
 }
 
@@ -569,6 +596,7 @@ async function buildBuySellConfig(
     bathsMin?: number;
     mustHaves?: string[];
     schoolPreference?: string;
+    homeSearchUrl?: string;
     sellAddress?: string;
     sellCityStateZip?: string;
     loanPayoff?: number;
@@ -581,6 +609,7 @@ async function buildBuySellConfig(
   cromfordSource: string,
   lotSqft: number,
   propertyHighlights: string[],
+  compLinks: string[],
   controller: ReadableStreamDefaultController,
 ): Promise<BuySellDashboardConfig> {
   if (!csvResult) throw new Error("CSV analysis result is required for buy/sell dashboard");
@@ -653,5 +682,9 @@ async function buildBuySellConfig(
     cromfordTakeaway,
     cromfordSource,
     features,
+    homeSearchUrl: clientDetails.homeSearchUrl || undefined,
+    sellReferenceLinks: compLinks.length > 0
+      ? compLinks.map(url => ({ url, label: extractDomainLabel(url) }))
+      : undefined,
   };
 }

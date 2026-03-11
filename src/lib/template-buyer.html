@@ -354,6 +354,9 @@ function render() {
   if (CONFIG.mustHaves && CONFIG.mustHaves.length > 0) {
     t1 += '<div style="margin-top:8px;font-size:12px;color:var(--neutral)"><strong style="color:var(--slate)">Must-Haves:</strong> ' + CONFIG.mustHaves.join(', ') + '</div>';
   }
+  if (CONFIG.homeSearchUrl) {
+    t1 += '<div style="margin-top:12px;text-align:center"><a href="' + CONFIG.homeSearchUrl + '" target="_blank" rel="noopener" style="display:inline-block;background:var(--terra);color:#fff;font-weight:700;font-size:13px;padding:10px 24px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">View Your Personalized Home Search \u2192</a></div>';
+  }
   t1 += '</div>';
 
   // Top metrics
