@@ -148,8 +148,12 @@ export async function POST(request: Request) {
             address: clientDetails.address,
           }, templateConfig.lens);
 
-          if (csvResult.comps.length === 0 && csvResult.metadata.warnings.length > 0) {
-            sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Warning: ${csvResult.metadata.warnings.join('; ')}` });
+          if (csvResult.comps.length === 0) {
+            const reason = csvResult.metadata.warnings.length > 0
+              ? csvResult.metadata.warnings.join('; ')
+              : "No comparable sales found in CSV data";
+            sendSSE(controller, { step: "error", message: `CSV analysis failed: ${reason}. Cannot generate dashboard without comps.` });
+            throw new Error(`CSV analysis produced 0 comps: ${reason}`);
           } else {
             sendSSE(controller, { step: "parsing_csv", progress: 35, message: `Analyzed ${csvResult.metadata.totalParsed} sales, selected ${csvResult.comps.length} comps` });
           }

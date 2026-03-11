@@ -248,6 +248,59 @@ function parseCSVLine(line: string): string[] {
   return fields;
 }
 
+// --- Pre-parse Features column into compact summary ---
+
+function compactFeatures(raw: string): string {
+  if (!raw || raw.length < 10) return "";
+  const parts: string[] = [];
+
+  // Garage spaces: look for "N Car Garage" or "Garage Spaces|N"
+  const garageMatch = raw.match(/(\d)\s*Car\s*Garage/i) || raw.match(/Garage\s*Spaces?\|(\d)/i);
+  if (garageMatch) parts.push(`Gar:${garageMatch[1]}`);
+
+  // RV access
+  if (/RV\s*Gate/i.test(raw)) parts.push("RV:Y");
+  else if (/RV\s*(?:Parking|Garage)/i.test(raw)) parts.push("RV:Y");
+
+  // Solar
+  if (/Solar\s*Owned/i.test(raw)) parts.push("Solar:Owned");
+  else if (/Solar\s*Leased/i.test(raw)) parts.push("Solar:Leased");
+
+  // Spa
+  if (/Private\s*Heated\s*Spa/i.test(raw) || (/Spa\|.*Heated/i.test(raw) && /Spa\|.*Private/i.test(raw))) parts.push("Spa:PrivateHeated");
+  else if (/Private\s*Spa/i.test(raw) || /Spa\|.*Private/i.test(raw)) parts.push("Spa:Private");
+  else if (/\bSpa\b/i.test(raw) && /Yes/i.test(raw.slice(raw.search(/\bSpa\b/i), raw.search(/\bSpa\b/i) + 30))) parts.push("Spa:Y");
+
+  // Guest house
+  if (/Guest\s*(?:House|Quarters)|Casita/i.test(raw)) parts.push("Guest:Y");
+
+  // Countertops
+  const counterMatch = raw.match(/(?:Kitchen\s*Features?|Counter(?:top)?s?)\|?\s*(Granite|Quartz|Marble|Slab|Laminate)/i);
+  if (counterMatch) parts.push(`Counters:${counterMatch[1]}`);
+
+  // Gated community
+  if (/Gated\s*Community|Guard\s*Gated/i.test(raw)) parts.push("Gated:Y");
+
+  // HOA fee
+  const hoaMatch = raw.match(/HOA\s*(?:Fee|Dues?)?\|?\$?\s*(\d[\d,.]*)/i);
+  if (hoaMatch) parts.push(`HOA:${hoaMatch[1].replace(/,/g, "")}`);
+
+  // Pool type
+  if (/Play\s*Pool/i.test(raw)) parts.push("PoolType:Play");
+  else if (/Diving\s*Pool/i.test(raw)) parts.push("PoolType:Diving");
+  else if (/Heated\s*Pool/i.test(raw)) parts.push("PoolType:Heated");
+  else if (/Pebble(?:tec|sheen)/i.test(raw)) parts.push("PoolType:Pebble");
+
+  // View
+  const viewMatch = raw.match(/(Mountain|Lake|City\s*Light|Golf\s*Course|Desert)\s*View/i);
+  if (viewMatch) parts.push(`View:${viewMatch[1].replace(/\s+/g, "")}`);
+
+  // Corner lot
+  if (/Corner\s*Lot/i.test(raw)) parts.push("Corner:Y");
+
+  return parts.join(";");
+}
+
 // --- Strip CSV to only columns needed for analysis ---
 
 const KEEP_COLUMNS = new Set([
@@ -276,18 +329,27 @@ function trimCSVColumns(csvText: string): string {
   // If we can't find any matching columns, return original (might be a different format)
   if (keepIndices.length === 0) return csvText;
 
+  // Find the Features column index among the kept columns
+  const featuresColOrigIdx = headerFields.findIndex((h) => h.trim() === "Features");
+
   const trimmedLines: string[] = [];
+  let isHeader = true;
   for (const line of lines) {
     if (!line.trim()) continue;
     const fields = parseCSVLine(line);
     const kept = keepIndices.map((i) => {
-      const val = fields[i] ?? "";
+      let val = fields[i] ?? "";
+      // Pre-parse Features column into compact summary (skip header row)
+      if (!isHeader && i === featuresColOrigIdx && val.length > 0) {
+        val = compactFeatures(val);
+      }
       // Re-quote if the value contains commas or quotes
       return val.includes(",") || val.includes('"')
         ? `"${val.replace(/"/g, '""')}"`
         : val;
     });
     trimmedLines.push(kept.join(","));
+    isHeader = false;
   }
 
   return trimmedLines.join("\n");
@@ -330,8 +392,8 @@ export async function runFullAnalysis(
 
   try {
     const response = await askClaude(prompt, {
-      model: "claude-opus-4-6",
-      maxTokens: 8192,
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 16384,
     });
     const parsed = parseJSONResponse(response);
     return validateResponse(parsed);
