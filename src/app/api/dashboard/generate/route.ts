@@ -324,7 +324,7 @@ export async function POST(request: Request) {
         const templateHtml = getTemplateHtml(templateType);
         const finalHtml = injectConfig(templateHtml, finalConfig);
 
-        sendSSE(controller, { step: "complete", progress: 100, html: finalHtml });
+        sendSSE(controller, { step: "complete", progress: 100, html: finalHtml, templateType });
       } catch (err) {
         console.error("Generation error:", err);
         sendSSE(controller, {

@@ -963,3 +963,21 @@ Rules:
 
 Return ONLY the JSON object.`;
 }
+
+export function dashboardEditPrompt(configJson: string, instruction: string): string {
+  return `You are editing a real estate dashboard config object. The user wants to make a change.
+
+Current config (JSON):
+${configJson}
+
+User's edit instruction:
+${instruction}
+
+Rules:
+- Return ONLY the complete modified config as a JSON object
+- Preserve all fields not mentioned in the edit instruction
+- For numeric fields, maintain proper number types (not strings)
+- For array fields (comps, features, etc.), maintain the existing structure
+- Do not add or remove top-level keys unless the instruction specifically requires it
+- Never use "just". No em-dashes.`;
+}

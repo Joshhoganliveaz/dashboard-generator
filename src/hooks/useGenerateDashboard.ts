@@ -10,6 +10,9 @@ interface GenerationState {
   html: string | null;
   error: string | null;
   warnings: string[];
+  templateType: string;
+  isEditing: boolean;
+  editError: string | null;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -32,6 +35,9 @@ export function useGenerateDashboard() {
     html: null,
     error: null,
     warnings: [],
+    templateType: "houseversary",
+    isEditing: false,
+    editError: null,
   });
   const abortRef = useRef<AbortController | null>(null);
 
@@ -40,7 +46,9 @@ export function useGenerateDashboard() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setState({ step: "parsing_csv", message: "Starting...", progress: 0, html: null, error: null, warnings: [] });
+    const formTemplateType = formData.get("templateType") as string || "houseversary";
+
+    setState({ step: "parsing_csv", message: "Starting...", progress: 0, html: null, error: null, warnings: [], templateType: formTemplateType, isEditing: false, editError: null });
 
     try {
       const res = await fetch("/api/dashboard/generate", {
@@ -85,6 +93,7 @@ export function useGenerateDashboard() {
                   progress: 100,
                   html: data.html,
                   error: null,
+                  templateType: data.templateType || s.templateType,
                 }));
               } else if (data.step === "warning") {
                 setState((s) => ({
@@ -125,15 +134,41 @@ export function useGenerateDashboard() {
     }
   }, []);
 
+  const applyEdit = useCallback(async (instruction: string): Promise<boolean> => {
+    if (!state.html) return false;
+    setState((s) => ({ ...s, isEditing: true, editError: null }));
+    try {
+      const res = await fetch("/api/dashboard/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          html: state.html,
+          instruction,
+          templateType: state.templateType,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: "Edit failed" }));
+        throw new Error(errBody.error || "Edit failed");
+      }
+      const { html } = await res.json();
+      setState((s) => ({ ...s, html, isEditing: false }));
+      return true;
+    } catch (err) {
+      setState((s) => ({ ...s, isEditing: false, editError: (err as Error).message }));
+      return false;
+    }
+  }, [state.html, state.templateType]);
+
   const cancel = useCallback(() => {
     abortRef.current?.abort();
-    setState({ step: "idle", message: "", progress: 0, html: null, error: null, warnings: [] });
+    setState({ step: "idle", message: "", progress: 0, html: null, error: null, warnings: [], templateType: "houseversary", isEditing: false, editError: null });
   }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
-    setState({ step: "idle", message: "", progress: 0, html: null, error: null, warnings: [] });
+    setState({ step: "idle", message: "", progress: 0, html: null, error: null, warnings: [], templateType: "houseversary", isEditing: false, editError: null });
   }, []);
 
-  return { ...state, generate, cancel, reset };
+  return { ...state, generate, cancel, reset, applyEdit };
 }

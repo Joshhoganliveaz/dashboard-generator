@@ -1,4 +1,4 @@
-import type { DashboardConfig, AnyDashboardConfig } from "./types";
+import type { AnyDashboardConfig } from "./types";
 
 /**
  * Serialize a JS value as a JavaScript literal (not JSON).
@@ -87,4 +87,16 @@ var CONFIG = ${configStr};
 // ============================================================`;
 
   return templateHtml.slice(0, lineStart) + newSection + "\n" + templateHtml.slice(lineEnd + 1);
+}
+
+/**
+ * Extract the CONFIG object from generated HTML.
+ * CONFIG is a JS object literal (not JSON) between markers.
+ * Uses Function constructor to safely evaluate the JS literal. Server-side only.
+ */
+export function extractConfig(html: string): Record<string, unknown> {
+  const match = html.match(/var CONFIG\s*=\s*(\{[\s\S]*?\});?\s*\n\s*\/\/ ={5,}/);
+  if (!match) throw new Error("Could not extract CONFIG from HTML");
+  const fn = new Function(`return ${match[1]}`);
+  return fn();
 }

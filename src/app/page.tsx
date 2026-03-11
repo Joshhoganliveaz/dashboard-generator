@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
-import { Upload, FileText, Image, Download, Copy, Check, X, Loader2, CheckCircle2, AlertCircle, Home, TrendingUp, Search, ArrowLeftRight } from "lucide-react";
+import { Upload, FileText, Image, Download, Copy, Check, X, Loader2, CheckCircle2, AlertCircle, Home, TrendingUp, Search, ArrowLeftRight, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { useGenerateDashboard } from "@/hooks/useGenerateDashboard";
 import ClientPicker from "@/components/ClientPicker";
 import { TEMPLATE_REGISTRY, isFileRequired, isFileRelevant } from "@/lib/template-registry";
@@ -80,7 +80,9 @@ export default function HomePage() {
   const cromfordInputRef = useRef<HTMLInputElement>(null!);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const { step, message, progress, html, error, warnings, generate, cancel, reset } = useGenerateDashboard();
+  const { step, message, progress, html, error, warnings, generate, cancel, reset, applyEdit, isEditing, editError } = useGenerateDashboard();
+  const [editOpen, setEditOpen] = useState(false);
+  const [editInstruction, setEditInstruction] = useState("");
   const [copied, setCopied] = useState(false);
 
   const templateConfig = TEMPLATE_REGISTRY[templateType];
@@ -324,6 +326,55 @@ export default function HomePage() {
                   className="w-full h-full border-0"
                   title="Dashboard Preview"
                 />
+              )}
+            </div>
+
+            {/* Edit Dashboard */}
+            <div className="bg-white rounded-xl shadow-sm mt-6">
+              <button
+                onClick={() => setEditOpen(!editOpen)}
+                className="w-full flex items-center justify-between px-6 py-4 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-terra" />
+                  <span className="font-semibold text-slate">Edit Dashboard</span>
+                </div>
+                {editOpen ? <ChevronUp className="w-4 h-4 text-slate-light" /> : <ChevronDown className="w-4 h-4 text-slate-light" />}
+              </button>
+              {editOpen && (
+                <div className="px-6 pb-5 border-t border-sand-pale pt-4">
+                  <textarea
+                    value={editInstruction}
+                    onChange={(e) => setEditInstruction(e.target.value)}
+                    placeholder='Describe changes, e.g. "Change the estimated value to $650,000" or "Remove the third comp"'
+                    rows={3}
+                    disabled={isEditing}
+                    className="w-full px-3 py-2 border border-sand-pale rounded-lg text-slate text-sm focus:outline-none focus:border-terra resize-y disabled:opacity-50"
+                  />
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={async () => {
+                        if (!editInstruction.trim()) return;
+                        const ok = await applyEdit(editInstruction.trim());
+                        if (ok) setEditInstruction("");
+                      }}
+                      disabled={isEditing || !editInstruction.trim()}
+                      className="flex items-center gap-2 bg-terra text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-terra-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isEditing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Applying...
+                        </>
+                      ) : (
+                        "Apply Changes"
+                      )}
+                    </button>
+                    {editError && (
+                      <p className="text-sm text-red-600">{editError}</p>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
