@@ -44,7 +44,15 @@ export async function POST(request: Request) {
     }
 
     // 1. Extract current config from HTML
-    const currentConfig = extractConfig(html);
+    let currentConfig: Record<string, unknown>;
+    try {
+      currentConfig = extractConfig(html);
+    } catch {
+      return NextResponse.json(
+        { error: "Could not read dashboard data. The HTML may be corrupted." },
+        { status: 400 }
+      );
+    }
     const configJson = JSON.stringify(currentConfig, null, 2);
 
     // 2. Ask Claude to apply the edit

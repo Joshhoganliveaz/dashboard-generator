@@ -341,10 +341,10 @@ function trimCSVColumns(csvText: string): string {
     .map((h, i) => KEEP_COLUMNS.has(h.trim()) ? i : -1)
     .filter((i) => i >= 0);
 
-  // If we can't find any matching columns, return original (might be a different format)
+  // If we can't find any matching columns, return original but limit rows to prevent token overflow
   if (keepIndices.length === 0) {
     console.warn("CSV column trim: no matching columns found. Headers:", headerFields.map(h => h.trim()).join(", "));
-    return csvText;
+    return lines.slice(0, 201).join("\n");
   }
 
   const matchedHeaders = keepIndices.map(i => headerFields[i].trim());

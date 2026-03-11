@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Upload, FileText, Image, Download, Copy, Check, X, Loader2, CheckCircle2, AlertCircle, Home, TrendingUp, Search, ArrowLeftRight, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { useGenerateDashboard } from "@/hooks/useGenerateDashboard";
 import ClientPicker from "@/components/ClientPicker";
@@ -248,11 +248,19 @@ export default function HomePage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const prevUrlRef = useRef<string | null>(null);
   const previewUrl = useMemo(() => {
-    if (!html) return null;
+    if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
+    if (!html) { prevUrlRef.current = null; return null; }
     const blob = new Blob([html], { type: "text/html" });
-    return URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    prevUrlRef.current = url;
+    return url;
   }, [html]);
+
+  useEffect(() => {
+    return () => { if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current); };
+  }, []);
 
   const currentStepIdx = pipelineSteps.findIndex((s) => s.key === step);
 

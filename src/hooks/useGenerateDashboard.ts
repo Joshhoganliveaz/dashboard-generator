@@ -40,6 +40,7 @@ export function useGenerateDashboard() {
     editError: null,
   });
   const abortRef = useRef<AbortController | null>(null);
+  const editAbortRef = useRef<AbortController | null>(null);
 
   const generate = useCallback(async (formData: FormData) => {
     abortRef.current?.abort();
@@ -72,56 +73,60 @@ export function useGenerateDashboard() {
       const decoder = new TextDecoder();
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
 
-              if (data.step === "complete" && data.html) {
-                setState((s) => ({
-                  ...s,
-                  step: "complete",
-                  message: "Dashboard ready!",
-                  progress: 100,
-                  html: data.html,
-                  error: null,
-                  templateType: data.templateType || s.templateType,
-                }));
-              } else if (data.step === "warning") {
-                setState((s) => ({
-                  ...s,
-                  warnings: [...s.warnings, data.message],
-                  message: data.message,
-                  progress: data.progress || s.progress,
-                }));
-              } else if (data.step === "error") {
-                setState((s) => ({
-                  ...s,
-                  step: "error",
-                  error: data.message || "Unknown error",
-                  message: "Generation failed",
-                }));
-              } else {
-                setState((s) => ({
-                  ...s,
-                  step: data.step,
-                  message: STEP_LABELS[data.step] || data.message || "",
-                  progress: data.progress || s.progress,
-                }));
+                if (data.step === "complete" && data.html) {
+                  setState((s) => ({
+                    ...s,
+                    step: "complete",
+                    message: "Dashboard ready!",
+                    progress: 100,
+                    html: data.html,
+                    error: null,
+                    templateType: data.templateType || s.templateType,
+                  }));
+                } else if (data.step === "warning") {
+                  setState((s) => ({
+                    ...s,
+                    warnings: [...s.warnings, data.message],
+                    message: data.message,
+                    progress: data.progress || s.progress,
+                  }));
+                } else if (data.step === "error") {
+                  setState((s) => ({
+                    ...s,
+                    step: "error",
+                    error: data.message || "Unknown error",
+                    message: "Generation failed",
+                  }));
+                } else {
+                  setState((s) => ({
+                    ...s,
+                    step: data.step,
+                    message: STEP_LABELS[data.step] || data.message || "",
+                    progress: data.progress || s.progress,
+                  }));
+                }
+              } catch {
+                // Ignore parse errors for partial lines
               }
-            } catch {
-              // Ignore parse errors for partial lines
             }
           }
         }
+      } finally {
+        reader.cancel().catch(() => {});
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
@@ -136,6 +141,9 @@ export function useGenerateDashboard() {
 
   const applyEdit = useCallback(async (instruction: string): Promise<boolean> => {
     if (!state.html) return false;
+    editAbortRef.current?.abort();
+    const controller = new AbortController();
+    editAbortRef.current = controller;
     setState((s) => ({ ...s, isEditing: true, editError: null }));
     try {
       const res = await fetch("/api/dashboard/edit", {
@@ -146,6 +154,7 @@ export function useGenerateDashboard() {
           instruction,
           templateType: state.templateType,
         }),
+        signal: controller.signal,
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: "Edit failed" }));
@@ -155,6 +164,7 @@ export function useGenerateDashboard() {
       setState((s) => ({ ...s, html, isEditing: false }));
       return true;
     } catch (err) {
+      if ((err as Error).name === "AbortError") return false;
       setState((s) => ({ ...s, isEditing: false, editError: (err as Error).message }));
       return false;
     }
