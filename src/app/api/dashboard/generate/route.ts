@@ -214,6 +214,23 @@ export async function POST(request: Request) {
             if (taxData.purchasePrice) purchasePrice = taxData.purchasePrice;
             if (taxData.purchaseDate) purchaseDate = taxData.purchaseDate;
 
+            // Validation: detect misclassified original loan (e.g., cash-out refi placed in originalLoanAmount)
+            if (taxData.originalLoanAmount && taxData.purchasePrice && taxData.originalLoanAmount < taxData.purchasePrice * 0.50) {
+              const refinances = taxData.refinances || [];
+              const betterMatch = refinances.find(r => r.amount >= taxData.purchasePrice! * 0.50 && r.amount <= taxData.purchasePrice! * 1.05);
+              if (betterMatch) {
+                console.log(`Loan swap: originalLoanAmount $${taxData.originalLoanAmount} looks like a refi (<50% of $${taxData.purchasePrice}). Swapping with refinance of $${betterMatch.amount}.`);
+                // Move misclassified original into refinances, promote the correct one
+                taxData.refinances = refinances.filter(r => r !== betterMatch);
+                taxData.refinances.push({ date: taxData.loanDate || taxData.purchaseDate || betterMatch.date, amount: taxData.originalLoanAmount });
+                taxData.refinances.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                taxData.originalLoanAmount = betterMatch.amount;
+                taxData.loanDate = betterMatch.date;
+              } else {
+                console.warn(`Warning: originalLoanAmount $${taxData.originalLoanAmount} is <50% of purchasePrice $${taxData.purchasePrice}, but no better candidate found in refinances. Proceeding with available data.`);
+              }
+            }
+
             if (taxData.originalLoanAmount && (taxData.loanDate || taxData.purchaseDate)) {
               const estimate = estimateCurrentBalance(
                 taxData.originalLoanAmount,

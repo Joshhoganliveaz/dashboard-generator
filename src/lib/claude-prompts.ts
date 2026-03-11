@@ -423,11 +423,18 @@ Return a JSON object with EXACTLY these fields:
 }
 
 Instructions:
-- Extract ALL mortgage/deed of trust recordings. The original purchase mortgage goes in originalLoanAmount/loanDate.
-- Any subsequent refinance recordings go in the refinances array, sorted by date ascending.
-- If there are no refinances, return an empty array.
+- Extract ALL mortgage/deed of trust recordings from the document.
 - purchasePrice should come from the deed of sale, warranty deed, or transfer deed amount.
 - Return null for any field not found in the document.
+- If there are no refinances, return an empty array for refinances.
+
+Classifying original mortgage vs refinances:
+- The original purchase mortgage (originalLoanAmount/loanDate) is the recording CLOSEST to the purchase date whose amount is CONSISTENT with typical financing (70-97% of purchase price).
+- If multiple recordings exist near the purchase date, the LARGEST is almost certainly the purchase mortgage.
+- Recordings with amounts SIGNIFICANTLY SMALLER than purchase price (less than 50% of purchase price) are likely HELOCs, second liens, or cash-out refis — place these in refinances[].
+- Recordings dated well AFTER the purchase date (more than 6 months later) go in refinances[] regardless of amount.
+- Tiebreaker: largest recording closest to purchase date wins originalLoanAmount.
+- Sort refinances[] by date ascending.
 
 Return ONLY the JSON object, no other text.`;
 
