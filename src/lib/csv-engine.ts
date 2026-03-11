@@ -53,14 +53,29 @@ function emptyResult(): CSVAnalysisResult {
   };
 }
 
-// --- Parse JSON from Claude response (strip markdown fences if present) ---
+// --- Parse JSON from Claude response (handles fences, leading text, etc.) ---
 
 function parseJSONResponse(text: string): Record<string, unknown> {
   let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+
+  // Strip markdown code fences anywhere in the response
+  const fenceMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) {
+    return JSON.parse(fenceMatch[1].trim());
   }
-  return JSON.parse(cleaned);
+
+  // Try parsing as-is
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Claude sometimes adds prose before/after the JSON — extract the outermost { }
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    }
+    throw new Error(`No JSON object found in CSV analysis response: ${cleaned.slice(0, 200)}...`);
+  }
 }
 
 // --- Validate and coerce Claude's response into CSVAnalysisResult ---
