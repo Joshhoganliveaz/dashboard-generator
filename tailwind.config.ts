@@ -5,15 +5,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cream: "#FAF6F0",
-        terra: { DEFAULT: "#C2703E", light: "#D4915F", dark: "#A85A2A" },
-        sage: { DEFAULT: "#7A8B6F", dark: "#5C6B52", light: "#9AAD8E" },
-        sand: { DEFAULT: "#D4A574", light: "#E8CDB0", pale: "#F5EDE3" },
-        slate: { DEFAULT: "#3D3D3D", light: "#5A5A5A" },
+        dark: { DEFAULT: '#0f0f0f', card: '#1a1a1a', elevated: '#242424', border: '#2e2e2e' },
+        light: { DEFAULT: '#e5e5e5', muted: '#888888', dim: '#555555' },
+        accent: { DEFAULT: '#C9953E', muted: '#C9953E33', hover: '#D4A54E' },
+        success: '#34D399',
+        error: '#F87171',
+        warning: '#FBBF24',
       },
       fontFamily: {
-        sans: ["DM Sans", "sans-serif"],
-        display: ["Playfair Display", "serif"],
+        sans: ['Inter', 'DM Sans', 'system-ui', 'sans-serif'],
       },
     },
   },

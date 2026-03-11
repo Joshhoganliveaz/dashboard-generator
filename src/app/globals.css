@@ -3,15 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --cream: #FAF6F0;
-  --terra: #C2703E;
-  --terra-light: #D4915F;
-  --terra-dark: #A85A2A;
-  --sage: #7A8B6F;
-  --sage-dark: #5C6B52;
-  --sand: #D4A574;
-  --sand-light: #E8CDB0;
-  --sand-pale: #F5EDE3;
-  --slate: #3D3D3D;
-  --slate-light: #5A5A5A;
+  --dark: #0f0f0f;
+  --dark-card: #1a1a1a;
+  --dark-elevated: #242424;
+  --dark-border: #2e2e2e;
+  --light: #e5e5e5;
+  --light-muted: #888888;
+  --light-dim: #555555;
+  --accent: #C9953E;
+  --accent-muted: rgba(201, 149, 62, 0.2);
+  --accent-hover: #D4A54E;
+}
+
+@layer base {
+  * {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(26, 26, 26, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-card-hover:hover {
+    background: rgba(36, 36, 36, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .accent-glow {
+    box-shadow: 0 0 20px rgba(201, 149, 62, 0.15);
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
 }

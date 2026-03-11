@@ -14,6 +14,7 @@
     "cf:dev": "wrangler dev",
     "deploy": "npx @opennextjs/cloudflare build && wrangler deploy",
     "deploy:force": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy",
+    "deploy:dev": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy --env dev",
     "deploy:staging": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy --env staging",
     "promote": "npx @opennextjs/cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy"
   },
