@@ -318,19 +318,8 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden" style={{ height: "80vh" }}>
-              {previewUrl && (
-                <iframe
-                  ref={iframeRef}
-                  src={previewUrl}
-                  className="w-full h-full border-0"
-                  title="Dashboard Preview"
-                />
-              )}
-            </div>
-
             {/* Edit Dashboard */}
-            <div className="bg-white rounded-xl shadow-sm mt-6">
+            <div className="bg-white rounded-xl shadow-sm mb-6">
               <button
                 onClick={() => setEditOpen(!editOpen)}
                 className="w-full flex items-center justify-between px-6 py-4 text-left"
@@ -375,6 +364,17 @@ export default function HomePage() {
                     )}
                   </div>
                 </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden" style={{ height: "80vh" }}>
+              {previewUrl && (
+                <iframe
+                  ref={iframeRef}
+                  src={previewUrl}
+                  className="w-full h-full border-0"
+                  title="Dashboard Preview"
+                />
               )}
             </div>
           </div>

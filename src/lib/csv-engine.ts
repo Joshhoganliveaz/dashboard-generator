@@ -327,7 +327,13 @@ function trimCSVColumns(csvText: string): string {
     .filter((i) => i >= 0);
 
   // If we can't find any matching columns, return original (might be a different format)
-  if (keepIndices.length === 0) return csvText;
+  if (keepIndices.length === 0) {
+    console.warn("CSV column trim: no matching columns found. Headers:", headerFields.map(h => h.trim()).join(", "));
+    return csvText;
+  }
+
+  const matchedHeaders = keepIndices.map(i => headerFields[i].trim());
+  console.log(`CSV column trim: kept ${keepIndices.length}/${headerFields.length} columns: ${matchedHeaders.join(", ")}`);
 
   // Find the Features column index among the kept columns
   const featuresColOrigIdx = headerFields.findIndex((h) => h.trim() === "Features");
@@ -396,7 +402,12 @@ export async function runFullAnalysis(
       maxTokens: 16384,
     });
     const parsed = parseJSONResponse(response);
-    return validateResponse(parsed);
+    const result = validateResponse(parsed);
+    console.log(`CSV analysis: ${result.comps.length} comps, derivedValue=$${result.marketMetrics.derivedValue}, medianPpsf=$${result.marketMetrics.medianPpsf}, totalParsed=${result.metadata.totalParsed}`);
+    if (result.metadata.warnings.length > 0) {
+      console.warn("CSV analysis warnings:", result.metadata.warnings);
+    }
+    return result;
   } catch (err) {
     console.error("Claude CSV analysis failed:", err);
     const result = emptyResult();
