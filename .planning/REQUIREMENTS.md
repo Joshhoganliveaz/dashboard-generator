@@ -15,13 +15,13 @@
 
 ### Persistence
 
-- [ ] **PERS-01**: Dashboard metadata (slug, type, status, client names, agent) is stored in Supabase
-- [ ] **PERS-02**: Sell dashboard data (property details, comps, market metrics, narratives) is stored in Supabase
-- [ ] **PERS-03**: Buyer dashboard data (search criteria, neighborhoods, schools, timeline) is stored in Supabase
-- [ ] **PERS-04**: Buy/sell dashboards link both sell_data and buy_data to one dashboard record
-- [ ] **PERS-05**: RLS policies allow team members to CRUD all tables
-- [ ] **PERS-06**: RLS policies allow public users to SELECT published dashboards and associated data
-- [ ] **PERS-07**: Dashboard data saves immediately as draft when created in wizard
+- [x] **PERS-01**: Dashboard metadata (slug, type, status, client names, agent) is stored in Supabase
+- [x] **PERS-02**: Sell dashboard data (property details, comps, market metrics, narratives) is stored in Supabase
+- [x] **PERS-03**: Buyer dashboard data (search criteria, neighborhoods, schools, timeline) is stored in Supabase
+- [x] **PERS-04**: Buy/sell dashboards link both sell_data and buy_data to one dashboard record
+- [x] **PERS-05**: RLS policies allow team members to CRUD all tables
+- [x] **PERS-06**: RLS policies allow public users to SELECT published dashboards and associated data
+- [x] **PERS-07**: Dashboard data saves immediately as draft when created in wizard
 
 ### Dashboard Library
 
@@ -138,13 +138,13 @@
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Complete |
-| PERS-01 | Phase 1 | Pending |
-| PERS-02 | Phase 1 | Pending |
-| PERS-03 | Phase 1 | Pending |
-| PERS-04 | Phase 1 | Pending |
-| PERS-05 | Phase 1 | Pending |
-| PERS-06 | Phase 1 | Pending |
-| PERS-07 | Phase 1 | Pending |
+| PERS-01 | Phase 1 | Complete |
+| PERS-02 | Phase 1 | Complete |
+| PERS-03 | Phase 1 | Complete |
+| PERS-04 | Phase 1 | Complete |
+| PERS-05 | Phase 1 | Complete |
+| PERS-06 | Phase 1 | Complete |
+| PERS-07 | Phase 1 | Complete |
 | LIBR-01 | Phase 2 | Pending |
 | LIBR-02 | Phase 2 | Pending |
 | LIBR-03 | Phase 2 | Pending |

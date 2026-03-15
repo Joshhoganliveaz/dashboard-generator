@@ -12,7 +12,7 @@ Transform the existing stateless dashboard generator into a persistent platform 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Supabase auth, database schema with RLS, and engine fixes
+- [x] **Phase 1: Foundation** - Supabase auth, database schema with RLS, and engine fixes (completed 2026-03-15)
 - [ ] **Phase 2: Admin UI** - Dashboard library home screen and 6-step wizard with sell dashboard generation
 - [ ] **Phase 3: Publish Pipeline** - Render HTML from DB, publish to R2, permanent URLs, status lifecycle
 - [ ] **Phase 4: Full Dashboard Types** - Buyer and buy/sell dashboard support with properties of interest
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/3 | In Progress|  |
+| 1. Foundation | 3/3 | Complete   | 2026-03-15 |
 | 2. Admin UI | 0/3 | Not started | - |
 | 3. Publish Pipeline | 0/2 | Not started | - |
 | 4. Full Dashboard Types | 0/2 | Not started | - |
