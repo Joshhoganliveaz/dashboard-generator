@@ -34,12 +34,12 @@
 ### Wizard
 
 - [x] **WIZD-01**: Team member selects dashboard type (sell, buyer, buy/sell) in step 1
-- [ ] **WIZD-02**: Team member enters client info (names, email, agent assignment) in step 2
-- [ ] **WIZD-03**: For sell/buysell: team member enters property address and details in step 2
-- [ ] **WIZD-04**: For buyer: team member enters search criteria (areas, budget, beds/baths, must-haves) in step 2
-- [ ] **WIZD-05**: For sell/buysell: team member uploads MLS PDF and Claude extracts property data via structured output in step 3
-- [ ] **WIZD-06**: Extracted fields appear as editable inputs; team member can correct any value
-- [ ] **WIZD-07**: If PDF extraction fails, all fields appear as empty inputs with manual entry fallback
+- [x] **WIZD-02**: Team member enters client info (names, email, agent assignment) in step 2
+- [x] **WIZD-03**: For sell/buysell: team member enters property address and details in step 2
+- [x] **WIZD-04**: For buyer: team member enters search criteria (areas, budget, beds/baths, must-haves) in step 2
+- [x] **WIZD-05**: For sell/buysell: team member uploads MLS PDF and Claude extracts property data via structured output in step 3
+- [x] **WIZD-06**: Extracted fields appear as editable inputs; team member can correct any value
+- [x] **WIZD-07**: If PDF extraction fails, all fields appear as empty inputs with manual entry fallback
 - [x] **WIZD-08**: For sell/buysell: team member uploads ARMLS CSV in step 4; deterministic engine scores comps
 - [x] **WIZD-09**: Comp review panel shows all comps ranked by score; team member can toggle on/off
 - [x] **WIZD-10**: Claude generates narrative content and validates comp selection in step 4
@@ -151,12 +151,12 @@
 | LIBR-04 | Phase 2 | Complete |
 | LIBR-05 | Phase 2 | Complete |
 | WIZD-01 | Phase 2 | Complete |
-| WIZD-02 | Phase 2 | Pending |
-| WIZD-03 | Phase 2 | Pending |
-| WIZD-04 | Phase 2 | Pending |
-| WIZD-05 | Phase 2 | Pending |
-| WIZD-06 | Phase 2 | Pending |
-| WIZD-07 | Phase 2 | Pending |
+| WIZD-02 | Phase 2 | Complete |
+| WIZD-03 | Phase 2 | Complete |
+| WIZD-04 | Phase 2 | Complete |
+| WIZD-05 | Phase 2 | Complete |
+| WIZD-06 | Phase 2 | Complete |
+| WIZD-07 | Phase 2 | Complete |
 | WIZD-08 | Phase 2 | Complete |
 | WIZD-09 | Phase 2 | Complete |
 | WIZD-10 | Phase 2 | Complete |

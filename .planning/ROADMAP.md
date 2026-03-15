@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-15 |
-| 2. Admin UI | 3/5 | In Progress|  |
+| 2. Admin UI | 4/5 | In Progress|  |
 | 3. Publish Pipeline | 0/2 | Not started | - |
 | 4. Full Dashboard Types | 0/2 | Not started | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-04-PLAN.md (Market Data Step)
-last_updated: "2026-03-15T23:14:16Z"
+stopped_at: Completed 02-03-PLAN.md (Wizard Steps 2-3)
+last_updated: "2026-03-15T23:17:54.126Z"
 last_activity: 2026-03-15 — Completed 02-04 Market Data Step
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 56
 ---
 
@@ -53,6 +53,7 @@ Progress: [█████▌░░░░] 56%
 *Updated after each plan completion*
 | Phase 02 P01 | 3min | 2 tasks | 9 files |
 | Phase 02 P04 | 3min | 2 tasks | 2 files |
+| Phase 02 P03 | 6min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,10 @@ Recent decisions affecting current work:
 - [Phase 02-01]: Preserved old form at /legacy route for backward compatibility
 - [Phase 02-01]: Filter logic tested as pure functions, not React component renders
 - [Phase 02-01]: Used vi.hoisted() for Supabase mock chain in slug tests
+- [02-03]: Extended PATCH API to handle sell_data/buy_data as nested objects rather than separate endpoints
+- [02-03]: Extracted generateSlug to slug-utils.ts to avoid server-only import chain in client components
+- [02-03]: Buyer type skips step 3 (property extraction) advancing directly to step 4
+- [02-03]: MLS extraction API returns 200 with null data on failure for graceful client-side fallback
 - [02-04]: Reused existing useGenerateDashboard hook and CompReviewPanel -- no pipeline rewrites
 - [02-04]: CONFIG extraction from generated HTML script tag for structured data persistence
 - [02-04]: Buyer dashboards get simplified step 4 (no CSV required)
@@ -92,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T23:14:16Z
-Stopped at: Completed 02-04-PLAN.md (Market Data Step)
+Last session: 2026-03-15T23:17:54.124Z
+Stopped at: Completed 02-03-PLAN.md (Wizard Steps 2-3)
 Resume file: None
