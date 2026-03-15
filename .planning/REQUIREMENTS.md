@@ -40,14 +40,14 @@
 - [ ] **WIZD-05**: For sell/buysell: team member uploads MLS PDF and Claude extracts property data via structured output in step 3
 - [ ] **WIZD-06**: Extracted fields appear as editable inputs; team member can correct any value
 - [ ] **WIZD-07**: If PDF extraction fails, all fields appear as empty inputs with manual entry fallback
-- [ ] **WIZD-08**: For sell/buysell: team member uploads ARMLS CSV in step 4; deterministic engine scores comps
-- [ ] **WIZD-09**: Comp review panel shows all comps ranked by score; team member can toggle on/off
-- [ ] **WIZD-10**: Claude generates narrative content and validates comp selection in step 4
-- [ ] **WIZD-11**: If Claude narrative fails, deterministic results are shown with placeholder text
+- [x] **WIZD-08**: For sell/buysell: team member uploads ARMLS CSV in step 4; deterministic engine scores comps
+- [x] **WIZD-09**: Comp review panel shows all comps ranked by score; team member can toggle on/off
+- [x] **WIZD-10**: Claude generates narrative content and validates comp selection in step 4
+- [x] **WIZD-11**: If Claude narrative fails, deterministic results are shown with placeholder text
 - [ ] **WIZD-12**: Step 5 shows full dashboard preview in iframe with edit panel
 - [ ] **WIZD-13**: Team member can edit any value directly or give Claude natural language instructions
 - [ ] **WIZD-14**: Team member can add/remove properties of interest in step 5
-- [ ] **WIZD-15**: SSE streaming shows progress during generation steps
+- [x] **WIZD-15**: SSE streaming shows progress during generation steps
 - [x] **WIZD-16**: Team member can navigate back to previous wizard steps without losing data
 - [x] **WIZD-17**: Wizard saves progress to Supabase at each step transition
 
@@ -157,14 +157,14 @@
 | WIZD-05 | Phase 2 | Pending |
 | WIZD-06 | Phase 2 | Pending |
 | WIZD-07 | Phase 2 | Pending |
-| WIZD-08 | Phase 2 | Pending |
-| WIZD-09 | Phase 2 | Pending |
-| WIZD-10 | Phase 2 | Pending |
-| WIZD-11 | Phase 2 | Pending |
+| WIZD-08 | Phase 2 | Complete |
+| WIZD-09 | Phase 2 | Complete |
+| WIZD-10 | Phase 2 | Complete |
+| WIZD-11 | Phase 2 | Complete |
 | WIZD-12 | Phase 2 | Pending |
 | WIZD-13 | Phase 2 | Pending |
 | WIZD-14 | Phase 2 | Pending |
-| WIZD-15 | Phase 2 | Pending |
+| WIZD-15 | Phase 2 | Complete |
 | WIZD-16 | Phase 2 | Complete |
 | WIZD-17 | Phase 2 | Complete |
 | PUBL-01 | Phase 3 | Pending |
