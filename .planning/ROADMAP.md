@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Dashboard, sell_data, buy_data, and properties_of_interest tables exist with RLS policies that allow team CRUD and public SELECT on published records
   4. Claude API calls use structured output with 16K+ max_tokens and exponential backoff retry; CSV parsing uses Papaparse with deterministic scoring
   5. Auth and database work correctly when deployed to Cloudflare Workers via wrangler dev (not only in next dev)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md — Supabase auth: client utilities, middleware, login page, legacy auth removal
+- [ ] 01-02-PLAN.md — Database schema: 4 tables with RLS, TypeScript types, CRUD helpers
+- [ ] 01-03-PLAN.md — Engine hardening: Claude SDK + structured output, Papaparse CSV, Zod validation
 
 ### Phase 2: Admin UI
 **Goal**: Team members can browse all dashboards in a library view and create new sell dashboards through a guided 6-step wizard that saves progress automatically
