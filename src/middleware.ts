@@ -1,26 +1,34 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/middleware";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow login routes and static assets
+  // Allow public routes without authentication
   if (
     pathname === "/login" ||
-    pathname === "/api/login" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
+    pathname.startsWith("/d/") || // published dashboards are public
     pathname.endsWith(".html")
   ) {
     return NextResponse.next();
   }
 
-  const authCookie = request.cookies.get("dashboard-auth");
-  if (!authCookie || authCookie.value !== "authenticated") {
-    return NextResponse.redirect(new URL("/login", request.url));
+  const { supabase, response } = createClient(request);
+
+  // IMPORTANT: use getClaims() not getSession() -- getClaims() validates
+  // the JWT signature server-side, while getSession() does not revalidate.
+  const { data: claims, error } = await supabase.auth.getClaims();
+
+  if (error || !claims) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  // Return the supabase response which carries refreshed session cookies
+  return response;
 }
 
 export const config = {
