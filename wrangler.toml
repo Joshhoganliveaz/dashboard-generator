@@ -7,6 +7,10 @@ compatibility_flags = ["nodejs_compat_v2"]
 directory = ".open-next/assets"
 binding = "ASSETS"
 
+[[r2_buckets]]
+binding = "DASHBOARDS"
+bucket_name = "dashboards"
+
 # Staging environment — same code, separate worker URL
 # Deploy with: npm run deploy:staging
 # URL: https://dashboard-generator-staging.josh-hogan-account.workers.dev
@@ -17,6 +21,10 @@ name = "dashboard-generator-staging"
 directory = ".open-next/assets"
 binding = "ASSETS"
 
+[[env.staging.r2_buckets]]
+binding = "DASHBOARDS"
+bucket_name = "dashboards-staging"
+
 # Dev/preview environment — for testing frontend changes
 # Deploy with: npm run deploy:dev
 # URL: https://dashboard-generator-dev.josh-hogan-account.workers.dev
@@ -26,3 +34,7 @@ name = "dashboard-generator-dev"
 [env.dev.assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
+
+[[env.dev.r2_buckets]]
+binding = "DASHBOARDS"
+bucket_name = "dashboards-dev"
