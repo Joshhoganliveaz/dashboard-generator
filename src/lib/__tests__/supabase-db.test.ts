@@ -1,27 +1,43 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---- Supabase client mock ----
+// vi.mock is hoisted, so we use vi.hoisted to create mock functions
+// that are available at mock definition time.
 
-const mockSingle = vi.fn();
-const mockOrder = vi.fn().mockReturnValue({ data: [], error: null });
-const mockEq = vi.fn().mockReturnValue({ single: mockSingle });
-const mockSelect = vi.fn().mockReturnValue({ order: mockOrder, eq: mockEq });
-const mockInsert = vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: mockSingle }) });
-const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
-const mockUpsert = vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: mockSingle }) });
+const {
+  mockSingle,
+  mockOrder,
+  mockEq,
+  mockSelect,
+  mockInsert,
+  mockUpdate,
+  mockUpsert,
+  mockFrom,
+} = vi.hoisted(() => {
+  const mockSingle = vi.fn();
+  const mockOrder = vi.fn().mockReturnValue({ data: [], error: null });
+  const mockEq = vi.fn().mockReturnValue({ single: mockSingle });
+  const mockSelect = vi.fn().mockReturnValue({ order: mockOrder, eq: mockEq });
+  const mockInsert = vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnValue({ single: mockSingle }),
+  });
+  const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+  const mockUpsert = vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnValue({ single: mockSingle }),
+  });
+  const mockFrom = vi.fn().mockReturnValue({
+    select: mockSelect,
+    insert: mockInsert,
+    update: mockUpdate,
+    upsert: mockUpsert,
+  });
 
-const mockFrom = vi.fn().mockReturnValue({
-  select: mockSelect,
-  insert: mockInsert,
-  update: mockUpdate,
-  upsert: mockUpsert,
+  return { mockSingle, mockOrder, mockEq, mockSelect, mockInsert, mockUpdate, mockUpsert, mockFrom };
 });
-
-const mockSupabaseClient = { from: mockFrom };
 
 // Mock the server module's createClient
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn().mockResolvedValue(mockSupabaseClient),
+  createClient: vi.fn().mockResolvedValue({ from: mockFrom }),
 }));
 
 import {
@@ -44,9 +60,13 @@ describe("Supabase DB helpers", () => {
       upsert: mockUpsert,
     });
     mockSelect.mockReturnValue({ order: mockOrder, eq: mockEq });
-    mockInsert.mockReturnValue({ select: vi.fn().mockReturnValue({ single: mockSingle }) });
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: mockSingle }),
+    });
     mockUpdate.mockReturnValue({ eq: mockEq });
-    mockUpsert.mockReturnValue({ select: vi.fn().mockReturnValue({ single: mockSingle }) });
+    mockUpsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: mockSingle }),
+    });
     mockEq.mockReturnValue({ single: mockSingle });
     mockOrder.mockReturnValue({ data: [], error: null });
   });
@@ -72,7 +92,6 @@ describe("Supabase DB helpers", () => {
       });
 
       expect(mockFrom).toHaveBeenCalledWith("dashboards");
-      // Verify insert was called with status "draft"
       const insertCall = mockInsert.mock.calls[0][0];
       expect(insertCall).toMatchObject({
         type: "sell",
@@ -101,7 +120,10 @@ describe("Supabase DB helpers", () => {
     });
 
     it("throws on error", async () => {
-      mockSingle.mockResolvedValueOnce({ data: null, error: { message: "duplicate slug" } });
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: "duplicate slug" },
+      });
 
       await expect(
         createDashboard({ type: "sell", client_names: "Test", slug: "dup" })
@@ -123,7 +145,10 @@ describe("Supabase DB helpers", () => {
     });
 
     it("throws on error", async () => {
-      mockSingle.mockResolvedValueOnce({ data: null, error: { message: "not found" } });
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: "not found" },
+      });
 
       await expect(getDashboard("bad-id")).rejects.toThrow("not found");
     });
@@ -171,7 +196,10 @@ describe("Supabase DB helpers", () => {
 
   describe("updateDashboard", () => {
     it("calls update with eq filter on id", async () => {
-      mockSingle.mockResolvedValueOnce({ data: { id: "abc", status: "published" }, error: null });
+      mockSingle.mockResolvedValueOnce({
+        data: { id: "abc", status: "published" },
+        error: null,
+      });
 
       await updateDashboard("abc", { status: "published" });
 
