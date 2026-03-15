@@ -53,17 +53,17 @@
 
 ### Publishing
 
-- [ ] **PUBL-01**: One-click publish renders HTML from DB config and uploads to Cloudflare R2
-- [ ] **PUBL-02**: Published dashboard is accessible at /d/{slug} as static HTML
-- [ ] **PUBL-03**: Re-publishing overwrites the same R2 path — URL never changes
-- [ ] **PUBL-04**: Team member can download rendered HTML file for Lofty upload
-- [ ] **PUBL-05**: Dashboard status updates to "published" with timestamp after publish
+- [x] **PUBL-01**: One-click publish renders HTML from DB config and uploads to Cloudflare R2
+- [x] **PUBL-02**: Published dashboard is accessible at /d/{slug} as static HTML
+- [x] **PUBL-03**: Re-publishing overwrites the same R2 path — URL never changes
+- [x] **PUBL-04**: Team member can download rendered HTML file for Lofty upload
+- [x] **PUBL-05**: Dashboard status updates to "published" with timestamp after publish
 - [ ] **PUBL-06**: Shareable URL is displayed after publish for easy copying
 
 ### Status Lifecycle
 
 - [x] **STAT-01**: New dashboards start as "draft"
-- [ ] **STAT-02**: Publishing moves status to "published"
+- [x] **STAT-02**: Publishing moves status to "published"
 - [ ] **STAT-03**: Team member can archive a published dashboard (R2 file is deleted, URL returns 404)
 - [ ] **STAT-04**: Team member can un-archive and re-publish a dashboard
 
@@ -167,14 +167,14 @@
 | WIZD-15 | Phase 2 | Complete |
 | WIZD-16 | Phase 2 | Complete |
 | WIZD-17 | Phase 2 | Complete |
-| PUBL-01 | Phase 3 | Pending |
-| PUBL-02 | Phase 3 | Pending |
-| PUBL-03 | Phase 3 | Pending |
-| PUBL-04 | Phase 3 | Pending |
-| PUBL-05 | Phase 3 | Pending |
+| PUBL-01 | Phase 3 | Complete |
+| PUBL-02 | Phase 3 | Complete |
+| PUBL-03 | Phase 3 | Complete |
+| PUBL-04 | Phase 3 | Complete |
+| PUBL-05 | Phase 3 | Complete |
 | PUBL-06 | Phase 3 | Pending |
 | STAT-01 | Phase 2 | Complete |
-| STAT-02 | Phase 3 | Pending |
+| STAT-02 | Phase 3 | Complete |
 | STAT-03 | Phase 3 | Pending |
 | STAT-04 | Phase 3 | Pending |
 | SLUG-01 | Phase 2 | Complete |

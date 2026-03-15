@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 02-05-PLAN.md (Preview, Edit, Publish Steps)
-last_updated: "2026-03-15T23:37:03.742Z"
-last_activity: 2026-03-15 — Completed 02-05 Preview, Edit, Publish Steps
+status: in_progress
+stopped_at: Completed 03-01-PLAN.md (Publish Pipeline Core)
+last_updated: "2026-03-15T23:53:46Z"
+last_activity: 2026-03-15 — Completed 03-01 Publish Pipeline Core
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_plans: 10
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** The team can create, update, and publish client dashboards through a guided wizard without touching code, and clients always see the latest version at a permanent URL.
-**Current focus:** Phase 2: Admin UI (COMPLETE) -- Ready for Phase 3
+**Current focus:** Phase 3: Publish Pipeline -- R2 publish core complete, UI wiring next
 
 ## Current Position
 
-Phase: 2 of 4 (Admin UI) -- COMPLETE
-Plan: 5 of 5 in current phase
-Status: Phase Complete
-Last activity: 2026-03-15 — Completed 02-05 Preview, Edit, Publish Steps
+Phase: 3 of 4 (Publish Pipeline)
+Plan: 1 of 2 in current phase (03-01 complete)
+Status: In Progress
+Last activity: 2026-03-15 — Completed 03-01 Publish Pipeline Core
 
-Progress: [██████████] 100%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 5min
-- Total execution time: 0.57 hours
+- Total execution time: 0.64 hours
 
 **By Phase:**
 
@@ -45,9 +45,10 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 01-foundation | 3 | 16min | 5min |
 | 02-admin-ui | 5 | 23min | 5min |
+| 03-publish-pipeline | 1 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (split sessions), 01-03 (12min), 02-02 (3min), 02-03 (3min), 02-04 (3min)
+- Last 5 plans: 01-03 (12min), 02-02 (3min), 02-03 (3min), 02-04 (3min), 03-01 (4min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -55,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 02 P04 | 3min | 2 tasks | 2 files |
 | Phase 02 P03 | 6min | 2 tasks | 8 files |
 | Phase 02 P05 | 8min | 3 tasks | 6 files |
+| Phase 03 P01 | 4min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -88,6 +90,10 @@ Recent decisions affecting current work:
 - [02-04]: Buyer dashboards get simplified step 4 (no CSV required)
 - [Phase 02-05]: Used select-then-insert/update instead of ON CONFLICT upsert due to Supabase RLS compatibility
 - [Phase 02-05]: Merged PDF upload (StepPropertyExtraction) into StepClientInfo for better UX flow
+- [03-01]: R2 keys use d/{slug}.html format matching the public URL path
+- [03-01]: getCloudflareContext() accessed synchronously per OpenNext pattern
+- [03-01]: Public route streams R2 body directly to avoid buffering large templates
+- [03-01]: buildConfigFromDashboard handles all 3 dashboard types with null-safe defaults
 
 ### Pending Todos
 
@@ -100,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T23:32:30.985Z
-Stopped at: Completed 02-05-PLAN.md (Preview, Edit, Publish Steps)
+Last session: 2026-03-15T23:53:46Z
+Stopped at: Completed 03-01-PLAN.md (Publish Pipeline Core)
 Resume file: None
