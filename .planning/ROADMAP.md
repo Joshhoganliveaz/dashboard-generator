@@ -49,9 +49,11 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — Dashboard library: home screen with filterable dashboard cards
+- [x] 02-02-PLAN.md — Wizard framework: type selection, wizard shell, step navigation, auto-save hook
+- [ ] 02-03-PLAN.md — Client info + property data wizard steps
+- [ ] 02-04-PLAN.md — Market analysis wizard step with CSV upload and comp review
+- [ ] 02-05-PLAN.md — Preview, edit, and publish wizard steps
 
 ### Phase 3: Publish Pipeline
 **Goal**: Team members can publish dashboards to permanent Cloudflare R2 URLs and manage the draft/published/archived lifecycle
@@ -91,6 +93,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-15 |
-| 2. Admin UI | 0/3 | Not started | - |
+| 2. Admin UI | 1/5 | In progress | - |
 | 3. Publish Pipeline | 0/2 | Not started | - |
 | 4. Full Dashboard Types | 0/2 | Not started | - |

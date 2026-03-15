@@ -33,7 +33,7 @@
 
 ### Wizard
 
-- [ ] **WIZD-01**: Team member selects dashboard type (sell, buyer, buy/sell) in step 1
+- [x] **WIZD-01**: Team member selects dashboard type (sell, buyer, buy/sell) in step 1
 - [ ] **WIZD-02**: Team member enters client info (names, email, agent assignment) in step 2
 - [ ] **WIZD-03**: For sell/buysell: team member enters property address and details in step 2
 - [ ] **WIZD-04**: For buyer: team member enters search criteria (areas, budget, beds/baths, must-haves) in step 2
@@ -48,8 +48,8 @@
 - [ ] **WIZD-13**: Team member can edit any value directly or give Claude natural language instructions
 - [ ] **WIZD-14**: Team member can add/remove properties of interest in step 5
 - [ ] **WIZD-15**: SSE streaming shows progress during generation steps
-- [ ] **WIZD-16**: Team member can navigate back to previous wizard steps without losing data
-- [ ] **WIZD-17**: Wizard saves progress to Supabase at each step transition
+- [x] **WIZD-16**: Team member can navigate back to previous wizard steps without losing data
+- [x] **WIZD-17**: Wizard saves progress to Supabase at each step transition
 
 ### Publishing
 
@@ -62,7 +62,7 @@
 
 ### Status Lifecycle
 
-- [ ] **STAT-01**: New dashboards start as "draft"
+- [x] **STAT-01**: New dashboards start as "draft"
 - [ ] **STAT-02**: Publishing moves status to "published"
 - [ ] **STAT-03**: Team member can archive a published dashboard (R2 file is deleted, URL returns 404)
 - [ ] **STAT-04**: Team member can un-archive and re-publish a dashboard
@@ -150,7 +150,7 @@
 | LIBR-03 | Phase 2 | Pending |
 | LIBR-04 | Phase 2 | Pending |
 | LIBR-05 | Phase 2 | Pending |
-| WIZD-01 | Phase 2 | Pending |
+| WIZD-01 | Phase 2 | Complete |
 | WIZD-02 | Phase 2 | Pending |
 | WIZD-03 | Phase 2 | Pending |
 | WIZD-04 | Phase 2 | Pending |
@@ -165,15 +165,15 @@
 | WIZD-13 | Phase 2 | Pending |
 | WIZD-14 | Phase 2 | Pending |
 | WIZD-15 | Phase 2 | Pending |
-| WIZD-16 | Phase 2 | Pending |
-| WIZD-17 | Phase 2 | Pending |
+| WIZD-16 | Phase 2 | Complete |
+| WIZD-17 | Phase 2 | Complete |
 | PUBL-01 | Phase 3 | Pending |
 | PUBL-02 | Phase 3 | Pending |
 | PUBL-03 | Phase 3 | Pending |
 | PUBL-04 | Phase 3 | Pending |
 | PUBL-05 | Phase 3 | Pending |
 | PUBL-06 | Phase 3 | Pending |
-| STAT-01 | Phase 2 | Pending |
+| STAT-01 | Phase 2 | Complete |
 | STAT-02 | Phase 3 | Pending |
 | STAT-03 | Phase 3 | Pending |
 | STAT-04 | Phase 3 | Pending |

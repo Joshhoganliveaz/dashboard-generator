@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md (Database Schema)
-last_updated: "2026-03-15T19:33:32.047Z"
-last_activity: 2026-03-15 — Completed 01-02 Database Schema
+stopped_at: Completed 02-01-PLAN.md (Slug & Library)
+last_updated: "2026-03-15T23:09:22.634Z"
+last_activity: 2026-03-15 — Completed 02-02 Wizard Framework
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_plans: 8
+  completed_plans: 5
+  percent: 50
 ---
 
 # Project State
@@ -21,35 +21,37 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** The team can create, update, and publish client dashboards through a guided wizard without touching code, and clients always see the latest version at a permanent URL.
-**Current focus:** Phase 1: Foundation
+**Current focus:** Phase 2: Admin UI
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 3 of 3 in current phase
+Phase: 2 of 4 (Admin UI)
+Plan: 2 of 5 in current phase
 Status: Executing
-Last activity: 2026-03-15 — Completed 01-02 Database Schema
+Last activity: 2026-03-15 — Completed 02-02 Wizard Framework
 
-Progress: [██████████] 100%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 5min
-- Total execution time: 0.27 hours
+- Total execution time: 0.32 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3 | 16min | 5min |
+| 02-admin-ui | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-02 (split sessions), 01-03 (12min)
-- Trend: -
+- Last 5 plans: 01-01 (4min), 01-02 (split sessions), 01-03 (12min), 02-02 (3min)
+- Trend: stable
 
 *Updated after each plan completion*
+| Phase 02 P01 | 3min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -68,6 +70,12 @@ Recent decisions affecting current work:
 - [01-03]: Kept backward-compatible function signatures while adding new SDK-based functions
 - [01-03]: Replaced parseCSVLine with Papaparse; extracted calculateMetrics() as pure function
 - [Phase 01-02]: JSONB columns for nested data (comps, metrics) rather than normalized tables
+- [02-02]: Used browser Supabase client directly for dashboard creation (simpler, RLS handles auth)
+- [02-02]: Wizard uses URL search params (?step=N) for step routing instead of nested routes
+- [02-02]: Step placeholders with Next/Back buttons allow full navigation testing before real steps are built
+- [Phase 02-01]: Preserved old form at /legacy route for backward compatibility
+- [Phase 02-01]: Filter logic tested as pure functions, not React component renders
+- [Phase 02-01]: Used vi.hoisted() for Supabase mock chain in slug tests
 
 ### Pending Todos
 
@@ -80,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T19:29:43.614Z
-Stopped at: Completed 01-02-PLAN.md (Database Schema)
+Last session: 2026-03-15T23:09:22.632Z
+Stopped at: Completed 02-01-PLAN.md (Slug & Library)
 Resume file: None
