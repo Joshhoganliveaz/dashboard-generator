@@ -44,9 +44,9 @@
 - [x] **WIZD-09**: Comp review panel shows all comps ranked by score; team member can toggle on/off
 - [x] **WIZD-10**: Claude generates narrative content and validates comp selection in step 4
 - [x] **WIZD-11**: If Claude narrative fails, deterministic results are shown with placeholder text
-- [ ] **WIZD-12**: Step 5 shows full dashboard preview in iframe with edit panel
-- [ ] **WIZD-13**: Team member can edit any value directly or give Claude natural language instructions
-- [ ] **WIZD-14**: Team member can add/remove properties of interest in step 5
+- [x] **WIZD-12**: Step 5 shows full dashboard preview in iframe with edit panel
+- [x] **WIZD-13**: Team member can edit any value directly or give Claude natural language instructions
+- [x] **WIZD-14**: Team member can add/remove properties of interest in step 5
 - [x] **WIZD-15**: SSE streaming shows progress during generation steps
 - [x] **WIZD-16**: Team member can navigate back to previous wizard steps without losing data
 - [x] **WIZD-17**: Wizard saves progress to Supabase at each step transition
@@ -161,9 +161,9 @@
 | WIZD-09 | Phase 2 | Complete |
 | WIZD-10 | Phase 2 | Complete |
 | WIZD-11 | Phase 2 | Complete |
-| WIZD-12 | Phase 2 | Pending |
-| WIZD-13 | Phase 2 | Pending |
-| WIZD-14 | Phase 2 | Pending |
+| WIZD-12 | Phase 2 | Complete |
+| WIZD-13 | Phase 2 | Complete |
+| WIZD-14 | Phase 2 | Complete |
 | WIZD-15 | Phase 2 | Complete |
 | WIZD-16 | Phase 2 | Complete |
 | WIZD-17 | Phase 2 | Complete |

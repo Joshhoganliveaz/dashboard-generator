@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-03-PLAN.md (Wizard Steps 2-3)
-last_updated: "2026-03-15T23:17:54.126Z"
-last_activity: 2026-03-15 — Completed 02-04 Market Data Step
+stopped_at: Completed 02-05-PLAN.md (Preview, Edit, Publish Steps)
+last_updated: "2026-03-15T23:32:30.987Z"
+last_activity: 2026-03-15 — Completed 02-05 Preview, Edit, Publish Steps
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 56
 ---
 
@@ -21,30 +21,30 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** The team can create, update, and publish client dashboards through a guided wizard without touching code, and clients always see the latest version at a permanent URL.
-**Current focus:** Phase 2: Admin UI
+**Current focus:** Phase 2: Admin UI (COMPLETE) -- Ready for Phase 3
 
 ## Current Position
 
-Phase: 2 of 4 (Admin UI)
-Plan: 4 of 5 in current phase
-Status: Executing
-Last activity: 2026-03-15 — Completed 02-04 Market Data Step
+Phase: 2 of 4 (Admin UI) -- COMPLETE
+Plan: 5 of 5 in current phase
+Status: Phase Complete
+Last activity: 2026-03-15 — Completed 02-05 Preview, Edit, Publish Steps
 
-Progress: [█████▌░░░░] 56%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 4min
-- Total execution time: 0.37 hours
+- Total plans completed: 8
+- Average duration: 5min
+- Total execution time: 0.57 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3 | 16min | 5min |
-| 02-admin-ui | 3 | 9min | 3min |
+| 02-admin-ui | 5 | 23min | 5min |
 
 **Recent Trend:**
 - Last 5 plans: 01-02 (split sessions), 01-03 (12min), 02-02 (3min), 02-03 (3min), 02-04 (3min)
@@ -54,6 +54,7 @@ Progress: [█████▌░░░░] 56%
 | Phase 02 P01 | 3min | 2 tasks | 9 files |
 | Phase 02 P04 | 3min | 2 tasks | 2 files |
 | Phase 02 P03 | 6min | 2 tasks | 8 files |
+| Phase 02 P05 | 8min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [02-04]: Reused existing useGenerateDashboard hook and CompReviewPanel -- no pipeline rewrites
 - [02-04]: CONFIG extraction from generated HTML script tag for structured data persistence
 - [02-04]: Buyer dashboards get simplified step 4 (no CSV required)
+- [Phase 02-05]: Used select-then-insert/update instead of ON CONFLICT upsert due to Supabase RLS compatibility
+- [Phase 02-05]: Merged PDF upload (StepPropertyExtraction) into StepClientInfo for better UX flow
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T23:17:54.124Z
-Stopped at: Completed 02-03-PLAN.md (Wizard Steps 2-3)
+Last session: 2026-03-15T23:32:30.985Z
+Stopped at: Completed 02-05-PLAN.md (Preview, Edit, Publish Steps)
 Resume file: None
