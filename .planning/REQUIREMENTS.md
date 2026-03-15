@@ -25,11 +25,11 @@
 
 ### Dashboard Library
 
-- [ ] **LIBR-01**: Team member sees all dashboards as cards on the home screen
-- [ ] **LIBR-02**: Each card shows client name, address/area, type badge, status badge, and last updated
-- [ ] **LIBR-03**: Team member can filter dashboards by type (sell/buyer/buysell)
-- [ ] **LIBR-04**: Team member can filter dashboards by status (draft/published/archived)
-- [ ] **LIBR-05**: Team member can click a dashboard card to re-enter the wizard with all data loaded
+- [x] **LIBR-01**: Team member sees all dashboards as cards on the home screen
+- [x] **LIBR-02**: Each card shows client name, address/area, type badge, status badge, and last updated
+- [x] **LIBR-03**: Team member can filter dashboards by type (sell/buyer/buysell)
+- [x] **LIBR-04**: Team member can filter dashboards by status (draft/published/archived)
+- [x] **LIBR-05**: Team member can click a dashboard card to re-enter the wizard with all data loaded
 
 ### Wizard
 
@@ -69,11 +69,11 @@
 
 ### Slug Management
 
-- [ ] **SLUG-01**: Slug is auto-generated from client names and address/area
-- [ ] **SLUG-02**: Slugs contain only lowercase letters, numbers, and hyphens
-- [ ] **SLUG-03**: Collision detection appends -2, -3, etc.
-- [ ] **SLUG-04**: Slug is editable before first publish
-- [ ] **SLUG-05**: Slug is locked after first publish to prevent broken URLs
+- [x] **SLUG-01**: Slug is auto-generated from client names and address/area
+- [x] **SLUG-02**: Slugs contain only lowercase letters, numbers, and hyphens
+- [x] **SLUG-03**: Collision detection appends -2, -3, etc.
+- [x] **SLUG-04**: Slug is editable before first publish
+- [x] **SLUG-05**: Slug is locked after first publish to prevent broken URLs
 
 ### Dashboard Types
 
@@ -145,11 +145,11 @@
 | PERS-05 | Phase 1 | Complete |
 | PERS-06 | Phase 1 | Complete |
 | PERS-07 | Phase 1 | Complete |
-| LIBR-01 | Phase 2 | Pending |
-| LIBR-02 | Phase 2 | Pending |
-| LIBR-03 | Phase 2 | Pending |
-| LIBR-04 | Phase 2 | Pending |
-| LIBR-05 | Phase 2 | Pending |
+| LIBR-01 | Phase 2 | Complete |
+| LIBR-02 | Phase 2 | Complete |
+| LIBR-03 | Phase 2 | Complete |
+| LIBR-04 | Phase 2 | Complete |
+| LIBR-05 | Phase 2 | Complete |
 | WIZD-01 | Phase 2 | Complete |
 | WIZD-02 | Phase 2 | Pending |
 | WIZD-03 | Phase 2 | Pending |
@@ -177,11 +177,11 @@
 | STAT-02 | Phase 3 | Pending |
 | STAT-03 | Phase 3 | Pending |
 | STAT-04 | Phase 3 | Pending |
-| SLUG-01 | Phase 2 | Pending |
-| SLUG-02 | Phase 2 | Pending |
-| SLUG-03 | Phase 2 | Pending |
-| SLUG-04 | Phase 2 | Pending |
-| SLUG-05 | Phase 2 | Pending |
+| SLUG-01 | Phase 2 | Complete |
+| SLUG-02 | Phase 2 | Complete |
+| SLUG-03 | Phase 2 | Complete |
+| SLUG-04 | Phase 2 | Complete |
+| SLUG-05 | Phase 2 | Complete |
 | TYPE-01 | Phase 4 | Pending |
 | TYPE-02 | Phase 4 | Pending |
 | TYPE-03 | Phase 4 | Pending |
