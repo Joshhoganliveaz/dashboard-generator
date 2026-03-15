@@ -1,11 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useWizardState } from "@/hooks/useWizardState";
 import WizardShell from "@/components/wizard/WizardShell";
 import StepTypeSelect from "@/components/wizard/StepTypeSelect";
+import StepClientInfo from "@/components/wizard/StepClientInfo";
+import StepMarketData from "@/components/wizard/StepMarketData";
 
 function WizardContent() {
   const params = useParams();
@@ -18,7 +20,14 @@ function WizardContent() {
     saving,
     error,
     goToStep,
+    updateDashboardData,
   } = useWizardState(dashboardId);
+
+  // Store generated HTML for preview in step 5
+  const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+  const handleGeneratedHtml = useCallback((html: string) => {
+    setGeneratedHtml(html);
+  }, []);
 
   // Loading state
   if (loading) {
@@ -65,12 +74,11 @@ function WizardContent() {
     switch (currentStep) {
       case 2:
         return (
-          <StepPlaceholder
-            title="Client Information"
-            description="Enter client details, names, and contact information."
-            stepNumber={2}
-            onNext={() => goToStep(3)}
+          <StepClientInfo
+            dashboard={dashboard!}
             saving={saving}
+            goToStep={goToStep}
+            updateDashboardData={updateDashboardData}
           />
         );
       case 3:
@@ -94,21 +102,12 @@ function WizardContent() {
         );
       case 4:
         return (
-          <StepPlaceholder
-            title={
-              dashboard!.type === "buyer"
-                ? "Neighborhoods"
-                : "Market Analysis"
-            }
-            description={
-              dashboard!.type === "buyer"
-                ? "Review neighborhood profiles and school districts."
-                : "Upload comps CSV and review market analysis."
-            }
-            stepNumber={4}
-            onNext={() => goToStep(5)}
-            onBack={() => goToStep(3)}
+          <StepMarketData
+            dashboard={dashboard!}
+            goToStep={goToStep}
+            updateDashboardData={updateDashboardData}
             saving={saving}
+            onGeneratedHtml={handleGeneratedHtml}
           />
         );
       case 5:
