@@ -9,6 +9,7 @@ import StepTypeSelect from "@/components/wizard/StepTypeSelect";
 import StepClientInfo from "@/components/wizard/StepClientInfo";
 import StepPropertyExtraction from "@/components/wizard/StepPropertyExtraction";
 import StepMarketData from "@/components/wizard/StepMarketData";
+import StepPreview from "@/components/wizard/StepPreview";
 
 function WizardContent() {
   const params = useParams();
@@ -26,9 +27,42 @@ function WizardContent() {
 
   // Store generated HTML for preview in step 5
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   const handleGeneratedHtml = useCallback((html: string) => {
     setGeneratedHtml(html);
   }, []);
+
+  // Apply NL edit to generated HTML via the edit API
+  const applyEdit = useCallback(async (instruction: string): Promise<boolean> => {
+    if (!generatedHtml) return false;
+    setIsEditing(true);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/dashboard/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          html: generatedHtml,
+          instruction,
+          templateType: dashboard?.type || "houseversary",
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: "Edit failed" }));
+        throw new Error(errBody.error || "Edit failed");
+      }
+      const { html } = await res.json();
+      setGeneratedHtml(html);
+      setIsEditing(false);
+      return true;
+    } catch (err) {
+      setIsEditing(false);
+      setEditError((err as Error).message);
+      return false;
+    }
+  }, [generatedHtml, dashboard?.type]);
 
   // Loading state
   if (loading) {
@@ -103,12 +137,13 @@ function WizardContent() {
         );
       case 5:
         return (
-          <StepPlaceholder
-            title="Preview & Edit"
-            description="Preview the dashboard and make any final edits."
-            stepNumber={5}
-            onNext={() => goToStep(6)}
-            onBack={() => goToStep(4)}
+          <StepPreview
+            dashboard={dashboard!}
+            generatedHtml={generatedHtml}
+            goToStep={goToStep}
+            applyEdit={applyEdit}
+            isEditing={isEditing}
+            editError={editError}
             saving={saving}
           />
         );

@@ -1,5 +1,5 @@
 import { createClient } from "./server";
-import type { Dashboard, SellData, BuyData, DashboardWithData } from "./types";
+import type { Dashboard, SellData, BuyData, DashboardWithData, PropertyOfInterest } from "./types";
 
 // ---- Dashboard CRUD ----
 
@@ -91,4 +91,62 @@ export async function upsertBuyData(
 
   if (error) throw new Error(error.message);
   return buyData as BuyData;
+}
+
+// ---- Properties of Interest ----
+
+export async function listPropertiesOfInterest(
+  dashboardId: string
+): Promise<PropertyOfInterest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties_of_interest")
+    .select("*")
+    .eq("dashboard_id", dashboardId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PropertyOfInterest[];
+}
+
+export async function addPropertyOfInterest(
+  dashboardId: string,
+  data: {
+    address: string;
+    price?: number;
+    listing_url?: string;
+    photo_url?: string;
+    notes?: string;
+  }
+): Promise<PropertyOfInterest> {
+  const supabase = await createClient();
+
+  // Get max sort_order for this dashboard
+  const { data: existing } = await supabase
+    .from("properties_of_interest")
+    .select("sort_order")
+    .eq("dashboard_id", dashboardId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+
+  const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const { data: poi, error } = await supabase
+    .from("properties_of_interest")
+    .insert({ ...data, dashboard_id: dashboardId, sort_order: nextOrder })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return poi as PropertyOfInterest;
+}
+
+export async function removePropertyOfInterest(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("properties_of_interest")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
 }
