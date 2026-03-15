@@ -64,11 +64,11 @@ Plans:
   2. Re-publishing updates the same URL with new content; the slug never changes after first publish
   3. Team member can download rendered HTML for Lofty upload; shareable URL is displayed for easy copying
   4. Team member can archive a dashboard (URL returns 404) and un-archive it (re-publish restores the URL)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — R2 infrastructure, publish rendering pipeline, public serving route, download endpoint
+- [ ] 03-02-PLAN.md — StepPublish UI wiring (publish/download/archive buttons, URL copy), archive API, status lifecycle
 
 ### Phase 4: Full Dashboard Types
 **Goal**: All three dashboard types (sell, buyer, buy/sell) render correctly with full content, and team members can manage properties of interest for buyer dashboards
