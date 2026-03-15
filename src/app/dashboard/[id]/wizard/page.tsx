@@ -7,7 +7,7 @@ import { useWizardState } from "@/hooks/useWizardState";
 import WizardShell from "@/components/wizard/WizardShell";
 import StepTypeSelect from "@/components/wizard/StepTypeSelect";
 import StepClientInfo from "@/components/wizard/StepClientInfo";
-import StepPropertyExtraction from "@/components/wizard/StepPropertyExtraction";
+// StepPropertyExtraction merged into StepClientInfo — PDF upload + property fields are now in step 2
 import StepMarketData from "@/components/wizard/StepMarketData";
 import StepPreview from "@/components/wizard/StepPreview";
 import StepPublish from "@/components/wizard/StepPublish";
@@ -118,14 +118,9 @@ function WizardContent() {
           />
         );
       case 3:
-        return (
-          <StepPropertyExtraction
-            dashboard={dashboard!}
-            saving={saving}
-            goToStep={goToStep}
-            updateDashboardData={updateDashboardData}
-          />
-        );
+        // Step 3 merged into step 2 — redirect to step 4 if somehow navigated here
+        goToStep(4);
+        return null;
       case 4:
         return (
           <StepMarketData

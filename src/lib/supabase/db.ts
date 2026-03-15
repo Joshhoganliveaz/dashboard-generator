@@ -66,14 +66,32 @@ export async function upsertSellData(
   data: Partial<Omit<SellData, "id" | "dashboard_id" | "created_at" | "updated_at">>
 ): Promise<SellData> {
   const supabase = await createClient();
-  const { data: sellData, error } = await supabase
-    .from("sell_data")
-    .upsert({ ...data, dashboard_id }, { onConflict: "dashboard_id" })
-    .select()
-    .single();
 
-  if (error) throw new Error(error.message);
-  return sellData as SellData;
+  // Check if row exists first to avoid needing a unique constraint on dashboard_id
+  const { data: existing } = await supabase
+    .from("sell_data")
+    .select("id")
+    .eq("dashboard_id", dashboard_id)
+    .maybeSingle();
+
+  if (existing) {
+    const { data: sellData, error } = await supabase
+      .from("sell_data")
+      .update(data)
+      .eq("dashboard_id", dashboard_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return sellData as SellData;
+  } else {
+    const { data: sellData, error } = await supabase
+      .from("sell_data")
+      .insert({ ...data, dashboard_id })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return sellData as SellData;
+  }
 }
 
 // ---- Buy Data ----
@@ -83,14 +101,31 @@ export async function upsertBuyData(
   data: Partial<Omit<BuyData, "id" | "dashboard_id" | "created_at" | "updated_at">>
 ): Promise<BuyData> {
   const supabase = await createClient();
-  const { data: buyData, error } = await supabase
-    .from("buy_data")
-    .upsert({ ...data, dashboard_id }, { onConflict: "dashboard_id" })
-    .select()
-    .single();
 
-  if (error) throw new Error(error.message);
-  return buyData as BuyData;
+  const { data: existing } = await supabase
+    .from("buy_data")
+    .select("id")
+    .eq("dashboard_id", dashboard_id)
+    .maybeSingle();
+
+  if (existing) {
+    const { data: buyData, error } = await supabase
+      .from("buy_data")
+      .update(data)
+      .eq("dashboard_id", dashboard_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return buyData as BuyData;
+  } else {
+    const { data: buyData, error } = await supabase
+      .from("buy_data")
+      .insert({ ...data, dashboard_id })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return buyData as BuyData;
+  }
 }
 
 // ---- Properties of Interest ----
