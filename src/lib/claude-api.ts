@@ -1,4 +1,8 @@
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+import Anthropic from "@anthropic-ai/sdk";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { MLSExtractionSchema, type MLSExtraction } from "./schemas/mls-extraction";
+
+// --- Types (preserved for backward compatibility) ---
 
 interface ClaudeMessage {
   role: "user" | "assistant";
@@ -31,57 +35,71 @@ interface ClaudeResponse {
   usage: { input_tokens: number; output_tokens: number };
 }
 
+// --- Singleton client ---
+
+let _client: Anthropic | null = null;
+
+function getClient(): Anthropic {
+  if (!_client) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+    _client = new Anthropic({ apiKey });
+  }
+  return _client;
+}
+
+// --- Retry helpers ---
+
+function isRetryable(err: unknown): boolean {
+  const status = (err as { status?: number }).status;
+  if (!status) return false;
+  if (status === 429) return true;
+  if (status >= 500 && status < 600) return true;
+  return false;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function retryDelay(attempt: number): number {
+  const base = Math.pow(2, attempt) * 1000;
+  const jitter = Math.random() * 500;
+  return Math.min(base + jitter, 30000);
+}
+
+// --- Core API: callClaude (backward-compatible) ---
+
 export async function callClaude(
   messages: ClaudeMessage[],
   options: ClaudeOptions = {}
 ): Promise<ClaudeResponse> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
-
+  const client = getClient();
   const model = options.model || "claude-sonnet-4-20250514";
-  const maxTokens = options.maxTokens || 4096;
+  const maxTokens = options.maxTokens || 16384;
 
-  const body: Record<string, unknown> = {
+  const params: Record<string, unknown> = {
     model,
     max_tokens: maxTokens,
     messages,
   };
-  if (options.system) body.system = options.system;
-  if (options.tools) body.tools = options.tools;
+  if (options.system) params.system = options.system;
+  if (options.tools) params.tools = options.tools;
 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {
-      const delay = Math.pow(2, attempt) * 1000;
-      await new Promise((r) => setTimeout(r, delay));
+      await sleep(retryDelay(attempt));
     }
 
     try {
-      const res = await fetch(ANTHROPIC_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (res.status === 429) {
-        lastError = new Error(`Rate limited (429). Attempt ${attempt + 1}/3`);
-        continue;
-      }
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Claude API error ${res.status}: ${errText}`);
-      }
-
-      return (await res.json()) as ClaudeResponse;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await client.messages.create(params as any);
+      return response as unknown as ClaudeResponse;
     } catch (err) {
       lastError = err as Error;
-      if (attempt < 2 && (err as Error).message?.includes("429")) continue;
+      if (isRetryable(err) && attempt < 2) continue;
       throw err;
     }
   }
@@ -89,7 +107,80 @@ export async function callClaude(
   throw lastError || new Error("Claude API call failed after retries");
 }
 
-// Convenience: call Claude and get text response
+// --- Structured output with retry: callClaudeWithRetry ---
+
+export async function callClaudeWithRetry<T>(
+  messages: ClaudeMessage[],
+  outputFormat: ReturnType<typeof zodOutputFormat>,
+  options: ClaudeOptions = {}
+): Promise<{ content: unknown[]; parsed_output: T; stop_reason: string; usage: { input_tokens: number; output_tokens: number } }> {
+  const client = getClient();
+  const model = options.model || "claude-sonnet-4-20250514";
+  const maxTokens = options.maxTokens || 16384;
+
+  const params: Record<string, unknown> = {
+    model,
+    max_tokens: maxTokens,
+    messages,
+    output_format: outputFormat,
+  };
+  if (options.system) params.system = options.system;
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await sleep(retryDelay(attempt));
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await client.messages.parse(params as any);
+      return response as unknown as { content: unknown[]; parsed_output: T; stop_reason: string; usage: { input_tokens: number; output_tokens: number } };
+    } catch (err) {
+      lastError = err as Error;
+      if (isRetryable(err) && attempt < 2) continue;
+      throw err;
+    }
+  }
+
+  throw lastError || new Error("Claude API call failed after retries");
+}
+
+// --- Structured MLS extraction ---
+
+export async function extractMLSData(pdfBase64: string): Promise<MLSExtraction> {
+  const messages: ClaudeMessage[] = [
+    {
+      role: "user",
+      content: [
+        {
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: "application/pdf",
+            data: pdfBase64,
+          },
+        },
+        {
+          type: "text",
+          text: "Extract the property details from this MLS listing PDF. Return beds, baths, sqft, yearBuilt, pool (boolean), stories, lotSqft, address, subdivision, and notable features array.",
+        },
+      ],
+    },
+  ];
+
+  const result = await callClaudeWithRetry<MLSExtraction>(
+    messages,
+    zodOutputFormat(MLSExtractionSchema),
+    { maxTokens: 4096 }
+  );
+
+  return result.parsed_output;
+}
+
+// --- Backward-compatible convenience functions ---
+
 export async function askClaude(
   prompt: string,
   options: ClaudeOptions = {}
@@ -103,7 +194,6 @@ export async function askClaude(
   return textBlock?.text || "";
 }
 
-// Call Claude with images (for Cromford screenshots)
 export async function askClaudeWithImages(
   prompt: string,
   images: { base64: string; mediaType: string }[],
@@ -128,7 +218,6 @@ export async function askClaudeWithImages(
   return textBlock?.text || "";
 }
 
-// Call Claude with PDF
 export async function askClaudeWithPDF(
   prompt: string,
   pdfBase64: string,
@@ -155,47 +244,24 @@ export async function askClaudeWithPDF(
   return textBlock?.text || "";
 }
 
-// Call Claude with web search tool
 export async function askClaudeWithWebSearch(
   prompt: string,
   options: ClaudeOptions = {}
 ): Promise<string> {
-  const tools: ClaudeTool[] = [
-    {
-      name: "web_search" as never,
-      description: "Search the web for information",
-      input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
-    },
-  ];
+  const client = getClient();
+  const model = options.model || "claude-sonnet-4-20250514";
+  const maxTokens = options.maxTokens || 16384;
 
-  // Use the Anthropic web search tool type
-  const body: Record<string, unknown> = {
-    model: options.model || "claude-sonnet-4-20250514",
-    max_tokens: options.maxTokens || 4096,
-    messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
-    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+  const params = {
+    model,
+    max_tokens: maxTokens,
+    messages: [{ role: "user" as const, content: [{ type: "text" as const, text: prompt }] }],
+    tools: [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 5 }],
+    ...(options.system ? { system: options.system } : {}),
   };
-  if (options.system) body.system = options.system;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
-
-  const res = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Claude API error ${res.status}: ${errText}`);
-  }
-
-  const response = (await res.json()) as ClaudeResponse;
-  const textBlock = response.content.find((c) => c.type === "text");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const response = await client.messages.create(params as any);
+  const textBlock = (response as unknown as ClaudeResponse).content.find((c) => c.type === "text");
   return textBlock?.text || "";
 }
