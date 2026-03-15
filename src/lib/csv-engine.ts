@@ -1,3 +1,4 @@
+import Papa from "papaparse";
 import { askClaude } from "./claude-api";
 import { csvAnalysisPrompt } from "./claude-prompts";
 import type {
@@ -116,6 +117,34 @@ function computeMatchScore(
   return score;
 }
 
+// --- Deterministic metric calculation ---
+
+export function calculateMetrics(comps: CompSale[]): {
+  medianPpsf: number;
+  avgPpsf: number;
+  ppsfRange: { low: number; high: number };
+} {
+  if (comps.length === 0) {
+    return { medianPpsf: 0, avgPpsf: 0, ppsfRange: { low: 0, high: 0 } };
+  }
+
+  const ppsfValues = comps.map(c => c.ppsf).sort((a, b) => a - b);
+  const mid = Math.floor(ppsfValues.length / 2);
+  const medianPpsf = ppsfValues.length % 2
+    ? ppsfValues[mid]
+    : (ppsfValues[mid - 1] + ppsfValues[mid]) / 2;
+  const avgPpsf = ppsfValues.reduce((a, b) => a + b, 0) / ppsfValues.length;
+
+  return {
+    medianPpsf: Math.round(medianPpsf * 100) / 100,
+    avgPpsf: Math.round(avgPpsf * 100) / 100,
+    ppsfRange: {
+      low: Math.min(...ppsfValues),
+      high: Math.max(...ppsfValues),
+    },
+  };
+}
+
 // --- Parse JSON from Claude response (handles fences, leading text, etc.) ---
 
 function parseJSONResponse(text: string): Record<string, unknown> {
@@ -131,7 +160,7 @@ function parseJSONResponse(text: string): Record<string, unknown> {
   try {
     return JSON.parse(cleaned);
   } catch {
-    // Claude sometimes adds prose before/after the JSON — extract the outermost { }
+    // Claude sometimes adds prose before/after the JSON -- extract the outermost { }
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start !== -1 && end > start) {
@@ -144,8 +173,6 @@ function parseJSONResponse(text: string): Record<string, unknown> {
 // --- Validate and coerce Claude's response into CSVAnalysisResult ---
 
 function validateResponse(data: Record<string, unknown>): CSVAnalysisResult {
-  const defaults = emptyResult();
-
   // Validate comps array
   const rawComps: CompSale[] = Array.isArray(data.comps)
     ? (data.comps as Record<string, unknown>[]).map((c) => ({
@@ -302,39 +329,6 @@ function validateResponse(data: Record<string, unknown>): CSVAnalysisResult {
   };
 }
 
-// --- Parse CSV fields respecting quoted values ---
-
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++; // skip escaped quote
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += ch;
-      }
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ",") {
-      fields.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  fields.push(current);
-  return fields;
-}
-
 // --- Pre-parse Features column into compact summary ---
 
 function compactFeatures(raw: string): string {
@@ -388,7 +382,7 @@ function compactFeatures(raw: string): string {
   return parts.join(";");
 }
 
-// --- Strip CSV to only columns needed for analysis ---
+// --- CSV column trimming and filtering using Papaparse ---
 
 const KEEP_COLUMNS = new Set([
   "House Number", "Compass", "Street Name", "St Suffix",
@@ -404,53 +398,61 @@ const KEEP_COLUMNS = new Set([
   "Cross Street", "Features",
 ]);
 
-function trimCSVColumns(csvText: string): string {
-  const lines = csvText.split("\n");
-  if (lines.length < 2) return csvText;
+/**
+ * Parse CSV text using Papaparse, filter to closed sales and kept columns,
+ * then re-serialize to trimmed CSV text for the Claude prompt.
+ * Replaces the former hand-rolled parseCSVLine() and trimCSVColumns().
+ */
+function parseCSV(csvText: string): string {
+  // Parse with Papaparse instead of hand-rolled parser
+  const parseResult = Papa.parse<Record<string, string>>(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: false,
+    transformHeader: (h: string) => h.trim(),
+  });
 
-  const headerFields = parseCSVLine(lines[0]);
-  const keepIndices = headerFields
-    .map((h, i) => KEEP_COLUMNS.has(h.trim()) ? i : -1)
-    .filter((i) => i >= 0);
+  if (!parseResult.data || parseResult.data.length === 0) {
+    return csvText;
+  }
 
-  // If we can't find any matching columns, return original but limit rows to prevent token overflow
-  if (keepIndices.length === 0) {
-    console.warn("CSV column trim: no matching columns found. Headers:", headerFields.map(h => h.trim()).join(", "));
+  const allHeaders = parseResult.meta.fields || [];
+  const keptHeaders = allHeaders.filter((h) => KEEP_COLUMNS.has(h));
+
+  // If we can't find any matching columns, return original but limit rows
+  if (keptHeaders.length === 0) {
+    console.warn("CSV column trim: no matching columns found. Headers:", allHeaders.join(", "));
+    const lines = csvText.split("\n");
     return lines.slice(0, 201).join("\n");
   }
 
-  const matchedHeaders = keepIndices.map(i => headerFields[i].trim());
-  console.log(`CSV column trim: kept ${keepIndices.length}/${headerFields.length} columns: ${matchedHeaders.join(", ")}`);
+  console.log(`CSV column trim: kept ${keptHeaders.length}/${allHeaders.length} columns: ${keptHeaders.join(", ")}`);
 
-  // Find the Features column index among the kept columns
-  const featuresColOrigIdx = headerFields.findIndex((h) => h.trim() === "Features");
+  const hasStatusCol = allHeaders.includes("Status");
+  const hasFeaturesCol = keptHeaders.includes("Features");
 
-  // Find the Status column index for hard-filtering non-closed rows
-  const statusColIdx = headerFields.findIndex((h) => h.trim() === "Status");
-  if (statusColIdx < 0) {
-    console.warn("CSV row filter: no Status column found — skipping closed-only filter");
+  if (!hasStatusCol) {
+    console.warn("CSV row filter: no Status column found -- skipping closed-only filter");
   }
 
-  const trimmedLines: string[] = [];
-  let isHeader = true;
+  // Filter rows and trim columns
   let droppedNonClosed = 0;
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const fields = parseCSVLine(line);
+  const trimmedRows: string[] = [];
 
-    // Hard-filter: skip any non-header row where Status !== "C"
-    if (!isHeader && statusColIdx >= 0) {
-      const status = (fields[statusColIdx] ?? "").trim().toUpperCase();
+  for (const row of parseResult.data) {
+    // Hard-filter: skip non-closed rows
+    if (hasStatusCol) {
+      const status = (row["Status"] || "").trim().toUpperCase();
       if (status !== "C") {
         droppedNonClosed++;
         continue;
       }
     }
 
-    const kept = keepIndices.map((i) => {
-      let val = fields[i] ?? "";
-      // Pre-parse Features column into compact summary (skip header row)
-      if (!isHeader && i === featuresColOrigIdx && val.length > 0) {
+    const values = keptHeaders.map((h) => {
+      let val = row[h] || "";
+      // Pre-parse Features column into compact summary
+      if (h === "Features" && hasFeaturesCol && val.length > 0) {
         val = compactFeatures(val);
       }
       // Re-quote if the value contains commas or quotes
@@ -458,18 +460,21 @@ function trimCSVColumns(csvText: string): string {
         ? `"${val.replace(/"/g, '""')}"`
         : val;
     });
-    trimmedLines.push(kept.join(","));
-    isHeader = false;
+    trimmedRows.push(values.join(","));
   }
 
   if (droppedNonClosed > 0) {
     console.log(`CSV row filter: dropped ${droppedNonClosed} non-closed rows (kept Status=C only)`);
   }
 
-  return trimmedLines.join("\n");
+  // Build header + data rows
+  return [keptHeaders.join(","), ...trimmedRows].join("\n");
 }
 
 // --- Main entry point: Claude-powered CSV analysis ---
+// Phase 1 (deterministic): Parse CSV -> filter -> trim columns
+// Phase 2 (Claude): Generate narrative analysis from trimmed CSV
+// Phase 3 (deterministic): Override scoring, recalculate metrics
 
 export async function runFullAnalysis(
   csvBuffer: Buffer,
@@ -481,6 +486,8 @@ export async function runFullAnalysis(
   },
   lens: AnalysisLens = "homeowner"
 ): Promise<CSVAnalysisResult> {
+  // --- Phase 1: Deterministic CSV parsing and preparation ---
+
   // Decode CSV as latin-1
   let csvText: string;
   try {
@@ -498,10 +505,10 @@ export async function runFullAnalysis(
     return result;
   }
 
-  // Strip to only needed columns to avoid exceeding context limits
-  csvText = trimCSVColumns(csvText);
+  // Parse and filter using Papaparse (replaces hand-rolled parseCSVLine/trimCSVColumns)
+  csvText = parseCSV(csvText);
 
-  // Build prompt and call Claude
+  // --- Phase 2: Claude narrative generation ---
   const prompt = csvAnalysisPrompt(csvText, subject, lens);
 
   try {
@@ -512,36 +519,28 @@ export async function runFullAnalysis(
     const parsed = parseJSONResponse(response);
     const result = validateResponse(parsed);
 
-    // Deterministic score recalculation — overrides Claude's scores with exact rubric
+    // --- Phase 3: Deterministic score and metric overrides ---
+
+    // Deterministic score recalculation -- overrides Claude's scores with exact rubric
     const referenceDate = new Date();
     for (const comp of result.comps) {
       const claudeScore = comp.matchScore;
       comp.matchScore = computeMatchScore(comp, subject, referenceDate);
       if (claudeScore !== comp.matchScore) {
-        console.log(`  Score override: ${comp.addr} — Claude=${claudeScore}, Rubric=${comp.matchScore}`);
+        console.log(`  Score override: ${comp.addr} -- Claude=${claudeScore}, Rubric=${comp.matchScore}`);
       }
     }
     // Re-sort by deterministic score descending
     result.comps.sort((a, b) => b.matchScore - a.matchScore);
 
-    // Deterministic metric recalculation — override Claude's ppsf-derived metrics
-    // Claude's ppsfRange often uses all sales, not just selected comps
+    // Deterministic metric recalculation -- override Claude's ppsf-derived metrics
     if (result.comps.length > 0) {
-      const ppsfValues = result.comps.map(c => c.ppsf).sort((a, b) => a - b);
-      const mid = Math.floor(ppsfValues.length / 2);
-      const medianPpsf = ppsfValues.length % 2
-        ? ppsfValues[mid]
-        : (ppsfValues[mid - 1] + ppsfValues[mid]) / 2;
-      const avgPpsf = ppsfValues.reduce((a, b) => a + b, 0) / ppsfValues.length;
+      const metrics = calculateMetrics(result.comps);
+      result.marketMetrics.medianPpsf = metrics.medianPpsf;
+      result.marketMetrics.avgPpsf = metrics.avgPpsf;
+      result.marketMetrics.ppsfRange = metrics.ppsfRange;
 
-      result.marketMetrics.medianPpsf = Math.round(medianPpsf * 100) / 100;
-      result.marketMetrics.avgPpsf = Math.round(avgPpsf * 100) / 100;
-      result.marketMetrics.ppsfRange = {
-        low: Math.min(...ppsfValues),
-        high: Math.max(...ppsfValues),
-      };
-
-      // Adjusted Comparable Sales Method — adjust each comp for GLA/bath/pool
+      // Adjusted Comparable Sales Method -- adjust each comp for GLA/bath/pool
       // differences, then derive value via weighted average by similarity score
       const adjusted = deriveValueFromComps(result.comps, subject);
       result.marketMetrics.derivedValue = adjusted.derivedValue;

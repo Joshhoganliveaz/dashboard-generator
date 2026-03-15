@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import Papa from "papaparse";
 import { runFullAnalysis, type CSVAnalysisResult } from "../csv-engine";
 
 // Mock the Claude API module
@@ -236,5 +237,83 @@ describe("runFullAnalysis", () => {
     expect(prompt).toContain("Saratoga Lakes");
     expect(prompt).toContain("Mesa");
     expect(prompt).toContain("575,000"); // CSV data should be included
+  });
+});
+
+describe("CSV parsing with Papaparse", () => {
+  it("uses Papa.parse for CSV parsing", () => {
+    // Verify papaparse handles the CSV format used by ARMLS
+    const csv = `Name,Address,Price\nJohn,"123 Main St, Apt 4","$500,000"`;
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true });
+    expect(result.data).toHaveLength(1);
+    expect((result.data[0] as Record<string, string>).Name).toBe("John");
+  });
+
+  it("handles quoted fields with commas correctly", () => {
+    const csv = `Address,Price,Status\n"123 Main St, Apt 4","$575,000",C\n"456 Oak Ave, Unit 2","$520,000",C`;
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true });
+    expect(result.data).toHaveLength(2);
+    expect((result.data[0] as Record<string, string>).Address).toBe("123 Main St, Apt 4");
+    expect((result.data[1] as Record<string, string>).Address).toBe("456 Oak Ave, Unit 2");
+  });
+
+  it("skips empty rows", () => {
+    const csv = `Name,Price\nJohn,100\n\n\nJane,200\n`;
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true });
+    expect(result.data).toHaveLength(2);
+  });
+});
+
+describe("deterministic scoring", () => {
+  it("computeMatchScore produces same output for same inputs every time", async () => {
+    mockAskClaude.mockResolvedValue(JSON.stringify(mockClaudeResponse));
+
+    const csvBuffer = Buffer.from(testCSV);
+    const results: number[][] = [];
+
+    // Run 5 times and collect scores
+    for (let i = 0; i < 5; i++) {
+      mockAskClaude.mockResolvedValue(JSON.stringify(mockClaudeResponse));
+      const result = await runFullAnalysis(csvBuffer, subject);
+      results.push(result.comps.map(c => c.matchScore));
+    }
+
+    // All runs should produce identical scores
+    for (let i = 1; i < results.length; i++) {
+      expect(results[i]).toEqual(results[0]);
+    }
+  });
+
+  it("metrics are deterministic with same comp data", async () => {
+    mockAskClaude.mockResolvedValue(JSON.stringify(mockClaudeResponse));
+
+    const csvBuffer = Buffer.from(testCSV);
+    const result1 = await runFullAnalysis(csvBuffer, subject);
+
+    mockAskClaude.mockResolvedValue(JSON.stringify(mockClaudeResponse));
+    const result2 = await runFullAnalysis(csvBuffer, subject);
+
+    // PPSF metrics should be identical
+    expect(result1.marketMetrics.medianPpsf).toBe(result2.marketMetrics.medianPpsf);
+    expect(result1.marketMetrics.avgPpsf).toBe(result2.marketMetrics.avgPpsf);
+    expect(result1.marketMetrics.ppsfRange).toEqual(result2.marketMetrics.ppsfRange);
+  });
+});
+
+describe("Claude separation", () => {
+  it("does not call Claude during scoring (Claude only for narratives)", async () => {
+    mockAskClaude.mockResolvedValue(JSON.stringify(mockClaudeResponse));
+
+    const csvBuffer = Buffer.from(testCSV);
+    const result = await runFullAnalysis(csvBuffer, subject);
+
+    // askClaude is called once for the overall narrative analysis
+    // The scoring override (computeMatchScore) and metric recalculation
+    // happen AFTER Claude returns, with no additional Claude calls
+    expect(mockAskClaude).toHaveBeenCalledTimes(1);
+
+    // Scores are deterministic overrides, not from Claude
+    expect(result.comps[0].matchScore).toBeTypeOf("number");
+    expect(result.comps[0].matchScore).toBeGreaterThanOrEqual(0);
   });
 });
