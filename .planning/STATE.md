@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 1 of 3 in current phase
+Plan: 3 of 3 in current phase
 Status: Executing
-Last activity: 2026-03-15 — Completed 01-01 Supabase Auth Migration
+Last activity: 2026-03-15 — Completed 01-03 Engine Hardening
 
-Progress: [█░░░░░░░░░] 8%
+Progress: [██░░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4min
-- Total execution time: 0.07 hours
+- Total plans completed: 2
+- Average duration: 8min
+- Total execution time: 0.27 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 1 | 4min | 4min |
+| 01-foundation | 2 | 16min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min)
+- Last 5 plans: 01-01 (4min), 01-03 (12min)
 - Trend: -
 
 *Updated after each plan completion*
@@ -48,6 +48,9 @@ Recent decisions affecting current work:
 - [01-01]: Used @supabase/ssr three-client pattern (browser/server/middleware) per research
 - [01-01]: getClaims() for JWT validation instead of getSession() (security)
 - [01-01]: Account provisioning via Supabase dashboard (no sign-up flow in app)
+- [01-03]: Used @anthropic-ai/sdk with messages.parse() for structured output instead of raw fetch
+- [01-03]: Kept backward-compatible function signatures while adding new SDK-based functions
+- [01-03]: Replaced parseCSVLine with Papaparse; extracted calculateMetrics() as pure function
 
 ### Pending Todos
 
@@ -61,5 +64,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 01-01-PLAN.md (Supabase Auth Migration)
+Stopped at: Completed 01-03-PLAN.md (Engine Hardening)
 Resume file: None

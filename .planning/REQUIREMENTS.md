@@ -91,13 +91,13 @@
 
 ### Engine Fixes
 
-- [ ] **ENGN-01**: Claude API max_tokens increased to 16K+ for analysis calls
-- [ ] **ENGN-02**: Claude API uses structured output (tool_use with JSON schema) for extraction
-- [ ] **ENGN-03**: Claude API retry logic uses exponential backoff for rate limits
-- [ ] **ENGN-04**: CSV parsing uses Papaparse instead of custom parser
-- [ ] **ENGN-05**: Comp scoring and metric calculation are fully deterministic in TypeScript
-- [ ] **ENGN-06**: Claude's role in CSV pipeline reduced to narrative generation + comp validation
-- [ ] **ENGN-07**: CONFIG is validated against TypeScript types before template injection
+- [x] **ENGN-01**: Claude API max_tokens increased to 16K+ for analysis calls
+- [x] **ENGN-02**: Claude API uses structured output (tool_use with JSON schema) for extraction
+- [x] **ENGN-03**: Claude API retry logic uses exponential backoff for rate limits
+- [x] **ENGN-04**: CSV parsing uses Papaparse instead of custom parser
+- [x] **ENGN-05**: Comp scoring and metric calculation are fully deterministic in TypeScript
+- [x] **ENGN-06**: Claude's role in CSV pipeline reduced to narrative generation + comp validation
+- [x] **ENGN-07**: CONFIG is validated against TypeScript types before template injection
 
 ## v2 Requirements
 
@@ -190,13 +190,13 @@
 | PROP-02 | Phase 4 | Pending |
 | PROP-03 | Phase 4 | Pending |
 | PROP-04 | Phase 4 | Pending |
-| ENGN-01 | Phase 1 | Pending |
-| ENGN-02 | Phase 1 | Pending |
-| ENGN-03 | Phase 1 | Pending |
-| ENGN-04 | Phase 1 | Pending |
-| ENGN-05 | Phase 1 | Pending |
-| ENGN-06 | Phase 1 | Pending |
-| ENGN-07 | Phase 1 | Pending |
+| ENGN-01 | Phase 1 | Complete |
+| ENGN-02 | Phase 1 | Complete |
+| ENGN-03 | Phase 1 | Complete |
+| ENGN-04 | Phase 1 | Complete |
+| ENGN-05 | Phase 1 | Complete |
+| ENGN-06 | Phase 1 | Complete |
+| ENGN-07 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 64 total
