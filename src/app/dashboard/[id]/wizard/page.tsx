@@ -7,6 +7,7 @@ import { useWizardState } from "@/hooks/useWizardState";
 import WizardShell from "@/components/wizard/WizardShell";
 import StepTypeSelect from "@/components/wizard/StepTypeSelect";
 import StepClientInfo from "@/components/wizard/StepClientInfo";
+import StepPropertyExtraction from "@/components/wizard/StepPropertyExtraction";
 import StepMarketData from "@/components/wizard/StepMarketData";
 
 function WizardContent() {
@@ -83,21 +84,11 @@ function WizardContent() {
         );
       case 3:
         return (
-          <StepPlaceholder
-            title={
-              dashboard!.type === "buyer"
-                ? "Search Criteria"
-                : "Property Data"
-            }
-            description={
-              dashboard!.type === "buyer"
-                ? "Define target areas, budget, and must-have features."
-                : "Upload MLS data and review property details."
-            }
-            stepNumber={3}
-            onNext={() => goToStep(4)}
-            onBack={() => goToStep(2)}
+          <StepPropertyExtraction
+            dashboard={dashboard!}
             saving={saving}
+            goToStep={goToStep}
+            updateDashboardData={updateDashboardData}
           />
         );
       case 4:
