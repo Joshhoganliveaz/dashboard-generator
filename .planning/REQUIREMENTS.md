@@ -133,76 +133,76 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| AUTH-05 | — | Pending |
-| PERS-01 | — | Pending |
-| PERS-02 | — | Pending |
-| PERS-03 | — | Pending |
-| PERS-04 | — | Pending |
-| PERS-05 | — | Pending |
-| PERS-06 | — | Pending |
-| PERS-07 | — | Pending |
-| LIBR-01 | — | Pending |
-| LIBR-02 | — | Pending |
-| LIBR-03 | — | Pending |
-| LIBR-04 | — | Pending |
-| LIBR-05 | — | Pending |
-| WIZD-01 | — | Pending |
-| WIZD-02 | — | Pending |
-| WIZD-03 | — | Pending |
-| WIZD-04 | — | Pending |
-| WIZD-05 | — | Pending |
-| WIZD-06 | — | Pending |
-| WIZD-07 | — | Pending |
-| WIZD-08 | — | Pending |
-| WIZD-09 | — | Pending |
-| WIZD-10 | — | Pending |
-| WIZD-11 | — | Pending |
-| WIZD-12 | — | Pending |
-| WIZD-13 | — | Pending |
-| WIZD-14 | — | Pending |
-| WIZD-15 | — | Pending |
-| WIZD-16 | — | Pending |
-| WIZD-17 | — | Pending |
-| PUBL-01 | — | Pending |
-| PUBL-02 | — | Pending |
-| PUBL-03 | — | Pending |
-| PUBL-04 | — | Pending |
-| PUBL-05 | — | Pending |
-| PUBL-06 | — | Pending |
-| STAT-01 | — | Pending |
-| STAT-02 | — | Pending |
-| STAT-03 | — | Pending |
-| STAT-04 | — | Pending |
-| SLUG-01 | — | Pending |
-| SLUG-02 | — | Pending |
-| SLUG-03 | — | Pending |
-| SLUG-04 | — | Pending |
-| SLUG-05 | — | Pending |
-| TYPE-01 | — | Pending |
-| TYPE-02 | — | Pending |
-| TYPE-03 | — | Pending |
-| TYPE-04 | — | Pending |
-| PROP-01 | — | Pending |
-| PROP-02 | — | Pending |
-| PROP-03 | — | Pending |
-| PROP-04 | — | Pending |
-| ENGN-01 | — | Pending |
-| ENGN-02 | — | Pending |
-| ENGN-03 | — | Pending |
-| ENGN-04 | — | Pending |
-| ENGN-05 | — | Pending |
-| ENGN-06 | — | Pending |
-| ENGN-07 | — | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| PERS-01 | Phase 1 | Pending |
+| PERS-02 | Phase 1 | Pending |
+| PERS-03 | Phase 1 | Pending |
+| PERS-04 | Phase 1 | Pending |
+| PERS-05 | Phase 1 | Pending |
+| PERS-06 | Phase 1 | Pending |
+| PERS-07 | Phase 1 | Pending |
+| LIBR-01 | Phase 2 | Pending |
+| LIBR-02 | Phase 2 | Pending |
+| LIBR-03 | Phase 2 | Pending |
+| LIBR-04 | Phase 2 | Pending |
+| LIBR-05 | Phase 2 | Pending |
+| WIZD-01 | Phase 2 | Pending |
+| WIZD-02 | Phase 2 | Pending |
+| WIZD-03 | Phase 2 | Pending |
+| WIZD-04 | Phase 2 | Pending |
+| WIZD-05 | Phase 2 | Pending |
+| WIZD-06 | Phase 2 | Pending |
+| WIZD-07 | Phase 2 | Pending |
+| WIZD-08 | Phase 2 | Pending |
+| WIZD-09 | Phase 2 | Pending |
+| WIZD-10 | Phase 2 | Pending |
+| WIZD-11 | Phase 2 | Pending |
+| WIZD-12 | Phase 2 | Pending |
+| WIZD-13 | Phase 2 | Pending |
+| WIZD-14 | Phase 2 | Pending |
+| WIZD-15 | Phase 2 | Pending |
+| WIZD-16 | Phase 2 | Pending |
+| WIZD-17 | Phase 2 | Pending |
+| PUBL-01 | Phase 3 | Pending |
+| PUBL-02 | Phase 3 | Pending |
+| PUBL-03 | Phase 3 | Pending |
+| PUBL-04 | Phase 3 | Pending |
+| PUBL-05 | Phase 3 | Pending |
+| PUBL-06 | Phase 3 | Pending |
+| STAT-01 | Phase 2 | Pending |
+| STAT-02 | Phase 3 | Pending |
+| STAT-03 | Phase 3 | Pending |
+| STAT-04 | Phase 3 | Pending |
+| SLUG-01 | Phase 2 | Pending |
+| SLUG-02 | Phase 2 | Pending |
+| SLUG-03 | Phase 2 | Pending |
+| SLUG-04 | Phase 2 | Pending |
+| SLUG-05 | Phase 2 | Pending |
+| TYPE-01 | Phase 4 | Pending |
+| TYPE-02 | Phase 4 | Pending |
+| TYPE-03 | Phase 4 | Pending |
+| TYPE-04 | Phase 4 | Pending |
+| PROP-01 | Phase 4 | Pending |
+| PROP-02 | Phase 4 | Pending |
+| PROP-03 | Phase 4 | Pending |
+| PROP-04 | Phase 4 | Pending |
+| ENGN-01 | Phase 1 | Pending |
+| ENGN-02 | Phase 1 | Pending |
+| ENGN-03 | Phase 1 | Pending |
+| ENGN-04 | Phase 1 | Pending |
+| ENGN-05 | Phase 1 | Pending |
+| ENGN-06 | Phase 1 | Pending |
+| ENGN-07 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 56 total
-- Mapped to phases: 0
-- Unmapped: 56 ⚠️
+- v1 requirements: 64 total
+- Mapped to phases: 64
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after initial definition*
+*Last updated: 2026-03-15 after roadmap creation*
