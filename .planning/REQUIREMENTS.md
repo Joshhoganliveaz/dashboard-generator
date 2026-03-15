@@ -7,11 +7,11 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: Team member can log in with email and password via Supabase Auth
-- [ ] **AUTH-02**: Team member session persists across browser refresh
-- [ ] **AUTH-03**: Unauthenticated users are redirected to login page
-- [ ] **AUTH-04**: Josh can provision new team accounts via Supabase dashboard
-- [ ] **AUTH-05**: Legacy cookie-based auth (SITE_PASSWORD) is fully removed
+- [x] **AUTH-01**: Team member can log in with email and password via Supabase Auth
+- [x] **AUTH-02**: Team member session persists across browser refresh
+- [x] **AUTH-03**: Unauthenticated users are redirected to login page
+- [x] **AUTH-04**: Josh can provision new team accounts via Supabase dashboard
+- [x] **AUTH-05**: Legacy cookie-based auth (SITE_PASSWORD) is fully removed
 
 ### Persistence
 
@@ -133,11 +133,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
+| AUTH-04 | Phase 1 | Complete |
+| AUTH-05 | Phase 1 | Complete |
 | PERS-01 | Phase 1 | Pending |
 | PERS-02 | Phase 1 | Pending |
 | PERS-03 | Phase 1 | Pending |
