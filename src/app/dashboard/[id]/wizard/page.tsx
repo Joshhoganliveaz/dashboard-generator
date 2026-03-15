@@ -10,6 +10,7 @@ import StepClientInfo from "@/components/wizard/StepClientInfo";
 import StepPropertyExtraction from "@/components/wizard/StepPropertyExtraction";
 import StepMarketData from "@/components/wizard/StepMarketData";
 import StepPreview from "@/components/wizard/StepPreview";
+import StepPublish from "@/components/wizard/StepPublish";
 
 function WizardContent() {
   const params = useParams();
@@ -149,11 +150,9 @@ function WizardContent() {
         );
       case 6:
         return (
-          <StepPlaceholder
-            title="Review & Publish"
-            description="Review everything and publish the dashboard."
-            stepNumber={6}
-            onBack={() => goToStep(5)}
+          <StepPublish
+            dashboard={dashboard!}
+            goToStep={goToStep}
             saving={saving}
           />
         );
@@ -185,67 +184,5 @@ export default function WizardPage() {
     >
       <WizardContent />
     </Suspense>
-  );
-}
-
-// --- Placeholder step component used until real steps are built ---
-
-function StepPlaceholder({
-  title,
-  description,
-  stepNumber,
-  onNext,
-  onBack,
-  saving,
-}: {
-  title: string;
-  description: string;
-  stepNumber: number;
-  onNext?: () => void;
-  onBack?: () => void;
-  saving: boolean;
-}) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-8">
-      <div className="text-center py-8">
-        <div className="w-12 h-12 bg-sand-pale rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-lg font-bold text-slate-light">
-            {stepNumber}
-          </span>
-        </div>
-        <h2 className="text-xl font-display font-bold text-slate mb-2">
-          {title}
-        </h2>
-        <p className="text-sm text-slate-light max-w-md mx-auto">
-          {description}
-        </p>
-        <p className="text-xs text-sand mt-4">
-          This step will be built in a future plan.
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-sand-pale">
-        {onBack ? (
-          <button
-            onClick={onBack}
-            disabled={saving}
-            className="px-5 py-2.5 border border-sand rounded-lg text-slate text-sm font-medium hover:bg-sand-pale transition-colors disabled:opacity-50"
-          >
-            Back
-          </button>
-        ) : (
-          <div />
-        )}
-        {onNext && (
-          <button
-            onClick={onNext}
-            disabled={saving}
-            className="px-5 py-2.5 bg-terra text-white rounded-lg text-sm font-semibold hover:bg-terra-dark transition-colors disabled:opacity-50"
-          >
-            Next
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
