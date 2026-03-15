@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDashboard, updateDashboard } from "@/lib/supabase/db";
+import {
+  getDashboard,
+  updateDashboard,
+  upsertSellData,
+  upsertBuyData,
+} from "@/lib/supabase/db";
 
 export async function GET(
   _request: NextRequest,
@@ -28,7 +33,7 @@ export async function PATCH(
     const { id } = params;
     const body = await request.json();
 
-    // Only allow updating safe fields
+    // Only allow updating safe dashboard-level fields
     const allowedFields = [
       "client_names",
       "full_name",
@@ -45,15 +50,33 @@ export async function PATCH(
       }
     }
 
-    if (Object.keys(updates).length === 0) {
+    // Save dashboard-level fields if any
+    let dashboard = null;
+    if (Object.keys(updates).length > 0) {
+      dashboard = await updateDashboard(id, updates);
+    }
+
+    // Save sell_data if provided
+    if (body.sell_data && typeof body.sell_data === "object") {
+      await upsertSellData(id, body.sell_data);
+    }
+
+    // Save buy_data if provided
+    if (body.buy_data && typeof body.buy_data === "object") {
+      await upsertBuyData(id, body.buy_data);
+    }
+
+    // If nothing was updated at all, return error
+    if (!dashboard && !body.sell_data && !body.buy_data) {
       return NextResponse.json(
         { error: "No valid fields to update" },
         { status: 400 }
       );
     }
 
-    const dashboard = await updateDashboard(id, updates);
-    return NextResponse.json(dashboard);
+    // Return fresh dashboard with all data
+    const fresh = await getDashboard(id);
+    return NextResponse.json(fresh);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

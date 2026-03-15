@@ -1,27 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 
-/**
- * Generate a URL-safe slug from client names and optional address.
- * Output: lowercase letters, numbers, and hyphens only. Max 80 chars.
- */
-export function generateSlug(clientNames: string, address?: string): string {
-  const raw = address ? `${clientNames} ${address}` : clientNames;
-
-  const slug = raw
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "") // strip special chars
-    .replace(/\s+/g, "-") // spaces to hyphens
-    .replace(/-+/g, "-") // collapse multiple hyphens
-    .replace(/^-+/, "") // trim leading hyphens
-    .replace(/-+$/, ""); // trim trailing hyphens
-
-  return slug.slice(0, 80);
-}
+// Re-export the pure slug generator for backward compatibility
+export { generateSlug } from "./slug-utils";
 
 /**
  * Find an available slug by checking for collisions in the database.
  * Appends -2, -3, etc. until an available slug is found.
  * Pass excludeId to skip the dashboard's own slug (for edits).
+ *
+ * Server-only: uses Supabase server client.
  */
 export async function findAvailableSlug(
   baseSlug: string,

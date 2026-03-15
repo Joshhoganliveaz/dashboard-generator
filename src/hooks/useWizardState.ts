@@ -63,28 +63,41 @@ export function useWizardState(dashboardId: string) {
     loadDashboard();
   }, [dashboardId]);
 
-  // Save dashboard-level fields via PATCH
+  // Save dashboard fields (including nested sell_data/buy_data) via PATCH
   const saveDashboardFields = useCallback(
     async (updates: Partial<DashboardWithData>) => {
-      const dashboardFields: Record<string, unknown> = {};
-      const fieldMap = ["client_names", "full_name", "email", "agent_key", "slug", "status"] as const;
+      const payload: Record<string, unknown> = {};
+      const dashboardFieldMap = ["client_names", "full_name", "email", "agent_key", "slug", "status"] as const;
 
-      for (const field of fieldMap) {
+      for (const field of dashboardFieldMap) {
         if (field in updates) {
-          dashboardFields[field] = updates[field as keyof typeof updates];
+          payload[field] = updates[field as keyof typeof updates];
         }
       }
 
-      if (Object.keys(dashboardFields).length > 0) {
+      // Pass through sell_data and buy_data for nested upsert
+      if (updates.sell_data) {
+        const { id: _id, dashboard_id: _did, created_at: _ca, updated_at: _ua, ...sellFields } = updates.sell_data;
+        payload.sell_data = sellFields;
+      }
+      if (updates.buy_data) {
+        const { id: _id, dashboard_id: _did, created_at: _ca, updated_at: _ua, ...buyFields } = updates.buy_data;
+        payload.buy_data = buyFields;
+      }
+
+      if (Object.keys(payload).length > 0) {
         const res = await fetch(`/api/dashboard/${dashboardId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dashboardFields),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const data = await res.json();
           throw new Error(data.error || "Failed to save dashboard");
         }
+        // Update local state with fresh data from server
+        const freshData = await res.json();
+        setDashboard(freshData);
       }
     },
     [dashboardId]
@@ -100,15 +113,9 @@ export function useWizardState(dashboardId: string) {
         setSaving(true);
         setError(null);
 
-        // Save data if provided
+        // Save data if provided (saveDashboardFields updates local state from server response)
         if (data && Object.keys(data).length > 0) {
           await saveDashboardFields(data);
-
-          // Merge saved data into local state
-          setDashboard((prev) => {
-            if (!prev) return prev;
-            return { ...prev, ...data };
-          });
         }
 
         setCurrentStep(step);
