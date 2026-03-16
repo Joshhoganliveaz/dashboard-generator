@@ -84,10 +84,10 @@
 
 ### Properties of Interest
 
-- [ ] **PROP-01**: Team member can add a property of interest with address, price, listing URL, and notes
-- [ ] **PROP-02**: Team member can remove a property of interest
-- [ ] **PROP-03**: Properties of interest display on buyer and buy/sell dashboards
-- [ ] **PROP-04**: Optional photo URL for each property (external link, no upload)
+- [x] **PROP-01**: Team member can add a property of interest with address, price, listing URL, and notes
+- [x] **PROP-02**: Team member can remove a property of interest
+- [x] **PROP-03**: Properties of interest display on buyer and buy/sell dashboards
+- [x] **PROP-04**: Optional photo URL for each property (external link, no upload)
 
 ### Engine Fixes
 
@@ -186,10 +186,10 @@
 | TYPE-02 | Phase 4 | Complete |
 | TYPE-03 | Phase 4 | Complete |
 | TYPE-04 | Phase 4 | Complete |
-| PROP-01 | Phase 4 | Pending |
-| PROP-02 | Phase 4 | Pending |
-| PROP-03 | Phase 4 | Pending |
-| PROP-04 | Phase 4 | Pending |
+| PROP-01 | Phase 4 | Complete |
+| PROP-02 | Phase 4 | Complete |
+| PROP-03 | Phase 4 | Complete |
+| PROP-04 | Phase 4 | Complete |
 | ENGN-01 | Phase 1 | Complete |
 | ENGN-02 | Phase 1 | Complete |
 | ENGN-03 | Phase 1 | Complete |

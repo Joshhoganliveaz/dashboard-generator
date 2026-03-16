@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 04-01-PLAN.md (Tab Structure and Listing Status)
+stopped_at: Completed 04-02-PLAN.md (Properties of Interest in Publish Pipeline)
 last_updated: "2026-03-16T02:47:36Z"
-last_activity: 2026-03-16 — Completed 04-01 Tab Structure and Listing Status
+last_activity: 2026-03-16 — Completed 04-02 Properties of Interest in Publish Pipeline
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 11
+  completed_plans: 12
   percent: 100
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 4 of 4 (Full Dashboard Types)
-Plan: 1 of 1 in current phase
-Status: In Progress
-Last activity: 2026-03-16 — Completed 04-01 Tab Structure and Listing Status
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-03-16 — Completed 04-02 Properties of Interest in Publish Pipeline
 
 Progress: [██████████] 100%
 
@@ -58,6 +58,7 @@ Progress: [██████████] 100%
 | Phase 02 P05 | 8min | 3 tasks | 6 files |
 | Phase 03 P01 | 4min | 2 tasks | 8 files |
 | Phase 04 P01 | 7min | 2 tasks | 10 files |
+| Phase 04 P02 | 4min | 1 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,7 @@ Recent decisions affecting current work:
 - [Phase 02-05]: Merged PDF upload (StepPropertyExtraction) into StepClientInfo for better UX flow
 - [03-01]: R2 keys use d/{slug}.html format matching the public URL path
 - [04-01]: Listing status badge in header for sell template, inline in Sell Side tab for buysell
+- [04-02]: buildConfigFromDashboard accepts optional POI array to keep sync/testable; async fetch in renderDashboardHtml
 - [04-01]: Timeline content moved into search tab as collapsible section for buyer template
 - [04-01]: Schools content merged into Buy Side tab for buysell template
 - [03-01]: getCloudflareContext() accessed synchronously per OpenNext pattern
@@ -110,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:47:36Z
-Stopped at: Completed 04-01-PLAN.md (Tab Structure and Listing Status)
+Last session: 2026-03-16T02:54:06Z
+Stopped at: Completed 04-02-PLAN.md (Properties of Interest in Publish Pipeline)
 Resume file: None
