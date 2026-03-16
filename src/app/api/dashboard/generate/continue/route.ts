@@ -303,7 +303,7 @@ export async function POST(request: Request) {
         if (!purchaseDate && clientDetails.closingDate) purchaseDate = clientDetails.closingDate;
 
         // === STEP 4: Web Research (houseversary only) ===
-        const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
+        const city = (clientDetails.cityStateZip || "").split(",")[0]?.trim() || "";
         let developments: Development[] = [];
         let infrastructure: Development[] = [];
         let areaHighlights: Development[] = [];
@@ -513,7 +513,7 @@ async function buildSellConfig(
       csvResult.marketMetrics,
       csvResult.comps,
       cromfordMetrics,
-      clientDetails.cityStateZip.split(",")[0]?.trim() || ""
+      (clientDetails.cityStateZip || "").split(",")[0]?.trim() || ""
     ),
     { maxTokens: 4096 }
   );

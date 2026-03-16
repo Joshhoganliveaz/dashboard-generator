@@ -1,6 +1,65 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { MLSExtractionSchema, type MLSExtraction } from "./schemas/mls-extraction";
+import type { z } from "zod";
+
+// Manual JSON schema output format (avoids @anthropic-ai/sdk/helpers/zod which requires zod 3.25+)
+function zodToJsonSchema(schema: z.ZodObject<z.ZodRawShape>): Record<string, unknown> {
+  const shape = schema.shape;
+  const properties: Record<string, Record<string, unknown>> = {};
+  const required: string[] = [];
+
+  for (const [key, value] of Object.entries(shape)) {
+    const field = value as z.ZodTypeAny;
+    const def = field._def;
+    let prop: Record<string, unknown> = {};
+
+    // Unwrap optionals
+    let inner = def;
+    let isOptional = false;
+    if (inner.typeName === "ZodOptional") {
+      isOptional = true;
+      inner = inner.innerType._def;
+    }
+
+    // Map zod types to JSON schema
+    switch (inner.typeName) {
+      case "ZodString":
+        prop = { type: "string" };
+        break;
+      case "ZodNumber":
+        prop = inner.checks?.some((c: { kind: string }) => c.kind === "int")
+          ? { type: "integer" }
+          : { type: "number" };
+        break;
+      case "ZodBoolean":
+        prop = { type: "boolean" };
+        break;
+      case "ZodArray":
+        prop = { type: "array", items: { type: "string" } };
+        break;
+      default:
+        prop = { type: "string" };
+    }
+
+    if (inner.description) prop.description = inner.description;
+    properties[key] = prop;
+    if (!isOptional) required.push(key);
+  }
+
+  return {
+    type: "object",
+    properties,
+    required,
+    additionalProperties: false,
+  };
+}
+
+function manualOutputFormat(schema: z.ZodObject<z.ZodRawShape>) {
+  return {
+    type: "json_schema" as const,
+    schema: zodToJsonSchema(schema),
+  };
+}
 
 // --- Types (preserved for backward compatibility) ---
 
@@ -111,7 +170,7 @@ export async function callClaude(
 
 export async function callClaudeWithRetry<T>(
   messages: ClaudeMessage[],
-  outputFormat: ReturnType<typeof zodOutputFormat>,
+  outputFormat: { type: "json_schema"; schema: Record<string, unknown> },
   options: ClaudeOptions = {}
 ): Promise<{ content: unknown[]; parsed_output: T; stop_reason: string; usage: { input_tokens: number; output_tokens: number } }> {
   const client = getClient();
@@ -122,7 +181,7 @@ export async function callClaudeWithRetry<T>(
     model,
     max_tokens: maxTokens,
     messages,
-    output_format: outputFormat,
+    output_config: { format: outputFormat },
   };
   if (options.system) params.system = options.system;
 
@@ -135,8 +194,16 @@ export async function callClaudeWithRetry<T>(
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await client.messages.parse(params as any);
-      return response as unknown as { content: unknown[]; parsed_output: T; stop_reason: string; usage: { input_tokens: number; output_tokens: number } };
+      const response = await client.messages.create(params as any);
+      // Parse the JSON output from the response content
+      const textBlock = (response as unknown as ClaudeResponse).content.find((c) => c.type === "text");
+      const parsed = textBlock?.text ? JSON.parse(textBlock.text) : null;
+      return {
+        content: (response as unknown as ClaudeResponse).content,
+        parsed_output: parsed as T,
+        stop_reason: (response as unknown as ClaudeResponse).stop_reason,
+        usage: (response as unknown as ClaudeResponse).usage,
+      };
     } catch (err) {
       lastError = err as Error;
       if (isRetryable(err) && attempt < 2) continue;
@@ -164,19 +231,34 @@ export async function extractMLSData(pdfBase64: string): Promise<MLSExtraction> 
         },
         {
           type: "text",
-          text: "Extract the property details from this MLS listing PDF. Return beds, baths, sqft, yearBuilt, pool (boolean), stories, lotSqft, address, subdivision, and notable features array.",
+          text: `Extract the property details from this MLS listing PDF. Return ONLY a JSON object with these fields:
+{
+  "beds": (integer),
+  "baths": (number, e.g. 2.5),
+  "sqft": (integer, living area),
+  "yearBuilt": (integer),
+  "pool": (boolean),
+  "stories": (integer),
+  "lotSqft": (integer),
+  "address": (string, full street address),
+  "subdivision": (string, subdivision or community name),
+  "features": (array of strings, notable property features)
+}
+Return ONLY the JSON object, no other text.`,
         },
       ],
     },
   ];
 
-  const result = await callClaudeWithRetry<MLSExtraction>(
-    messages,
-    zodOutputFormat(MLSExtractionSchema),
-    { maxTokens: 4096 }
-  );
+  const response = await callClaude(messages, { maxTokens: 4096 });
+  const textBlock = response.content.find((c) => c.type === "text");
+  const text = textBlock?.text || "";
 
-  return result.parsed_output;
+  // Parse JSON, handling possible markdown code fences or prose
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Failed to extract JSON from Claude response");
+
+  return JSON.parse(jsonMatch[0]) as MLSExtraction;
 }
 
 // --- Backward-compatible convenience functions ---

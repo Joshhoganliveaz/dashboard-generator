@@ -79,15 +79,25 @@ export default function StepPropertyExtraction({
       });
 
       const result = await res.json();
-
       if (result.error && !result.data) {
         setExtractionError(result.error);
         return;
       }
 
       if (result.data) {
+        console.log("[MLS Extract] result.data:", JSON.stringify(result.data));
         // Populate editable fields from extraction
-        if (result.data.address) setAddress(result.data.address);
+        if (result.data.address) {
+          // Split "2854 S JACOB ST, Gilbert, AZ 85295" into street + city/state/zip
+          const fullAddr = result.data.address;
+          const commaIdx = fullAddr.indexOf(",");
+          if (commaIdx > 0) {
+            setAddress(fullAddr.substring(0, commaIdx).trim());
+            setCityStateZip(fullAddr.substring(commaIdx + 1).trim());
+          } else {
+            setAddress(fullAddr);
+          }
+        }
         if (result.data.subdivision) setSubdivision(result.data.subdivision);
         if (result.data.beds != null) setBeds(result.data.beds.toString());
         if (result.data.baths != null) setBaths(result.data.baths.toString());

@@ -121,8 +121,16 @@ export default function StepClientInfo({
 
       if (result.data) {
         // Auto-populate property fields from extraction
-        if (result.data.address) setAddress(result.data.address);
-        if (result.data.cityStateZip) setCityStateZip(result.data.cityStateZip);
+        if (result.data.address) {
+          const fullAddr = result.data.address;
+          const commaIdx = fullAddr.indexOf(",");
+          if (commaIdx > 0) {
+            setAddress(fullAddr.substring(0, commaIdx).trim());
+            setCityStateZip(fullAddr.substring(commaIdx + 1).trim());
+          } else {
+            setAddress(fullAddr);
+          }
+        }
         if (result.data.subdivision) setSubdivision(result.data.subdivision);
         if (result.data.beds != null) setBeds(result.data.beds.toString());
         if (result.data.baths != null) setBaths(result.data.baths.toString());

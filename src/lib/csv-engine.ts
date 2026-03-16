@@ -66,7 +66,7 @@ function computeMatchScore(
   let score = 0;
 
   // Same subdivision: 20 pts
-  if (comp.sub.toLowerCase().trim() === subject.subdivision.toLowerCase().trim()) {
+  if ((comp.sub || "").toLowerCase().trim() === (subject.subdivision || "").toLowerCase().trim()) {
     score += 20;
   }
 
@@ -76,7 +76,7 @@ function computeMatchScore(
   }
 
   // Pool match: 16 pts
-  const compPool = comp.pool.toUpperCase() === "Y";
+  const compPool = (comp.pool || "").toUpperCase() === "Y";
   if (compPool === subject.pool) {
     score += 16;
   }

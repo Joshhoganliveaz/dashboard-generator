@@ -87,7 +87,8 @@ export async function POST(request: Request) {
   if (templateConfig.requiredFiles.includes("csv") && !csvFile) {
     return NextResponse.json({ error: "CSV file is required for this dashboard type" }, { status: 400 });
   }
-  if (templateConfig.requiredFiles.includes("mlsPdf") && !mlsPdf) {
+  const mlsDataJson = formData.get("mlsData") as string | null;
+  if (templateConfig.requiredFiles.includes("mlsPdf") && !mlsPdf && !mlsDataJson) {
     return NextResponse.json({ error: "MLS PDF is required for this dashboard type" }, { status: 400 });
   }
 
@@ -103,7 +104,24 @@ export async function POST(request: Request) {
         let lotSqft = 0;
         let propertyHighlights: string[] = [];
 
-        if (mlsPdf && isFileRelevant(templateType, "mlsPdf")) {
+        // Use pre-extracted MLS data from wizard step 2 if no PDF re-upload
+        if (!mlsPdf && mlsDataJson && isFileRelevant(templateType, "mlsPdf")) {
+          sendSSE(controller, { step: "extracting_mls", progress: 5 });
+          try {
+            const parsedMls = JSON.parse(mlsDataJson);
+            subject = {
+              beds: parsedMls.beds || 0,
+              baths: parsedMls.baths || 0,
+              sqft: parsedMls.sqft || 0,
+              yearBuilt: parsedMls.year_built || parsedMls.yearBuilt || 0,
+              pool: parsedMls.pool || false,
+              stories: parsedMls.stories || 1,
+            };
+            lotSqft = parsedMls.lot_sqft || parsedMls.lotSqft || 0;
+            propertyHighlights = parsedMls.features || [];
+          } catch { /* fall through */ }
+          sendSSE(controller, { step: "extracting_mls", progress: 15 });
+        } else if (mlsPdf && isFileRelevant(templateType, "mlsPdf")) {
           sendSSE(controller, { step: "extracting_mls", progress: 5 });
 
           const pdfBuffer = Buffer.from(await mlsPdf.arrayBuffer());
@@ -408,7 +426,7 @@ export async function POST(request: Request) {
         if (!purchaseDate && clientDetails.closingDate) purchaseDate = clientDetails.closingDate;
 
         // === STEP 4: Web Research (houseversary only) ===
-        const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
+        const city = (clientDetails.cityStateZip || "").split(",")[0]?.trim() || "";
 
         let developments: Development[] = [];
         let infrastructure: Development[] = [];
@@ -624,7 +642,7 @@ async function buildSellConfig(
 ): Promise<SellDashboardConfig> {
   if (!csvResult) throw new Error("CSV analysis result is required for sell dashboard");
 
-  const city = clientDetails.cityStateZip.split(",")[0]?.trim() || "";
+  const city = (clientDetails.cityStateZip || "").split(",")[0]?.trim() || "";
 
   const contentResponse = await askClaude(
     sellContentPrompt(

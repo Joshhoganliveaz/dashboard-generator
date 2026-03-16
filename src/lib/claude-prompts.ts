@@ -524,7 +524,7 @@ export function contentGenerationPrompt(
   cromfordMetrics: { label: string; value: string }[],
   yearsOwned: number
 ): string {
-  const city = subject.cityStateZip.split(",")[0]?.trim() || "";
+  const city = (subject.cityStateZip || "").split(",")[0]?.trim() || "";
 
   // Build bedroom breakdown context for Claude
   const bedroomBreakdownText = bedroomAnalysis.hasEnoughData
@@ -611,7 +611,7 @@ export function csvAnalysisPrompt(
   lens: AnalysisLens = "homeowner"
 ): string {
   const skillInstructions = CSV_SKILL_INSTRUCTIONS;
-  const city = subject.cityStateZip.split(",")[0]?.trim() || "";
+  const city = (subject.cityStateZip || "").split(",")[0]?.trim() || "";
 
   const lensDescriptions: Record<AnalysisLens, string> = {
     homeowner: "homeowner** (positive framing, subject advantages only, no jargon)",
@@ -827,7 +827,7 @@ export function buyerContentPrompt(
   schoolPreference: string,
   cityStateZip: string
 ): string {
-  const city = cityStateZip.split(",")[0]?.trim() || "Phoenix";
+  const city = (cityStateZip || "").split(",")[0]?.trim() || "Phoenix";
 
   return `You are writing content for a buyer dashboard for ${clientNames}. They are looking to buy a home in the ${city} metro area.
 
@@ -911,7 +911,7 @@ export function buySellContentPrompt(
   schoolPreference: string,
   cromfordMetrics: { label: string; value: string }[]
 ): string {
-  const city = subject.cityStateZip.split(",")[0]?.trim() || "";
+  const city = (subject.cityStateZip || "").split(",")[0]?.trim() || "";
   const topComps = comps.slice(0, 5).map(c => `  ${c.addr}: $${c.sp.toLocaleString()} ($${c.ppsf}/SF)`).join("\n");
 
   return `You are writing content for a buy/sell dashboard for ${clientNames}. They are selling their current home and buying a new one.

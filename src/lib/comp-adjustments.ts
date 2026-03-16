@@ -22,7 +22,7 @@ function parseBaths(baths: string | number): number {
  */
 function hasPool(pool: string | boolean): boolean {
   if (typeof pool === "boolean") return pool;
-  const lower = pool.toLowerCase().trim();
+  const lower = (pool || "").toLowerCase().trim();
   return lower === "yes" || lower === "private" || lower === "priv" || lower === "y";
 }
 
