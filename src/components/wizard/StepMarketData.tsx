@@ -94,12 +94,12 @@ export default function StepMarketData({
 
     // Save sell_data updates to Supabase via API
     if (Object.keys(sellUpdates).length > 0) {
-      fetch(`/api/dashboard/${dashboard.id}/sell-data`, {
+      fetch(`/api/dashboard/${dashboard.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sellUpdates),
-      }).catch(() => {
-        // Non-blocking -- data already in HTML
+        body: JSON.stringify({ sell_data: sellUpdates }),
+      }).catch((err) => {
+        console.warn("Failed to persist generation results:", err);
       });
     }
 
@@ -212,7 +212,7 @@ export default function StepMarketData({
 
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-sand-pale">
           <button
-            onClick={() => goToStep(3)}
+            onClick={() => goToStep(2)}
             disabled={saving}
             className="px-5 py-2.5 border border-sand rounded-lg text-slate text-sm font-medium hover:bg-sand-pale transition-colors disabled:opacity-50"
           >
@@ -344,7 +344,7 @@ export default function StepMarketData({
         {/* Actions */}
         <div className="flex items-center justify-between pt-6 border-t border-sand-pale">
           <button
-            onClick={() => goToStep(3)}
+            onClick={() => goToStep(2)}
             disabled={saving}
             className="px-5 py-2.5 border border-sand rounded-lg text-slate text-sm font-medium hover:bg-sand-pale transition-colors disabled:opacity-50"
           >
@@ -421,7 +421,7 @@ export default function StepMarketData({
         <ErrorDisplay error={error} onRetry={reset} />
         <div className="mt-6 pt-4 border-t border-sand-pale">
           <button
-            onClick={() => goToStep(3)}
+            onClick={() => goToStep(2)}
             className="px-5 py-2.5 border border-sand rounded-lg text-slate text-sm font-medium hover:bg-sand-pale transition-colors"
           >
             Back to Property Data
