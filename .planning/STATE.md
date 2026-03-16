@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-02-PLAN.md (Properties of Interest in Publish Pipeline)
-last_updated: "2026-03-16T03:01:03.778Z"
-last_activity: 2026-03-16 — Completed 04-02 Properties of Interest in Publish Pipeline
+stopped_at: Completed 05-01-PLAN.md (Gap Closure - sell data persistence, Back buttons, test fixes)
+last_updated: "2026-03-16T03:48:34.977Z"
+last_activity: 2026-03-16 — Completed 05-01 Gap Closure (sell data persistence, Back buttons, test fixes)
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 13
+  completed_plans: 13
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** The team can create, update, and publish client dashboards through a guided wizard without touching code, and clients always see the latest version at a permanent URL.
-**Current focus:** Phase 4: Full Dashboard Types -- tab structure and listing status complete
+**Current focus:** Phase 5: Gap Closure -- all v1.0 gaps closed
 
 ## Current Position
 
-Phase: 4 of 4 (Full Dashboard Types)
-Plan: 2 of 2 in current phase
+Phase: 5 of 5 (Gap Closure)
+Plan: 1 of 1 in current phase
 Status: Complete
-Last activity: 2026-03-16 — Completed 04-02 Properties of Interest in Publish Pipeline
+Last activity: 2026-03-16 — Completed 05-01 Gap Closure (sell data persistence, Back buttons, test fixes)
 
 Progress: [██████████] 100%
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 03 P01 | 4min | 2 tasks | 8 files |
 | Phase 04 P01 | 7min | 2 tasks | 10 files |
 | Phase 04 P02 | 4min | 1 tasks | 6 files |
+| Phase 05 P01 | 7min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [03-01]: getCloudflareContext() accessed synchronously per OpenNext pattern
 - [03-01]: Public route streams R2 body directly to avoid buffering large templates
 - [03-01]: buildConfigFromDashboard handles all 3 dashboard types with null-safe defaults
+- [05-01]: Fixed PATCH URL to use existing /api/dashboard/{id} route instead of creating new /sell-data endpoint
+- [05-01]: Updated claude-api tests to mock create instead of parse, matching current SDK implementation
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:54:06Z
-Stopped at: Completed 04-02-PLAN.md (Properties of Interest in Publish Pipeline)
+Last session: 2026-03-16T03:40:22Z
+Stopped at: Completed 05-01-PLAN.md (Gap Closure - sell data persistence, Back buttons, test fixes)
 Resume file: None
