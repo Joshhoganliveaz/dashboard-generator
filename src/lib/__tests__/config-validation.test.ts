@@ -80,6 +80,7 @@ const validBuyerConfig = {
   schoolDistricts: [],
   timeline: [],
   marketSnapshot: [],
+  propertiesOfInterest: [],
 };
 
 describe("SellDashboardConfigSchema", () => {
