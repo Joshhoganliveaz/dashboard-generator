@@ -20,7 +20,7 @@
 - [x] **PERS-03**: Buyer dashboard data (search criteria, neighborhoods, schools, timeline) is stored in Supabase
 - [x] **PERS-04**: Buy/sell dashboards link both sell_data and buy_data to one dashboard record
 - [x] **PERS-05**: RLS policies allow team members to CRUD all tables
-- [x] **PERS-06**: RLS policies allow public users to SELECT published dashboards and associated data
+- [ ] **PERS-06**: RLS policies allow public users to SELECT published dashboards and associated data
 - [x] **PERS-07**: Dashboard data saves immediately as draft when created in wizard
 
 ### Dashboard Library
@@ -42,13 +42,13 @@
 - [x] **WIZD-07**: If PDF extraction fails, all fields appear as empty inputs with manual entry fallback
 - [x] **WIZD-08**: For sell/buysell: team member uploads ARMLS CSV in step 4; deterministic engine scores comps
 - [x] **WIZD-09**: Comp review panel shows all comps ranked by score; team member can toggle on/off
-- [x] **WIZD-10**: Claude generates narrative content and validates comp selection in step 4
-- [x] **WIZD-11**: If Claude narrative fails, deterministic results are shown with placeholder text
+- [ ] **WIZD-10**: Claude generates narrative content and validates comp selection in step 4
+- [ ] **WIZD-11**: If Claude narrative fails, deterministic results are shown with placeholder text
 - [x] **WIZD-12**: Step 5 shows full dashboard preview in iframe with edit panel
 - [x] **WIZD-13**: Team member can edit any value directly or give Claude natural language instructions
 - [x] **WIZD-14**: Team member can add/remove properties of interest in step 5
 - [x] **WIZD-15**: SSE streaming shows progress during generation steps
-- [x] **WIZD-16**: Team member can navigate back to previous wizard steps without losing data
+- [ ] **WIZD-16**: Team member can navigate back to previous wizard steps without losing data
 - [x] **WIZD-17**: Wizard saves progress to Supabase at each step transition
 
 ### Publishing
@@ -58,14 +58,14 @@
 - [x] **PUBL-03**: Re-publishing overwrites the same R2 path — URL never changes
 - [x] **PUBL-04**: Team member can download rendered HTML file for Lofty upload
 - [x] **PUBL-05**: Dashboard status updates to "published" with timestamp after publish
-- [ ] **PUBL-06**: Shareable URL is displayed after publish for easy copying
+- [x] **PUBL-06**: Shareable URL is displayed after publish for easy copying
 
 ### Status Lifecycle
 
 - [x] **STAT-01**: New dashboards start as "draft"
 - [x] **STAT-02**: Publishing moves status to "published"
-- [ ] **STAT-03**: Team member can archive a published dashboard (R2 file is deleted, URL returns 404)
-- [ ] **STAT-04**: Team member can un-archive and re-publish a dashboard
+- [x] **STAT-03**: Team member can archive a published dashboard (R2 file is deleted, URL returns 404)
+- [x] **STAT-04**: Team member can un-archive and re-publish a dashboard
 
 ### Slug Management
 
@@ -143,7 +143,7 @@
 | PERS-03 | Phase 1 | Complete |
 | PERS-04 | Phase 1 | Complete |
 | PERS-05 | Phase 1 | Complete |
-| PERS-06 | Phase 1 | Complete |
+| PERS-06 | Phase 5 | Pending |
 | PERS-07 | Phase 1 | Complete |
 | LIBR-01 | Phase 2 | Complete |
 | LIBR-02 | Phase 2 | Complete |
@@ -159,24 +159,24 @@
 | WIZD-07 | Phase 2 | Complete |
 | WIZD-08 | Phase 2 | Complete |
 | WIZD-09 | Phase 2 | Complete |
-| WIZD-10 | Phase 2 | Complete |
-| WIZD-11 | Phase 2 | Complete |
+| WIZD-10 | Phase 5 | Pending |
+| WIZD-11 | Phase 5 | Pending |
 | WIZD-12 | Phase 2 | Complete |
 | WIZD-13 | Phase 2 | Complete |
 | WIZD-14 | Phase 2 | Complete |
 | WIZD-15 | Phase 2 | Complete |
-| WIZD-16 | Phase 2 | Complete |
+| WIZD-16 | Phase 5 | Pending |
 | WIZD-17 | Phase 2 | Complete |
 | PUBL-01 | Phase 3 | Complete |
 | PUBL-02 | Phase 3 | Complete |
 | PUBL-03 | Phase 3 | Complete |
 | PUBL-04 | Phase 3 | Complete |
 | PUBL-05 | Phase 3 | Complete |
-| PUBL-06 | Phase 3 | Pending |
+| PUBL-06 | Phase 3 | Complete |
 | STAT-01 | Phase 2 | Complete |
 | STAT-02 | Phase 3 | Complete |
-| STAT-03 | Phase 3 | Pending |
-| STAT-04 | Phase 3 | Pending |
+| STAT-03 | Phase 3 | Complete |
+| STAT-04 | Phase 3 | Complete |
 | SLUG-01 | Phase 2 | Complete |
 | SLUG-02 | Phase 2 | Complete |
 | SLUG-03 | Phase 2 | Complete |

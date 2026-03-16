@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Admin UI** - Dashboard library home screen and 6-step wizard with sell dashboard generation (completed 2026-03-15)
 - [ ] **Phase 3: Publish Pipeline** - Render HTML from DB, publish to R2, permanent URLs, status lifecycle
 - [ ] **Phase 4: Full Dashboard Types** - Buyer and buy/sell dashboard support with properties of interest
+- [ ] **Phase 5: Gap Closure** - Fix sell data persistence, buyer navigation loop, bookkeeping & tech debt
 
 ## Phase Details
 
@@ -85,6 +86,21 @@ Plans:
 - [ ] 04-01-PLAN.md — Tab structure alignment, listing status badge, template tab renames
 - [ ] 04-02-PLAN.md — Properties of interest in publish pipeline and template rendering
 
+### Phase 5: Gap Closure
+**Goal**: All generation results persist correctly to Supabase, buyer navigation works without loops, and audit bookkeeping/tech debt are resolved
+**Depends on**: Phase 2, Phase 4
+**Requirements**: WIZD-10, WIZD-11, PERS-06, WIZD-16
+**Gap Closure:** Closes all gaps from v1.0 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. StepMarketData.tsx PATCH persists generation results (comps, market_metrics, pricing_strategy, narratives) to sell_data table via working API route
+  2. Deterministic fallback results also persist when Claude generation fails
+  3. Published sell and buy/sell dashboards render with complete market data (not empty)
+  4. Buyer dashboard Back button on step 4 navigates to step 2 without redirect loop
+**Plans**: TBD
+
+Plans:
+- [ ] 05-01-PLAN.md — Fix sell data persistence route, buyer back navigation, bookkeeping updates, tech debt cleanup
+
 ## Progress
 
 **Execution Order:**
@@ -96,3 +112,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 2. Admin UI | 5/5 | Complete   | 2026-03-15 |
 | 3. Publish Pipeline | 1/2 | In Progress | - |
 | 4. Full Dashboard Types | 1/2 | In Progress|  |
+| 5. Gap Closure | 0/1 | Pending | - |
