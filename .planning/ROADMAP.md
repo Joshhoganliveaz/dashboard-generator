@@ -96,15 +96,15 @@ Plans:
   2. Deterministic fallback results also persist when Claude generation fails
   3. Published sell and buy/sell dashboards render with complete market data (not empty)
   4. Buyer dashboard Back button on step 4 navigates to step 2 without redirect loop
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 05-01-PLAN.md — Fix sell data persistence route, buyer back navigation, bookkeeping updates, tech debt cleanup
+- [ ] 05-01-PLAN.md — Fix sell data persistence, Back button navigation, test suite fixes, and bookkeeping updates
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
