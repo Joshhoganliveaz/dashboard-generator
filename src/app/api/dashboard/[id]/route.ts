@@ -41,6 +41,7 @@ export async function PATCH(
       "agent_key",
       "slug",
       "status",
+      "published_at",
     ] as const;
 
     const updates: Record<string, unknown> = {};

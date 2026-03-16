@@ -14,8 +14,14 @@ import {
   MapPin,
   Tag,
   Link as LinkIcon,
+  Copy,
+  Check,
+  Download,
+  Globe,
+  Archive,
+  ExternalLink,
 } from "lucide-react";
-import type { DashboardWithData } from "@/lib/supabase/types";
+import type { DashboardWithData, DashboardStatus } from "@/lib/supabase/types";
 
 interface StepPublishProps {
   dashboard: DashboardWithData;
@@ -24,6 +30,12 @@ interface StepPublishProps {
 }
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const STATUS_CONFIG: Record<DashboardStatus, { label: string; className: string }> = {
+  draft: { label: "Draft", className: "bg-amber-100 text-amber-700" },
+  published: { label: "Published", className: "bg-emerald-100 text-emerald-700" },
+  archived: { label: "Archived", className: "bg-slate-100 text-slate-500" },
+};
 
 export default function StepPublish({
   dashboard,
@@ -39,8 +51,22 @@ export default function StepPublish({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isPublished = !!dashboard.published_at;
-  const slugEditable = !isPublished;
+  // Publish action state
+  const [publishing, setPublishing] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(
+    dashboard.published_at ? `${typeof window !== "undefined" ? window.location.origin : ""}/d/${dashboard.slug}` : null
+  );
+  const [copied, setCopied] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Track status locally so UI updates without full refresh
+  const [currentStatus, setCurrentStatus] = useState<DashboardStatus>(dashboard.status);
+
+  const isPublished = currentStatus === "published";
+  const isArchived = currentStatus === "archived";
+  const isDraft = currentStatus === "draft";
+  const slugEditable = !dashboard.published_at;
 
   // Debounced slug availability check
   useEffect(() => {
@@ -117,12 +143,88 @@ export default function StepPublish({
     }
   }, [slug, dashboard.slug, slugEditable, slugStatus, goToStep, router]);
 
+  // Publish handler
+  const handlePublish = useCallback(async () => {
+    setPublishing(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/dashboard/${dashboard.id}/publish`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to publish");
+      }
+      const data = await res.json();
+      const fullUrl = `${window.location.origin}${data.url}`;
+      setPublishedUrl(fullUrl);
+      setCurrentStatus("published");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to publish");
+    } finally {
+      setPublishing(false);
+    }
+  }, [dashboard.id]);
+
+  // Archive handler
+  const handleArchive = useCallback(async () => {
+    const confirmed = window.confirm(
+      "Archive this dashboard? The public URL will return 404."
+    );
+    if (!confirmed) return;
+
+    setArchiving(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/dashboard/${dashboard.id}/archive`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to archive");
+      }
+      setCurrentStatus("archived");
+      setPublishedUrl(null);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to archive");
+    } finally {
+      setArchiving(false);
+    }
+  }, [dashboard.id]);
+
+  // Download handler
+  const handleDownload = useCallback(() => {
+    window.open(`/api/dashboard/${dashboard.id}/download`, "_blank");
+  }, [dashboard.id]);
+
+  // Copy URL handler
+  const handleCopyUrl = useCallback(async () => {
+    if (!publishedUrl) return;
+    try {
+      await navigator.clipboard.writeText(publishedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select text approach
+      setActionError("Could not copy to clipboard");
+    }
+  }, [publishedUrl]);
+
+  // Publish button label
+  const publishLabel = isDraft
+    ? "Publish Dashboard"
+    : isPublished
+      ? "Re-Publish Dashboard"
+      : "Un-Archive & Publish";
+
   // Dashboard type badge
   const typeBadge = {
     sell: { label: "Sell", color: "bg-terra/10 text-terra" },
     buyer: { label: "Buyer", color: "bg-blue-100 text-blue-700" },
     buysell: { label: "Buy / Sell", color: "bg-purple-100 text-purple-700" },
   }[dashboard.type];
+
+  const statusConfig = STATUS_CONFIG[currentStatus];
 
   return (
     <div className="space-y-6">
@@ -194,8 +296,8 @@ export default function StepPublish({
             <Tag className="w-4 h-4 text-slate-light flex-shrink-0" />
             <div>
               <p className="text-xs text-slate-light">Status</p>
-              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                Draft
+              <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${statusConfig.className}`}>
+                {statusConfig.label}
               </span>
             </div>
           </div>
@@ -318,22 +420,117 @@ export default function StepPublish({
         )}
       </div>
 
+      {/* Published URL Banner */}
+      {publishedUrl && isPublished && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Globe className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-semibold text-emerald-800">Dashboard Published</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={publishedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-sm text-emerald-700 underline hover:no-underline truncate"
+            >
+              {publishedUrl}
+            </a>
+            <button
+              onClick={handleCopyUrl}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors flex-shrink-0"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy URL
+                </>
+              )}
+            </button>
+            <a
+              href={publishedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-emerald-600 hover:text-emerald-800 transition-colors flex-shrink-0"
+              title="Open in new tab"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Action failed</p>
+            <p className="text-sm text-red-600 mt-0.5">{actionError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="space-y-3">
-          {/* Publish Placeholder */}
-          <div className="relative group">
+          {/* Publish / Re-Publish / Un-Archive & Publish */}
+          <button
+            onClick={handlePublish}
+            disabled={publishing || saving}
+            className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {publishing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              <>
+                <Globe className="w-4 h-4" />
+                {publishLabel}
+              </>
+            )}
+          </button>
+
+          {/* Download HTML */}
+          <button
+            onClick={handleDownload}
+            disabled={saving}
+            className="w-full bg-white border border-sand text-slate px-6 py-3 rounded-lg font-semibold text-sm hover:bg-sand-pale transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download HTML
+          </button>
+
+          {/* Archive (only for published dashboards) */}
+          {isPublished && (
             <button
-              disabled
-              className="w-full bg-slate/20 text-slate-light px-6 py-3 rounded-lg font-semibold text-sm cursor-not-allowed"
-              title="Publishing will be available in a future update"
+              onClick={handleArchive}
+              disabled={archiving || saving}
+              className="w-full bg-white border border-red-200 text-red-600 px-6 py-3 rounded-lg font-semibold text-sm hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Publish Dashboard
+              {archiving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Archiving...
+                </>
+              ) : (
+                <>
+                  <Archive className="w-4 h-4" />
+                  Archive Dashboard
+                </>
+              )}
             </button>
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate text-white text-xs px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Publishing will be available in a future update
-            </div>
-          </div>
+          )}
+
+          {/* Divider */}
+          <div className="border-t border-sand my-1" />
 
           {/* Save & Return */}
           <button
