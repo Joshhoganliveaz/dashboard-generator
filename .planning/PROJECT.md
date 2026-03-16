@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A hybrid live dashboard platform for the Live AZ Co real estate team. Team members use a guided admin wizard (Next.js + Supabase) to create and manage seller, buyer, and buy/sell client dashboards. Client-facing dashboards are polished static HTML (existing templates with CONFIG injection) deployed to permanent Cloudflare URLs. Updates re-render and redeploy — same URL, new content.
+A hybrid live dashboard platform for the Live AZ Co real estate team. Team members use a guided admin wizard (Next.js 14 + Supabase) to create and manage seller, buyer, and buy/sell client dashboards. Client-facing dashboards are polished static HTML (existing templates with CONFIG injection) published to permanent Cloudflare R2 URLs. Updates re-render and redeploy — same URL, new content.
 
 ## Core Value
 
@@ -11,8 +11,6 @@ The team can create, update, and publish client dashboards through a guided wiza
 ## Requirements
 
 ### Validated
-
-<!-- Shipped and confirmed valuable — inherited from existing codebase. -->
 
 - ✓ HTML dashboard templates for sell, buyer, and buysell types — existing
 - ✓ CONFIG injection / template engine with marker-based replacement — existing
@@ -24,34 +22,31 @@ The team can create, update, and publish client dashboards through a guided wiza
 - ✓ Loan estimator with historical rate lookup and amortization math — existing
 - ✓ TypeScript type system for all dashboard config shapes — existing
 - ✓ Cloudflare Workers deployment with staging/production split — existing
+- ✓ Supabase Auth with SSR middleware (email/password, session persistence, RLS) — v1.0
+- ✓ 4-table Supabase schema (dashboards, sell_data, buy_data, properties_of_interest) with RLS — v1.0
+- ✓ Claude SDK structured output with 16K+ max_tokens and exponential backoff — v1.0
+- ✓ Papaparse CSV parsing with deterministic comp scoring — v1.0
+- ✓ Dashboard library with filterable card grid (type + status filters) — v1.0
+- ✓ 6-step wizard with auto-save (type → client → property → market → preview → publish) — v1.0
+- ✓ MLS PDF extraction via Claude structured output with editable field review — v1.0
+- ✓ CSV comp scoring with SSE streaming and toggle-able comp review panel — v1.0
+- ✓ R2 publish pipeline: render HTML from DB → upload → permanent /d/{slug} URL — v1.0
+- ✓ HTML download for Lofty upload — v1.0
+- ✓ Draft/published/archived status lifecycle with archive/un-archive flow — v1.0
+- ✓ Slug auto-generation with collision detection, locked after first publish — v1.0
+- ✓ All 3 dashboard types with correct tab structures and listing status badge — v1.0
+- ✓ Properties of interest CRUD with rendering on buyer/buysell dashboards — v1.0
+- ✓ Buyer wizard flow with search criteria (skips property extraction step) — v1.0
+- ✓ Buy/sell dashboard linking both sell_data and buy_data to one record — v1.0
 
 ### Active
 
-<!-- Current scope. Building toward these. -->
-
-- [ ] Supabase-backed data persistence (dashboards, sell_data, buy_data, properties_of_interest tables)
-- [ ] Supabase Auth for team login (replaces SITE_PASSWORD cookie auth)
-- [ ] Dashboard library home screen showing all dashboards as cards with filtering
-- [ ] 6-step admin wizard flow (type → client info → property details → market data → review/edit → publish)
-- [ ] Draft/published/archived status system
-- [ ] Publish flow: render HTML from DB → upload to Cloudflare R2 → permanent URL at /d/{slug}
-- [ ] HTML export/download from same render pipeline
-- [ ] Properties of interest CRUD (add/remove flagged homes with agent notes)
-- [ ] PDF extraction via Claude structured output with editable field review
-- [ ] CSV engine improvements (Papaparse for parsing, more deterministic scoring)
-- [ ] Claude API fixes (increase max_tokens, structured output, better retry logic)
-- [ ] Dashboard update flow: re-enter wizard, edit any data, re-publish to same URL
-- [ ] Buy/sell dashboard support: both sell_data and buy_data linked to one dashboard
-- [ ] Buyer content generation: neighborhoods, school districts, market snapshot from search criteria
-- [ ] Slug auto-generation with collision handling, locked after first publish
-- [ ] RLS policies: team CRUD all tables, public SELECT on published dashboards
-- [ ] Archive/un-archive flow with R2 file cleanup
+- [ ] Cromford Report screenshot extraction via Claude vision
+- [ ] Dashboard generation history / versioning
+- [ ] View count or basic analytics on published dashboards
 
 ### Out of Scope
 
-<!-- Explicit boundaries. -->
-
-- Cromford screenshot extraction — rarely used, defer to v2
 - Houseversary template — separate system at ~/Projects/Dashboard Template/
 - Batch/bulk dashboard generation — not needed for 20-50 active dashboards
 - Client-side authentication — clients don't log in, dashboards are public URLs
@@ -61,16 +56,17 @@ The team can create, update, and publish client dashboards through a guided wiza
 
 ## Context
 
-- **Existing codebase:** Next.js 14 App Router, deployed to Cloudflare Workers via OpenNext adapter. Single-page admin form with two-phase SSE generation pipeline. ~46K lines of Claude prompts.
-- **Team:** 3 agents (Josh, Jacqui, Robyn) creating dashboards for Phoenix-area real estate clients.
-- **Volume:** 20-50 active dashboards at any time. No performance/scale concerns.
-- **Current pain points:** No persistent storage (regenerate from scratch), no update-in-place, buyer content generation is unreliable, Claude API max_tokens too low.
-- **Templates:** 4 HTML templates exist (sell, buyer, buysell, houseversary). Houseversary will be removed from this app. The remaining 3 are large self-contained HTML files (~788KB) with CONFIG injection markers.
-- **Deploy workflow:** Git push does NOT deploy. Must run `npm run deploy` or `npm run deploy:staging` manually. Staging and production are separate Cloudflare Workers.
+- **Shipped:** v1.0 on 2026-03-15 — 5 phases, 13 plans, 105 commits, 13,763 lines TypeScript
+- **Stack:** Next.js 14 (App Router), Supabase (Auth + DB + RLS), Cloudflare Workers (OpenNext), R2 (static hosting)
+- **Team:** 3 agents (Josh, Jacqui, Robyn) creating dashboards for Phoenix-area real estate clients
+- **Volume:** 20-50 active dashboards at any time
+- **Test suite:** 127 tests across 14 files, all passing
+- **Deploy:** `npm run deploy:staging` / `npm run promote` — manual, git push does not deploy
+- **Known tech debt:** `createDashboard` orphaned export in db.ts, incomplete SUMMARY frontmatter in phase 03-02, Workers deployment needs human verification
 
 ## Constraints
 
-- **Stack:** Next.js 14 (App Router) + Supabase + Cloudflare (Pages/R2/Workers) — must build on existing codebase
+- **Stack:** Next.js 14 (App Router) + Supabase + Cloudflare (Workers/R2) — must build on existing codebase
 - **Templates:** Existing HTML templates are kept as-is — CONFIG injection pattern is validated and working
 - **Auth:** Supabase Auth email/password — Josh provisions accounts, no self-serve
 - **AI budget:** ~$1-3 per dashboard creation via Claude API — minimize API calls, maximize deterministic logic
@@ -80,12 +76,19 @@ The team can create, update, and publish client dashboards through a guided wiza
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Hybrid static+admin architecture | Client dashboards stay fast/reliable as static HTML; admin gets dynamic Supabase-backed UI | — Pending |
-| R2 for dashboard hosting | Static file serve at /d/{slug}, no server rendering per client request, ~1-3s publish | — Pending |
-| Supabase over Prisma/PostgreSQL | Auth + RLS + real-time built in, free tier handles 20-50 dashboards easily | — Pending |
-| Defer Cromford extraction | Rarely used by team — not worth the complexity for v1 | — Pending |
-| Keep existing templates unchanged | Templates are large but working — CONFIG injection pattern is proven | — Pending |
-| All 3 dashboard types required for v1 | Team needs seller + buyer + buy/sell before switching from current workflow | — Pending |
+| Hybrid static+admin architecture | Client dashboards stay fast/reliable as static HTML; admin gets dynamic Supabase-backed UI | ✓ Good |
+| R2 for dashboard hosting | Static file serve at /d/{slug}, no server rendering per client request, ~1-3s publish | ✓ Good |
+| Supabase over Prisma/PostgreSQL | Auth + RLS + real-time built in, free tier handles 20-50 dashboards easily | ✓ Good |
+| Defer Cromford extraction | Rarely used by team — not worth the complexity for v1 | ✓ Good |
+| Keep existing templates unchanged | Templates are large but working — CONFIG injection pattern is proven | ✓ Good |
+| All 3 dashboard types required for v1 | Team needs seller + buyer + buy/sell before switching from current workflow | ✓ Good |
+| JSONB columns for nested data | Comps, metrics, narratives stored as JSONB — simpler than normalized tables for 20-50 dashboards | ✓ Good |
+| @supabase/ssr three-client pattern | Browser/server/middleware clients per Supabase docs — clean SSR auth | ✓ Good |
+| URL search params for wizard steps | ?step=N routing instead of nested routes — simpler, preserves state | ✓ Good |
+| Browser Supabase client for creation | Wizard creates via browser client directly — RLS handles auth, simpler than API route | ✓ Good |
+| Select-then-insert/update vs ON CONFLICT | Supabase RLS compatibility required this pattern over upsert | ✓ Good |
+| R2 keys match URL path | d/{slug}.html format — direct mapping between key and public URL | ✓ Good |
+| Stream R2 body directly | Avoid buffering large templates (~788KB) in memory | ✓ Good |
 
 ---
-*Last updated: 2026-03-15 after initialization*
+*Last updated: 2026-03-16 after v1.0 milestone*
