@@ -95,4 +95,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Foundation | 3/3 | Complete   | 2026-03-15 |
 | 2. Admin UI | 5/5 | Complete   | 2026-03-15 |
 | 3. Publish Pipeline | 1/2 | In Progress | - |
-| 4. Full Dashboard Types | 0/2 | Not started | - |
+| 4. Full Dashboard Types | 1/2 | In Progress|  |

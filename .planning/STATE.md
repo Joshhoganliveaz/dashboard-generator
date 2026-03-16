@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 03-02-PLAN.md (Publish Pipeline UI)
-last_updated: "2026-03-16T02:24:49.919Z"
-last_activity: 2026-03-16 — Completed 03-02 Publish Pipeline UI
+status: in-progress
+stopped_at: Completed 04-01-PLAN.md (Tab Structure and Listing Status)
+last_updated: "2026-03-16T02:47:36Z"
+last_activity: 2026-03-16 — Completed 04-01 Tab Structure and Listing Status
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 10
+  completed_plans: 11
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** The team can create, update, and publish client dashboards through a guided wizard without touching code, and clients always see the latest version at a permanent URL.
-**Current focus:** Phase 3: Publish Pipeline -- all plans complete, pending verification
+**Current focus:** Phase 4: Full Dashboard Types -- tab structure and listing status complete
 
 ## Current Position
 
-Phase: 3 of 4 (Publish Pipeline)
-Plan: 2 of 2 in current phase (all complete)
-Status: Pending Verification
-Last activity: 2026-03-16 — Completed 03-02 Publish Pipeline UI
+Phase: 4 of 4 (Full Dashboard Types)
+Plan: 1 of 1 in current phase
+Status: In Progress
+Last activity: 2026-03-16 — Completed 04-01 Tab Structure and Listing Status
 
 Progress: [██████████] 100%
 
@@ -57,6 +57,7 @@ Progress: [██████████] 100%
 | Phase 02 P03 | 6min | 2 tasks | 8 files |
 | Phase 02 P05 | 8min | 3 tasks | 6 files |
 | Phase 03 P01 | 4min | 2 tasks | 8 files |
+| Phase 04 P01 | 7min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase 02-05]: Used select-then-insert/update instead of ON CONFLICT upsert due to Supabase RLS compatibility
 - [Phase 02-05]: Merged PDF upload (StepPropertyExtraction) into StepClientInfo for better UX flow
 - [03-01]: R2 keys use d/{slug}.html format matching the public URL path
+- [04-01]: Listing status badge in header for sell template, inline in Sell Side tab for buysell
+- [04-01]: Timeline content moved into search tab as collapsible section for buyer template
+- [04-01]: Schools content merged into Buy Side tab for buysell template
 - [03-01]: getCloudflareContext() accessed synchronously per OpenNext pattern
 - [03-01]: Public route streams R2 body directly to avoid buffering large templates
 - [03-01]: buildConfigFromDashboard handles all 3 dashboard types with null-safe defaults
@@ -106,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:00:00Z
-Stopped at: Completed 03-02-PLAN.md (Publish Pipeline UI)
+Last session: 2026-03-16T02:47:36Z
+Stopped at: Completed 04-01-PLAN.md (Tab Structure and Listing Status)
 Resume file: None
