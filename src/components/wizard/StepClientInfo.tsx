@@ -55,6 +55,9 @@ export default function StepClientInfo({
   const [estimatedSalePrice, setEstimatedSalePrice] = useState(
     sellData?.estimated_sale_price?.toString() || ""
   );
+  const [listingStatus, setListingStatus] = useState<string>(
+    sellData?.listing_status || "pre-listing"
+  );
 
   // Buy fields
   const [targetAreas, setTargetAreas] = useState(dashboard.buy_data?.target_areas || "");
@@ -188,6 +191,7 @@ export default function StepClientInfo({
         pool,
         stories: stories ? parseInt(stories, 10) : null,
         estimated_sale_price: estimatedSalePrice ? parseFloat(estimatedSalePrice) : null,
+        listing_status: listingStatus as SellData["listing_status"],
       } as SellData;
     }
 
@@ -214,7 +218,7 @@ export default function StepClientInfo({
   }, [
     clientNames, fullName, email, agentKey, address, cityStateZip,
     subdivision, communityName, loanPayoff, beds, baths, sqft, lotSqft,
-    yearBuilt, pool, stories, estimatedSalePrice, targetAreas, budgetMin,
+    yearBuilt, pool, stories, estimatedSalePrice, listingStatus, targetAreas, budgetMin,
     budgetMax, bedsMin, bathsMin, mustHaves, schoolPreference,
     homeSearchUrl, dashboard, showSellFields, showBuyFields, goToStep,
   ]);
@@ -561,6 +565,22 @@ export default function StepClientInfo({
               <label htmlFor="pool" className="text-sm font-medium text-slate">
                 Pool
               </label>
+            </div>
+            <div>
+              <label htmlFor="listingStatus" className="block text-sm font-medium text-slate mb-1">
+                Listing Status
+              </label>
+              <select
+                id="listingStatus"
+                value={listingStatus}
+                onChange={(e) => setListingStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-sand rounded-lg text-sm text-slate focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra bg-white"
+              >
+                <option value="pre-listing">Pre-Listing</option>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="closed">Closed</option>
+              </select>
             </div>
           </div>
         </fieldset>

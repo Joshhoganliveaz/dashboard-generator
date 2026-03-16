@@ -178,6 +178,8 @@ export interface SellDashboardConfig {
   subdivision: string;
   communityName: string;
   agentKey: string;
+  // Listing status
+  listingStatus: "pre-listing" | "active" | "pending" | "closed";
   // Property
   beds: number;
   baths: number;
@@ -274,6 +276,8 @@ export interface BuySellDashboardConfig {
   fullName: string;
   email: string;
   agentKey: string;
+  // Sell-side listing status
+  sellListingStatus: "pre-listing" | "active" | "pending" | "closed";
   // Sell-side (current home)
   sellAddress: string;
   sellCityStateZip: string;

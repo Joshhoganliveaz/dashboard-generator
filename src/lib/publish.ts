@@ -45,6 +45,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData): AnyDashb
       fullName: full_name ?? "",
       email: email ?? "",
       agentKey: agent_key,
+      listingStatus: sd?.listing_status ?? "pre-listing",
       // Property
       address: sd?.address ?? "",
       cityStateZip: sd?.city_state_zip ?? "",
@@ -117,6 +118,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData): AnyDashb
     fullName: full_name ?? "",
     email: email ?? "",
     agentKey: agent_key,
+    sellListingStatus: sd?.listing_status ?? "pre-listing",
     // Sell-side
     sellAddress: sd?.address ?? "",
     sellCityStateZip: sd?.city_state_zip ?? "",

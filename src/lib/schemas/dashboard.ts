@@ -97,6 +97,8 @@ export const SellDashboardConfigSchema = z.object({
   subdivision: z.string(),
   communityName: z.string(),
   agentKey: z.string(),
+  // Listing status
+  listingStatus: z.enum(["pre-listing", "active", "pending", "closed"]),
   // Property
   beds: z.number(),
   baths: z.number(),
@@ -210,6 +212,8 @@ export const BuySellDashboardConfigSchema = z.object({
   fullName: z.string(),
   email: z.string(),
   agentKey: z.string(),
+  // Sell-side listing status
+  sellListingStatus: z.enum(["pre-listing", "active", "pending", "closed"]),
   // Sell-side
   sellAddress: z.string(),
   sellCityStateZip: z.string(),

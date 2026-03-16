@@ -51,6 +51,7 @@ export interface SellData {
   upgrades: { name: string; value: string }[];
   cromford_metrics: CromfordMetric[];
   cromford_takeaway?: string | null;
+  listing_status?: "pre-listing" | "active" | "pending" | "closed" | null;
   created_at: string;
   updated_at: string;
 }

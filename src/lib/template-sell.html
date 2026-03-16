@@ -23,6 +23,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff}
 input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none}
 input[type=number]:focus{border-color:var(--terra)}
+.status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;margin-top:6px}
+.status-pre-listing{background:rgba(255,255,255,.15);color:rgba(255,255,255,.85)}
+.status-active-listing{background:rgba(92,138,77,.9);color:#fff}
+.status-pending-listing{background:rgba(201,149,62,.9);color:#fff}
+.status-closed-listing{background:rgba(92,107,79,.9);color:#fff}
 .header{background:linear-gradient(135deg,var(--slate),var(--slate-light));padding:16px 20px;color:#fff}
 .header-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
 .header-text{flex:1;min-width:0}
@@ -171,6 +176,7 @@ input[type=number]:focus{border-color:var(--terra)}
     <div class="header-title" id="headerTitle"></div>
     <div class="header-names" id="headerNames"></div>
     <div id="headerSub" style="font-size:11px;opacity:.6;margin-top:4px"></div>
+    <div id="listingStatusBadge" class="status-badge status-pre-listing">Pre-Listing</div>
   </div>
 </div></div>
 
@@ -281,6 +287,7 @@ var CONFIG = {
   subdivision: "Warner Estates",
   communityName: "Warner Estates",
   agentKey: "josh_jacqui",
+  listingStatus: "pre-listing",
   beds: 4, baths: 3, sqft: 2850, lotSqft: 8500, yearBuilt: 1998, pool: true, stories: 1,
   estimatedSalePrice: 850000,
   loanPayoff: 340000,
@@ -415,6 +422,12 @@ function render(){
   document.getElementById('headerTitle').textContent = 'Your Pre-Listing Sell Dashboard';
   document.getElementById('headerNames').textContent = CONFIG.clientNames;
   document.getElementById('headerSub').textContent = 'Prepared for ' + CONFIG.fullName + ' by ' + agent.displayName + ' \u2022 Live AZ Co \u2022 ' + now;
+  // Listing status badge
+  var statusMap = {'pre-listing':'Pre-Listing','active':'Active','pending':'Pending','closed':'Closed'};
+  var statusClassMap = {'pre-listing':'status-pre-listing','active':'status-active-listing','pending':'status-pending-listing','closed':'status-closed-listing'};
+  var ls = CONFIG.listingStatus || 'pre-listing';
+  var badgeEl = document.getElementById('listingStatusBadge');
+  if (badgeEl) { badgeEl.className = 'status-badge ' + (statusClassMap[ls] || 'status-pre-listing'); badgeEl.textContent = statusMap[ls] || 'Pre-Listing'; }
   document.getElementById('footerAgent').textContent = 'Prepared by ' + agent.displayName + ' \u2022 ' + agent.members[0].phone;
 
   // ===== TAB 1: YOUR HOME =====

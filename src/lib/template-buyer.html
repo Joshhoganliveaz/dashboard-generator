@@ -148,16 +148,16 @@ select:focus{border-color:var(--terra)}
 
 <div class="tab-bar-wrap">
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('search')">🏠 Home Search</button>
-  <button class="tab-btn" onclick="showTab('neighborhoods')">📍 Neighborhoods &amp; Schools</button>
-  <button class="tab-btn" onclick="showTab('timeline')">📅 Timeline</button>
-  <button class="tab-btn" onclick="showTab('team')">🤝 Team</button>
+  <button class="tab-btn active" onclick="showTab('search')">Your Search</button>
+  <button class="tab-btn" onclick="showTab('neighborhoods')">Neighborhoods</button>
+  <button class="tab-btn" onclick="showTab('properties')">Properties</button>
+  <button class="tab-btn" onclick="showTab('team')">Team</button>
 </div>
 </div>
 
 <div class="tab-panel active" id="tab-search"></div>
 <div class="tab-panel" id="tab-neighborhoods"></div>
-<div class="tab-panel" id="tab-timeline"></div>
+<div class="tab-panel" id="tab-properties"></div>
 <div class="tab-panel" id="tab-team"></div>
 
 <div class="footer">
@@ -484,10 +484,50 @@ function render() {
   t1 += '</div>'; // end main
   t1 += '</div>'; // end layout
 
+  // Buying timeline as collapsible section at bottom of search tab
+  var tlBody = '';
+  tlBody += '<div style="font-size:13px;color:var(--neutral);margin-bottom:16px;line-height:1.6">Here\'s a step-by-step roadmap customized for your home search. Each phase builds on the last to keep you on track and confident.</div>';
+  var phaseColors = ['sage', 'terra', 'sand', 'slate'];
+  var phaseClasses = ['phase-1', 'phase-2', 'phase-3', 'phase-4'];
+  for (var ti = 0; ti < CONFIG.timeline.length; ti++) {
+    var tp = CONFIG.timeline[ti];
+    var pColor = phaseColors[ti] || 'sage';
+    var pClass = phaseClasses[ti] || 'phase-1';
+    tlBody += '<div class="timeline-phase ' + pClass + '">';
+    tlBody += '<div class="timeline-label ' + pColor + '">' + tp.phase + '</div>';
+    tlBody += '<div class="timeline-title">' + tp.title + '</div>';
+    tlBody += '<ul class="timeline-items">';
+    for (var ii2 = 0; ii2 < tp.items.length; ii2++) {
+      tlBody += '<li>' + tp.items[ii2] + '</li>';
+    }
+    tlBody += '</ul></div>';
+  }
+  // What to Expect
+  var expectations = [
+    { icon: "\uD83C\uDFE6", title: "Pre-Approval", desc: "Your lender will review income, assets, and credit to determine your maximum purchasing power. This typically takes 1\u20133 business days." },
+    { icon: "\uD83D\uDD0D", title: "Home Tours", desc: "We will schedule private showings based on your criteria. Most buyers tour 5\u201315 homes before finding the one. We will send you listings daily." },
+    { icon: "\uD83D\uDCDD", title: "Making an Offer", desc: "When you find the right home, we will run comps, analyze days on market, and craft a competitive offer. We will advise on price, terms, and contingencies." },
+    { icon: "\uD83D\uDD0E", title: "Inspection Period", desc: "A professional inspector will evaluate the property. This is your opportunity to request repairs or credits. Typically 10 days in Arizona." },
+    { icon: "\uD83C\uDFE0", title: "Appraisal & Closing", desc: "Your lender orders an appraisal to confirm value. We coordinate with title, escrow, and all parties to close on time. You get the keys!" }
+  ];
+  tlBody += '<div style="font-size:16px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin:18px 0 10px">What to Expect</div>';
+  tlBody += '<div style="display:grid;grid-template-columns:1fr;gap:10px">';
+  for (var ei = 0; ei < expectations.length; ei++) {
+    var exp = expectations[ei];
+    tlBody += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start">';
+    tlBody += '<div style="font-size:22px;line-height:1;flex-shrink:0">' + exp.icon + '</div>';
+    tlBody += '<div><div style="font-size:13px;font-weight:700;color:var(--slate)">' + exp.title + '</div>';
+    tlBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-top:2px">' + exp.desc + '</div></div>';
+    tlBody += '</div>';
+  }
+  tlBody += '</div>';
+  if (S['sec_buying_timeline'] === undefined) S['sec_buying_timeline'] = false;
+  t1 += section('buying_timeline', 'Your Buying Timeline', tlBody);
+
   document.getElementById('tab-search').innerHTML = t1;
 
   // =========================================
-  // TAB 2: NEIGHBORHOODS & SCHOOLS
+  // TAB 2: NEIGHBORHOODS
   // =========================================
   var t2 = '';
 
@@ -552,60 +592,16 @@ function render() {
   document.getElementById('tab-neighborhoods').innerHTML = t2;
 
   // =========================================
-  // TAB 3: TIMELINE
+  // TAB 3: PROPERTIES
   // =========================================
   var t3 = '';
-  t3 += '<div style="font-size:20px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:14px">📅 Your Buying Timeline</div>';
-  t3 += '<div style="font-size:13px;color:var(--neutral);margin-bottom:16px;line-height:1.6">Here\'s a step-by-step roadmap customized for your home search. Each phase builds on the last to keep you on track and confident.</div>';
-
-  var phaseColors = ['sage', 'terra', 'sand', 'slate'];
-  var phaseClasses = ['phase-1', 'phase-2', 'phase-3', 'phase-4'];
-
-  for (var ti = 0; ti < CONFIG.timeline.length; ti++) {
-    var tp = CONFIG.timeline[ti];
-    var pColor = phaseColors[ti] || 'sage';
-    var pClass = phaseClasses[ti] || 'phase-1';
-    t3 += '<div class="timeline-phase ' + pClass + '">';
-    t3 += '<div class="timeline-label ' + pColor + '">' + tp.phase + '</div>';
-    t3 += '<div class="timeline-title">' + tp.title + '</div>';
-    t3 += '<ul class="timeline-items">';
-    for (var ii = 0; ii < tp.items.length; ii++) {
-      t3 += '<li>' + tp.items[ii] + '</li>';
-    }
-    t3 += '</ul></div>';
-  }
-
-  // What to Expect section
-  t3 += '<div style="font-size:18px;font-weight:900;font-family:\'Playfair Display\',serif;color:var(--slate);margin:24px 0 12px">📋 What to Expect</div>';
-  t3 += '<div style="display:grid;grid-template-columns:1fr;gap:10px">';
-  var expectations = [
-    { icon: "🏦", title: "Pre-Approval", desc: "Your lender will review income, assets, and credit to determine your maximum purchasing power. This typically takes 1\u20133 business days." },
-    { icon: "🔍", title: "Home Tours", desc: "We will schedule private showings based on your criteria. Most buyers tour 5\u201315 homes before finding the one. We will send you listings daily." },
-    { icon: "📝", title: "Making an Offer", desc: "When you find the right home, we will run comps, analyze days on market, and craft a competitive offer. We will advise on price, terms, and contingencies." },
-    { icon: "🔎", title: "Inspection Period", desc: "A professional inspector will evaluate the property. This is your opportunity to request repairs or credits. Typically 10 days in Arizona." },
-    { icon: "🏠", title: "Appraisal & Closing", desc: "Your lender orders an appraisal to confirm value. We coordinate with title, escrow, and all parties to close on time. You get the keys!" }
-  ];
-  for (var ei = 0; ei < expectations.length; ei++) {
-    var exp = expectations[ei];
-    t3 += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start">';
-    t3 += '<div style="font-size:22px;line-height:1;flex-shrink:0">' + exp.icon + '</div>';
-    t3 += '<div><div style="font-size:13px;font-weight:700;color:var(--slate)">' + exp.title + '</div>';
-    t3 += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-top:2px">' + exp.desc + '</div></div>';
-    t3 += '</div>';
-  }
+  t3 += '<div style="text-align:center;padding:40px 20px">';
+  t3 += '<div style="font-size:48px;margin-bottom:12px;opacity:.5">🏠</div>';
+  t3 += '<div style="font-size:18px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:8px">No Properties Selected Yet</div>';
+  t3 += '<div style="font-size:13px;color:var(--neutral);line-height:1.6;max-width:400px;margin:0 auto">Your agent will add properties here as you explore options together.</div>';
   t3 += '</div>';
 
-  // Buying tips callout
-  t3 += '<div class="callout green" style="margin-top:16px"><div class="callout-title">💡 Pro Tips for ' + CONFIG.clientNames + '</div><div class="callout-text">';
-  t3 += 'Get pre-approved before touring homes so you can move fast when the right one appears. In competitive markets, strong pre-approval letters from local lenders carry more weight than big-bank letters. We will guide you through every step.';
-  t3 += '</div></div>';
-
-  // Arizona-specific callout
-  t3 += '<div class="callout blue"><div class="callout-title">🌵 Arizona Buying Notes</div><div class="callout-text">';
-  t3 += 'Arizona uses an escrow closing process (no attorney required). The standard BINSR (Buyer\'s Inspection Notice and Seller\'s Response) period is 10 days. Property taxes in Maricopa County are among the lowest in the nation, typically 0.5\u20130.8% of assessed value.';
-  t3 += '</div></div>';
-
-  document.getElementById('tab-timeline').innerHTML = t3;
+  document.getElementById('tab-properties').innerHTML = t3;
 
   // =========================================
   // TAB 4: TEAM

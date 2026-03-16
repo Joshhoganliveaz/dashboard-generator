@@ -23,6 +23,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--terra);cursor:pointer;border:2px solid #fff}
 input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--slate);background:var(--card);outline:none}
 input[type=number]:focus{border-color:var(--terra)}
+.status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.status-pre-listing{background:rgba(61,61,61,.1);color:var(--slate-light)}
+.status-active-listing{background:rgba(92,138,77,.15);color:var(--positive)}
+.status-pending-listing{background:rgba(201,149,62,.15);color:#B8860B}
+.status-closed-listing{background:rgba(92,107,79,.15);color:var(--sage-dark)}
 .header{background:linear-gradient(135deg,var(--slate),var(--slate-light));padding:16px 20px;color:#fff}
 .header-inner{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
 .header-text{flex:1;min-width:0}
@@ -189,18 +194,18 @@ input[type=number]:focus{border-color:var(--terra)}
 
 <div class="tab-bar-wrap">
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="showTab('search')">Home Search</button>
-    <button class="tab-btn" onclick="showTab('selling')">Selling</button>
-    <button class="tab-btn" onclick="showTab('schools')">Schools</button>
+    <button class="tab-btn active" onclick="showTab('sellside')">Sell Side</button>
+    <button class="tab-btn" onclick="showTab('buyside')">Buy Side</button>
     <button class="tab-btn" onclick="showTab('strategy')">Strategy</button>
+    <button class="tab-btn" onclick="showTab('properties')">Properties</button>
     <button class="tab-btn" onclick="showTab('team')">Team</button>
   </div>
 </div>
 
-<div class="tab-panel active" id="tab-search"></div>
-<div class="tab-panel" id="tab-selling"></div>
-<div class="tab-panel" id="tab-schools"></div>
+<div class="tab-panel active" id="tab-sellside"></div>
+<div class="tab-panel" id="tab-buyside"></div>
 <div class="tab-panel" id="tab-strategy"></div>
+<div class="tab-panel" id="tab-properties"></div>
 <div class="tab-panel" id="tab-team"></div>
 
 <div class="footer">
@@ -287,6 +292,7 @@ var CONFIG = {
   fullName: "Kiara & Brian Wanner",
   email: "kiara@email.com",
   agentKey: "josh_jacqui",
+  sellListingStatus: "pre-listing",
   // Sell side
   sellAddress: "2517 S Constellation Dr",
   sellCityStateZip: "Gilbert, AZ 85295",
@@ -449,7 +455,7 @@ function render(){
   document.getElementById('headerNames').textContent = CONFIG.clientNames;
 
   // =============================================
-  // TAB 1: HOME SEARCH (Buy Side)
+  // TAB 2: BUY SIDE
   // =============================================
   var gapColor = c.cashGap <= 0 ? 'var(--positive)' : 'var(--negative)';
   var gapLabel = c.cashGap <= 0 ? 'Surplus' : 'Shortfall';
@@ -567,12 +573,51 @@ function render(){
 
   searchHtml += '<div class="main">' + mainHtml + '</div>';
   searchHtml += '</div>'; // close layout
-  document.getElementById('tab-search').innerHTML = searchHtml;
+
+  // School Districts (merged into buy side)
+  var districts = CONFIG.schoolDistricts || [];
+  if (districts.length > 0) {
+    var schoolSection = '';
+    for (var di = 0; di < districts.length; di++) {
+      var dist = districts[di];
+      schoolSection += '<div class="school-district open" id="district-' + di + '">';
+      schoolSection += '<div class="school-district-header" onclick="toggleDistrict(' + di + ')">';
+      schoolSection += '<div><div class="school-district-name">' + dist.name + '</div>';
+      if (dist.description) schoolSection += '<div class="school-district-desc">' + dist.description + '</div>';
+      schoolSection += '</div><span class="section-arrow">&#9660;</span></div>';
+      schoolSection += '<div class="school-district-body" style="display:block">';
+      var schools = dist.schools || [];
+      for (var si = 0; si < schools.length; si++) {
+        var sch = schools[si];
+        schoolSection += '<div class="school-card">';
+        schoolSection += '<div class="school-card-header"><span class="school-card-name">' + sch.name + '</span>';
+        if (sch.badge) schoolSection += '<span class="school-card-badge">' + sch.badge + '</span>';
+        schoolSection += '</div>';
+        schoolSection += '<div class="school-card-meta">' + (sch.type || '') + ' &bull; Grades ' + (sch.grades || '') + ' &bull; Rating: ' + (sch.rating || 'N/A') + '</div>';
+        if (sch.description) schoolSection += '<div class="school-card-desc">' + sch.description + '</div>';
+        if (sch.url) schoolSection += '<div style="margin-top:6px"><a href="' + sch.url + '" target="_blank" style="font-size:11px;color:var(--terra);font-weight:600">Visit Website &rarr;</a></div>';
+        schoolSection += '</div>';
+      }
+      schoolSection += '</div></div>';
+    }
+    if (CONFIG.schoolPreference) {
+      schoolSection += '<div class="callout green" style="margin-top:12px"><div class="callout-title">School Preference</div><div class="callout-text">Searching within <strong>' + CONFIG.schoolPreference + '</strong> district boundaries.</div></div>';
+    }
+    searchHtml += section('schools', 'School Districts', schoolSection);
+  }
+
+  document.getElementById('tab-buyside').innerHTML = searchHtml;
 
   // =============================================
-  // TAB 2: SELLING
+  // TAB 1: SELL SIDE
   // =============================================
   var sellHtml = '';
+
+  // Listing status badge
+  var statusMap = {'pre-listing':'Pre-Listing','active':'Active','pending':'Pending','closed':'Closed'};
+  var statusClassMap = {'pre-listing':'status-pre-listing','active':'status-active-listing','pending':'status-pending-listing','closed':'status-closed-listing'};
+  var ls = CONFIG.sellListingStatus || 'pre-listing';
+  sellHtml += '<div style="margin-bottom:12px"><span class="status-badge ' + (statusClassMap[ls] || 'status-pre-listing') + '">' + (statusMap[ls] || 'Pre-Listing') + '</span></div>';
 
   // Property Hero
   var propBody = '';
@@ -752,46 +797,10 @@ function render(){
     sellHtml += section('sell_cromford', 'Market Intelligence', cromBody);
   }
 
-  document.getElementById('tab-selling').innerHTML = sellHtml;
+  document.getElementById('tab-sellside').innerHTML = sellHtml;
 
   // =============================================
-  // TAB 3: SCHOOLS
-  // =============================================
-  var schoolHtml = '';
-  var districts = CONFIG.schoolDistricts || [];
-  if (districts.length > 0) {
-    for (var di = 0; di < districts.length; di++) {
-      var dist = districts[di];
-      schoolHtml += '<div class="school-district open" id="district-' + di + '">';
-      schoolHtml += '<div class="school-district-header" onclick="toggleDistrict(' + di + ')">';
-      schoolHtml += '<div><div class="school-district-name">' + dist.name + '</div>';
-      if (dist.description) schoolHtml += '<div class="school-district-desc">' + dist.description + '</div>';
-      schoolHtml += '</div><span class="section-arrow">&#9660;</span></div>';
-      schoolHtml += '<div class="school-district-body" style="display:block">';
-      var schools = dist.schools || [];
-      for (var si = 0; si < schools.length; si++) {
-        var sch = schools[si];
-        schoolHtml += '<div class="school-card">';
-        schoolHtml += '<div class="school-card-header"><span class="school-card-name">' + sch.name + '</span>';
-        if (sch.badge) schoolHtml += '<span class="school-card-badge">' + sch.badge + '</span>';
-        schoolHtml += '</div>';
-        schoolHtml += '<div class="school-card-meta">' + (sch.type || '') + ' &bull; Grades ' + (sch.grades || '') + ' &bull; Rating: ' + (sch.rating || 'N/A') + '</div>';
-        if (sch.description) schoolHtml += '<div class="school-card-desc">' + sch.description + '</div>';
-        if (sch.url) schoolHtml += '<div style="margin-top:6px"><a href="' + sch.url + '" target="_blank" style="font-size:11px;color:var(--terra);font-weight:600">Visit Website &rarr;</a></div>';
-        schoolHtml += '</div>';
-      }
-      schoolHtml += '</div></div>';
-    }
-  } else {
-    schoolHtml += '<div class="callout blue"><div class="callout-text">School district information will appear here once added by your agent.</div></div>';
-  }
-  if (CONFIG.schoolPreference) {
-    schoolHtml += '<div class="callout green" style="margin-top:12px"><div class="callout-title">School Preference</div><div class="callout-text">Searching within <strong>' + CONFIG.schoolPreference + '</strong> district boundaries.</div></div>';
-  }
-  document.getElementById('tab-schools').innerHTML = schoolHtml;
-
-  // =============================================
-  // TAB 4: STRATEGY
+  // TAB 3: STRATEGY
   // =============================================
   var stratHtml = '';
 
@@ -893,6 +902,17 @@ function render(){
   }
 
   document.getElementById('tab-strategy').innerHTML = stratHtml;
+
+  // =============================================
+  // TAB 4: PROPERTIES
+  // =============================================
+  var propsHtml = '';
+  propsHtml += '<div style="text-align:center;padding:40px 20px">';
+  propsHtml += '<div style="font-size:48px;margin-bottom:12px;opacity:.5">\uD83C\uDFE0</div>';
+  propsHtml += '<div style="font-size:18px;font-weight:800;font-family:\'Playfair Display\',serif;color:var(--slate);margin-bottom:8px">No Properties Selected Yet</div>';
+  propsHtml += '<div style="font-size:13px;color:var(--neutral);line-height:1.6;max-width:400px;margin:0 auto">Your agent will add properties here as you explore options together.</div>';
+  propsHtml += '</div>';
+  document.getElementById('tab-properties').innerHTML = propsHtml;
 
   // =============================================
   // TAB 5: TEAM
