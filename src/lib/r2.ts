@@ -1,5 +1,18 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+/** Minimal R2Bucket interface — avoids pulling in @cloudflare/workers-types globally */
+interface R2PutOptions {
+  httpMetadata?: { contentType?: string };
+}
+interface R2Object {
+  body: ReadableStream;
+}
+interface R2Bucket {
+  put(key: string, value: string | ReadableStream, options?: R2PutOptions): Promise<R2Object>;
+  get(key: string): Promise<R2Object | null>;
+  delete(key: string): Promise<void>;
+}
+
 function getBucket(): R2Bucket {
   const { env } = getCloudflareContext();
   return (env as Record<string, unknown>).DASHBOARDS as R2Bucket;
