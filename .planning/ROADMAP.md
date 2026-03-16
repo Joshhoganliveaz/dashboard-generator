@@ -79,11 +79,11 @@ Plans:
   2. Buyer dashboard renders with 4 tabs (Your Search, Neighborhoods, Properties, Team) populated from search criteria
   3. Buy/sell dashboard renders with 5 tabs combining sell and buyer data linked to one dashboard record
   4. Team member can add, remove, and annotate properties of interest that display on buyer and buy/sell dashboards
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Tab structure alignment, listing status badge, template tab renames
+- [ ] 04-02-PLAN.md — Properties of interest in publish pipeline and template rendering
 
 ## Progress
 
