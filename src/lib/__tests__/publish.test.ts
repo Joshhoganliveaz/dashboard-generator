@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { DashboardWithData, SellData, BuyData } from "../supabase/types";
 import type { MarketMetrics, CompSale } from "../types";
+import { SellDashboardConfigSchema } from "../schemas/dashboard";
 
 // Mock dependencies
 vi.mock("../supabase/db", () => ({
@@ -149,6 +150,76 @@ describe("publish", () => {
       expect((config as any).marketMetrics).toEqual(sampleMetrics);
     });
 
+    it("sell config defaults listingStatus to pre-listing when null", () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "sell",
+        sell_data: { ...sellData, listing_status: null },
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard);
+      expect((config as any).listingStatus).toBe("pre-listing");
+    });
+
+    it("sell config defaults listingStatus to pre-listing when undefined", () => {
+      const noStatus = { ...sellData };
+      delete (noStatus as any).listing_status;
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "sell",
+        sell_data: noStatus,
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard);
+      expect((config as any).listingStatus).toBe("pre-listing");
+    });
+
+    it("sell config maps listing_status correctly", () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "sell",
+        sell_data: { ...sellData, listing_status: "active" },
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard);
+      expect((config as any).listingStatus).toBe("active");
+    });
+
+    it("buysell config includes sellListingStatus", () => {
+      const buyData: BuyData = {
+        id: "buy-1",
+        dashboard_id: "abc-123",
+        target_areas: "Mesa",
+        budget_min: 400000,
+        budget_max: 600000,
+        beds_min: 3,
+        baths_min: 2,
+        must_haves: [],
+        school_preference: "",
+        neighborhoods: [],
+        school_districts: [],
+        timeline: [],
+        market_snapshot: [],
+        home_search_url: "",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+      };
+
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buysell",
+        sell_data: { ...sellData, listing_status: null },
+        buy_data: buyData,
+      };
+
+      const config = buildConfigFromDashboard(dashboard);
+      expect(config.templateType).toBe("buysell");
+      expect((config as any).sellListingStatus).toBe("pre-listing");
+    });
+
     it("maps buyer dashboard data to CONFIG shape", () => {
       const buyData: BuyData = {
         id: "buy-1",
@@ -184,6 +255,21 @@ describe("publish", () => {
       expect((config as any).budgetMin).toBe(400000);
       expect((config as any).budgetMax).toBe(600000);
       expect((config as any).mustHaves).toEqual(["Pool", "Garage"]);
+    });
+  });
+
+  describe("SellDashboardConfigSchema listingStatus validation", () => {
+    it("accepts valid listingStatus values", () => {
+      const validStatuses = ["pre-listing", "active", "pending", "closed"];
+      for (const status of validStatuses) {
+        const result = SellDashboardConfigSchema.shape.listingStatus.safeParse(status);
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it("rejects invalid listingStatus values", () => {
+      const result = SellDashboardConfigSchema.shape.listingStatus.safeParse("unknown");
+      expect(result.success).toBe(false);
     });
   });
 
