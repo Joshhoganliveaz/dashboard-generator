@@ -18,6 +18,7 @@ const validSellConfig = {
   subdivision: "Saratoga Lakes",
   communityName: "Saratoga Lakes at Dobson Ranch",
   agentKey: "josh_jacqui",
+  listingStatus: "pre-listing" as const,
   beds: 4,
   baths: 2.5,
   sqft: 1920,
