@@ -6,6 +6,7 @@ import { SellDashboardConfigSchema } from "../schemas/dashboard";
 // Mock dependencies
 vi.mock("../supabase/db", () => ({
   getDashboard: vi.fn(),
+  listPropertiesOfInterest: vi.fn(),
 }));
 
 vi.mock("../template-loader", () => ({
@@ -16,14 +17,16 @@ vi.mock("../template-engine", () => ({
   injectConfig: vi.fn(),
 }));
 
-import { getDashboard } from "../supabase/db";
+import { getDashboard, listPropertiesOfInterest } from "../supabase/db";
 import { getTemplateHtml } from "../template-loader";
 import { injectConfig } from "../template-engine";
 import { buildConfigFromDashboard, renderDashboardHtml } from "../publish";
+import type { PropertyOfInterest } from "../supabase/types";
 
 const mockGetDashboard = vi.mocked(getDashboard);
 const mockGetTemplateHtml = vi.mocked(getTemplateHtml);
 const mockInjectConfig = vi.mocked(injectConfig);
+const mockListPOI = vi.mocked(listPropertiesOfInterest);
 
 const baseDashboard: Dashboard = {
   id: "abc-123",
@@ -115,9 +118,35 @@ const sellData: SellData = {
   updated_at: "2026-01-01",
 };
 
+const samplePOI: PropertyOfInterest[] = [
+  {
+    id: "poi-1",
+    dashboard_id: "abc-123",
+    address: "100 Palm Dr",
+    price: 475000,
+    listing_url: "https://zillow.com/100-palm",
+    photo_url: "https://photos.example.com/100-palm.jpg",
+    notes: "Great backyard",
+    sort_order: 0,
+    created_at: "2026-01-01",
+  },
+  {
+    id: "poi-2",
+    dashboard_id: "abc-123",
+    address: "200 Cactus Ln",
+    price: null,
+    listing_url: null,
+    photo_url: null,
+    notes: null,
+    sort_order: 1,
+    created_at: "2026-01-02",
+  },
+];
+
 describe("publish", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockListPOI.mockResolvedValue([]);
   });
 
   describe("buildConfigFromDashboard", () => {
@@ -256,6 +285,65 @@ describe("publish", () => {
       expect((config as any).budgetMax).toBe(600000);
       expect((config as any).mustHaves).toEqual(["Pool", "Garage"]);
     });
+
+    it("buyer config includes propertiesOfInterest from passed properties", () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buyer",
+        sell_data: null,
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard, samplePOI);
+
+      expect((config as any).propertiesOfInterest).toHaveLength(2);
+      expect((config as any).propertiesOfInterest[0].address).toBe("100 Palm Dr");
+      expect((config as any).propertiesOfInterest[0].price).toBe(475000);
+    });
+
+    it("buyer config defaults propertiesOfInterest to empty array when no properties passed", () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buyer",
+        sell_data: null,
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard);
+
+      expect((config as any).propertiesOfInterest).toEqual([]);
+    });
+
+    it("buysell config includes propertiesOfInterest", () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buysell",
+        sell_data: sellData,
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard, samplePOI);
+
+      expect((config as any).propertiesOfInterest).toHaveLength(2);
+    });
+
+    it("property fields map snake_case to camelCase", () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buyer",
+        sell_data: null,
+        buy_data: null,
+      };
+
+      const config = buildConfigFromDashboard(dashboard, samplePOI);
+      const poi = (config as any).propertiesOfInterest[0];
+
+      expect(poi.listingUrl).toBe("https://zillow.com/100-palm");
+      expect(poi.photoUrl).toBe("https://photos.example.com/100-palm.jpg");
+      // snake_case keys should NOT be present
+      expect(poi.listing_url).toBeUndefined();
+      expect(poi.photo_url).toBeUndefined();
+    });
   });
 
   describe("SellDashboardConfigSchema listingStatus validation", () => {
@@ -309,6 +397,59 @@ describe("publish", () => {
       await renderDashboardHtml("abc-123");
 
       expect(mockGetTemplateHtml).toHaveBeenCalledWith("buyer");
+    });
+
+    it("fetches properties for buyer type", async () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buyer",
+        sell_data: null,
+        buy_data: null,
+      };
+
+      mockGetDashboard.mockResolvedValue(dashboard);
+      mockListPOI.mockResolvedValue(samplePOI);
+      mockGetTemplateHtml.mockReturnValue("<html></html>");
+      mockInjectConfig.mockReturnValue("<html></html>");
+
+      await renderDashboardHtml("abc-123");
+
+      expect(mockListPOI).toHaveBeenCalledWith("abc-123");
+    });
+
+    it("fetches properties for buysell type", async () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "buysell",
+        sell_data: sellData,
+        buy_data: null,
+      };
+
+      mockGetDashboard.mockResolvedValue(dashboard);
+      mockListPOI.mockResolvedValue([]);
+      mockGetTemplateHtml.mockReturnValue("<html></html>");
+      mockInjectConfig.mockReturnValue("<html></html>");
+
+      await renderDashboardHtml("abc-123");
+
+      expect(mockListPOI).toHaveBeenCalledWith("abc-123");
+    });
+
+    it("does NOT fetch properties for sell type", async () => {
+      const dashboard: DashboardWithData = {
+        ...baseDashboard,
+        type: "sell",
+        sell_data: sellData,
+        buy_data: null,
+      };
+
+      mockGetDashboard.mockResolvedValue(dashboard);
+      mockGetTemplateHtml.mockReturnValue("<html></html>");
+      mockInjectConfig.mockReturnValue("<html></html>");
+
+      await renderDashboardHtml("abc-123");
+
+      expect(mockListPOI).not.toHaveBeenCalled();
     });
   });
 });
