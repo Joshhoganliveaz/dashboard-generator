@@ -78,11 +78,10 @@ describe("callClaudeWithRetry", () => {
     const error429 = new Error("Rate limited") as Error & { status: number };
     error429.status = 429;
 
-    mockParse
+    mockCreate
       .mockRejectedValueOnce(error429)
       .mockResolvedValueOnce({
-        content: [{ type: "text", text: "ok" }],
-        parsed_output: { test: true },
+        content: [{ type: "text", text: '{"test": true}' }],
         stop_reason: "end_turn",
         usage: { input_tokens: 10, output_tokens: 5 },
       });
@@ -92,7 +91,7 @@ describe("callClaudeWithRetry", () => {
       { type: "json_schema", schema: {} } as never
     );
 
-    expect(mockParse).toHaveBeenCalledTimes(2);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(result.parsed_output).toEqual({ test: true });
   });
 
@@ -100,11 +99,10 @@ describe("callClaudeWithRetry", () => {
     const error500 = new Error("Server error") as Error & { status: number };
     error500.status = 500;
 
-    mockParse
+    mockCreate
       .mockRejectedValueOnce(error500)
       .mockResolvedValueOnce({
-        content: [{ type: "text", text: "ok" }],
-        parsed_output: { result: "success" },
+        content: [{ type: "text", text: '{"result": "success"}' }],
         stop_reason: "end_turn",
         usage: { input_tokens: 10, output_tokens: 5 },
       });
@@ -114,7 +112,7 @@ describe("callClaudeWithRetry", () => {
       { type: "json_schema", schema: {} } as never
     );
 
-    expect(mockParse).toHaveBeenCalledTimes(2);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(result.parsed_output).toEqual({ result: "success" });
   });
 
@@ -122,7 +120,7 @@ describe("callClaudeWithRetry", () => {
     const error400 = new Error("Bad request") as Error & { status: number };
     error400.status = 400;
 
-    mockParse.mockRejectedValueOnce(error400);
+    mockCreate.mockRejectedValueOnce(error400);
 
     await expect(
       callClaudeWithRetry(
@@ -131,7 +129,7 @@ describe("callClaudeWithRetry", () => {
       )
     ).rejects.toThrow("Bad request");
 
-    expect(mockParse).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 
   it("uses exponential backoff with increasing delays", async () => {
@@ -139,14 +137,13 @@ describe("callClaudeWithRetry", () => {
     error429.status = 429;
 
     const callTimes: number[] = [];
-    mockParse
+    mockCreate
       .mockImplementationOnce(async () => { callTimes.push(Date.now()); throw error429; })
       .mockImplementationOnce(async () => { callTimes.push(Date.now()); throw error429; })
       .mockImplementation(async () => {
         callTimes.push(Date.now());
         return {
-          content: [{ type: "text", text: "ok" }],
-          parsed_output: {},
+          content: [{ type: "text", text: '{}' }],
           stop_reason: "end_turn",
           usage: { input_tokens: 10, output_tokens: 5 },
         };
@@ -158,7 +155,7 @@ describe("callClaudeWithRetry", () => {
     );
 
     // Should have been called 3 times (2 retries + final success)
-    expect(mockParse).toHaveBeenCalledTimes(3);
+    expect(mockCreate).toHaveBeenCalledTimes(3);
     expect(result.parsed_output).toEqual({});
 
     // Verify delays increase (second gap > first gap)
@@ -171,30 +168,31 @@ describe("callClaudeWithRetry", () => {
 });
 
 describe("extractMLSData", () => {
-  it("calls parse with structured output format", async () => {
-    mockParse.mockResolvedValue({
-      content: [{ type: "text", text: "ok" }],
-      parsed_output: {
-        beds: 4,
-        baths: 2.5,
-        sqft: 1920,
-        yearBuilt: 1986,
-        pool: true,
-        stories: 1,
-        lotSqft: 8500,
-        address: "2252 S Estrella Cir",
-        subdivision: "Saratoga Lakes",
-        features: ["pool", "covered patio"],
-      },
+  it("calls create and parses JSON from response text", async () => {
+    const mlsJson = JSON.stringify({
+      beds: 4,
+      baths: 2.5,
+      sqft: 1920,
+      yearBuilt: 1986,
+      pool: true,
+      stories: 1,
+      lotSqft: 8500,
+      address: "2252 S Estrella Cir",
+      subdivision: "Saratoga Lakes",
+      features: ["pool", "covered patio"],
+    });
+
+    mockCreate.mockResolvedValue({
+      content: [{ type: "text", text: mlsJson }],
       stop_reason: "end_turn",
       usage: { input_tokens: 10, output_tokens: 50 },
     });
 
     const result = await extractMLSData("base64pdfdata");
 
-    expect(mockParse).toHaveBeenCalledWith(
+    expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        output_format: expect.objectContaining({ type: "json_schema" }),
+        max_tokens: 4096,
       })
     );
 

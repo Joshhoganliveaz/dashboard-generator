@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
   mockSingle,
+  mockMaybeSingle,
   mockOrder,
   mockEq,
   mockSelect,
@@ -15,8 +16,9 @@ const {
   mockFrom,
 } = vi.hoisted(() => {
   const mockSingle = vi.fn();
+  const mockMaybeSingle = vi.fn();
   const mockOrder = vi.fn().mockReturnValue({ data: [], error: null });
-  const mockEq = vi.fn().mockReturnValue({ single: mockSingle });
+  const mockEq = vi.fn().mockReturnValue({ single: mockSingle, maybeSingle: mockMaybeSingle });
   const mockSelect = vi.fn().mockReturnValue({ order: mockOrder, eq: mockEq });
   const mockInsert = vi.fn().mockReturnValue({
     select: vi.fn().mockReturnValue({ single: mockSingle }),
@@ -32,7 +34,7 @@ const {
     upsert: mockUpsert,
   });
 
-  return { mockSingle, mockOrder, mockEq, mockSelect, mockInsert, mockUpdate, mockUpsert, mockFrom };
+  return { mockSingle, mockMaybeSingle, mockOrder, mockEq, mockSelect, mockInsert, mockUpdate, mockUpsert, mockFrom };
 });
 
 // Mock the server module's createClient
@@ -67,7 +69,7 @@ describe("Supabase DB helpers", () => {
     mockUpsert.mockReturnValue({
       select: vi.fn().mockReturnValue({ single: mockSingle }),
     });
-    mockEq.mockReturnValue({ single: mockSingle });
+    mockEq.mockReturnValue({ single: mockSingle, maybeSingle: mockMaybeSingle });
     mockOrder.mockReturnValue({ data: [], error: null });
   });
 
@@ -169,28 +171,30 @@ describe("Supabase DB helpers", () => {
   });
 
   describe("upsertSellData", () => {
-    it("calls upsert on sell_data with dashboard_id", async () => {
+    it("inserts into sell_data when row does not exist", async () => {
+      // maybeSingle returns null (row doesn't exist)
+      mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+      // insert().select().single() returns new row
       mockSingle.mockResolvedValueOnce({ data: { id: "sd-1" }, error: null });
 
       await upsertSellData("dash-1", { address: "123 Main St" });
 
       expect(mockFrom).toHaveBeenCalledWith("sell_data");
-      const upsertCall = mockUpsert.mock.calls[0][0];
-      expect(upsertCall.dashboard_id).toBe("dash-1");
-      expect(upsertCall.address).toBe("123 Main St");
+      expect(mockInsert).toHaveBeenCalledWith({ dashboard_id: "dash-1", address: "123 Main St" });
     });
   });
 
   describe("upsertBuyData", () => {
-    it("calls upsert on buy_data with dashboard_id", async () => {
+    it("inserts into buy_data when row does not exist", async () => {
+      // maybeSingle returns null (row doesn't exist)
+      mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+      // insert().select().single() returns new row
       mockSingle.mockResolvedValueOnce({ data: { id: "bd-1" }, error: null });
 
       await upsertBuyData("dash-1", { target_areas: "Scottsdale" });
 
       expect(mockFrom).toHaveBeenCalledWith("buy_data");
-      const upsertCall = mockUpsert.mock.calls[0][0];
-      expect(upsertCall.dashboard_id).toBe("dash-1");
-      expect(upsertCall.target_areas).toBe("Scottsdale");
+      expect(mockInsert).toHaveBeenCalledWith({ dashboard_id: "dash-1", target_areas: "Scottsdale" });
     });
   });
 
