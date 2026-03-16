@@ -134,6 +134,16 @@ export const SellDashboardConfigSchema = z.object({
 
 export type SellDashboardConfig = z.infer<typeof SellDashboardConfigSchema>;
 
+// --- Property of Interest Config ---
+
+const PropertyOfInterestConfigSchema = z.object({
+  address: z.string(),
+  price: z.number().optional(),
+  listingUrl: z.string().optional(),
+  photoUrl: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 // --- Buyer Dashboard ---
 
 const NeighborhoodCardSchema = z.object({
@@ -190,6 +200,8 @@ export const BuyerDashboardConfigSchema = z.object({
   timeline: z.array(BuyerTimelinePhaseSchema),
   // Optional market context
   marketSnapshot: z.array(MarketSnapshotItemSchema),
+  // Properties of interest
+  propertiesOfInterest: z.array(PropertyOfInterestConfigSchema),
   // Links
   homeSearchUrl: z.string().optional(),
 });
@@ -252,6 +264,8 @@ export const BuySellDashboardConfigSchema = z.object({
   cromfordSource: z.string(),
   // Features
   features: z.array(FeatureSchema),
+  // Properties of interest
+  propertiesOfInterest: z.array(PropertyOfInterestConfigSchema),
   // Links
   homeSearchUrl: z.string().optional(),
   sellReferenceLinks: z.array(z.object({ url: z.string(), label: z.string().optional() })).optional(),

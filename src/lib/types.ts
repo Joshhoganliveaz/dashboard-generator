@@ -213,6 +213,16 @@ export interface SellDashboardConfig {
   referenceLinks?: { url: string; label?: string }[];
 }
 
+// --- Properties of Interest (published CONFIG shape) ---
+
+export interface PropertyOfInterestConfig {
+  address: string;
+  price?: number;
+  listingUrl?: string;
+  photoUrl?: string;
+  notes?: string;
+}
+
 // --- Buyer Dashboard Types ---
 
 export interface NeighborhoodCard {
@@ -263,6 +273,8 @@ export interface BuyerDashboardConfig {
   timeline: { phase: string; title: string; items: string[] }[];
   // Optional market context from CSV
   marketSnapshot: { label: string; value: string }[];
+  // Properties of interest
+  propertiesOfInterest: PropertyOfInterestConfig[];
   // Links
   homeSearchUrl?: string;
 }
@@ -316,6 +328,8 @@ export interface BuySellDashboardConfig {
   cromfordSource: string;
   // Features from MLS
   features: Feature[];
+  // Properties of interest
+  propertiesOfInterest: PropertyOfInterestConfig[];
   // Links
   homeSearchUrl?: string;
   sellReferenceLinks?: { url: string; label?: string }[];

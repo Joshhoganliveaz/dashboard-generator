@@ -1,4 +1,4 @@
-import { getDashboard } from "@/lib/supabase/db";
+import { getDashboard, listPropertiesOfInterest } from "@/lib/supabase/db";
 import { getTemplateHtml } from "@/lib/template-loader";
 import { injectConfig } from "@/lib/template-engine";
 import type { DashboardWithData } from "@/lib/supabase/types";
@@ -8,7 +8,9 @@ import type {
   BuyerDashboardConfig,
   BuySellDashboardConfig,
   MarketMetrics,
+  PropertyOfInterestConfig,
 } from "@/lib/types";
+import type { PropertyOfInterest } from "@/lib/supabase/types";
 
 const defaultMetrics: MarketMetrics = {
   medianSoldPrice: 0,
@@ -34,7 +36,18 @@ const defaultMetrics: MarketMetrics = {
  * Map a DashboardWithData record to the CONFIG shape the template expects.
  * The CONFIG is the same structure the generation pipeline produces.
  */
-export function buildConfigFromDashboard(dashboard: DashboardWithData): AnyDashboardConfig {
+/** Map DB PropertyOfInterest rows to camelCase CONFIG shape */
+function mapPOI(properties: PropertyOfInterest[]): PropertyOfInterestConfig[] {
+  return properties.map((p) => ({
+    address: p.address,
+    price: p.price ?? undefined,
+    listingUrl: p.listing_url ?? undefined,
+    photoUrl: p.photo_url ?? undefined,
+    notes: p.notes ?? undefined,
+  }));
+}
+
+export function buildConfigFromDashboard(dashboard: DashboardWithData, properties?: PropertyOfInterest[]): AnyDashboardConfig {
   const { type, client_names, full_name, email, agent_key } = dashboard;
 
   if (type === "sell") {
@@ -104,6 +117,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData): AnyDashb
       schoolDistricts: bd?.school_districts ?? [],
       timeline: bd?.timeline ?? [],
       marketSnapshot: bd?.market_snapshot ?? [],
+      propertiesOfInterest: mapPOI(properties ?? []),
       homeSearchUrl: bd?.home_search_url ?? "",
     };
     return config;
@@ -157,6 +171,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData): AnyDashb
     cromfordSource: "",
     // Features
     features: sd?.features ?? [],
+    propertiesOfInterest: mapPOI(properties ?? []),
     homeSearchUrl: bd?.home_search_url ?? "",
   };
   return config;
@@ -169,7 +184,14 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData): AnyDashb
 export async function renderDashboardHtml(dashboardId: string): Promise<string> {
   const dashboard = await getDashboard(dashboardId);
   const template = getTemplateHtml(dashboard.type);
-  const config = buildConfigFromDashboard(dashboard);
+
+  // Fetch POI for buyer/buysell types (sell dashboards don't show POI)
+  let properties: PropertyOfInterest[] | undefined;
+  if (dashboard.type === "buyer" || dashboard.type === "buysell") {
+    properties = await listPropertiesOfInterest(dashboard.id);
+  }
+
+  const config = buildConfigFromDashboard(dashboard, properties);
   return injectConfig(template, config);
 }
 
