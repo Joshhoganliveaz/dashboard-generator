@@ -695,13 +695,6 @@ function render(){
   priceBody += '<div class="pricing-stat-sub">' + MARKET_METRICS.subdivisionSalesCount + ' in subdivision</div>';
   priceBody += '</div>';
 
-  // Card 6 - Price per SF
-  priceBody += '<div class="pricing-stat-card">';
-  priceBody += '<div class="pricing-stat-icon">\uD83D\uDCCF</div>';
-  priceBody += '<div class="pricing-stat-value">$' + Math.round(MARKET_METRICS.avgPpsf) + '</div>';
-  priceBody += '<div class="pricing-stat-label">AVG PRICE/SF</div>';
-  priceBody += '<div class="pricing-stat-sub">$' + Math.round(MARKET_METRICS.ppsfRange.low) + ' \u2013 $' + Math.round(MARKET_METRICS.ppsfRange.high) + ' range</div>';
-  priceBody += '</div>';
 
   priceBody += '</div>';
 
