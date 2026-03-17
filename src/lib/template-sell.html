@@ -529,8 +529,6 @@ function render(){
 
   // Summary stats
   compBody += '<div class="prop-summary" style="margin-bottom:14px">';
-  compBody += '<div class="prop-stat"><div class="prop-stat-label">Median Sold Price</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">' + fmt(MARKET_METRICS.medianSoldPrice) + '</div></div>';
-  compBody += '<div class="prop-stat"><div class="prop-stat-label">Median $/SF</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">$' + MARKET_METRICS.medianPpsf + '</div></div>';
   compBody += '<div class="prop-stat"><div class="prop-stat-label">Avg Days on Market</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">' + MARKET_METRICS.avgDom + '</div></div>';
   compBody += '<div class="prop-stat"><div class="prop-stat-label">Derived Value Range</div><div class="prop-stat-value" style="font-size:16px;color:var(--terra)">' + fmtK(MARKET_METRICS.derivedRange.low) + ' \u2013 ' + fmtK(MARKET_METRICS.derivedRange.high) + '</div></div>';
   compBody += '</div>';
@@ -622,7 +620,6 @@ function render(){
   priceBody += '<div class="value-display">';
   priceBody += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--slate-light);font-weight:600;margin-bottom:8px">Recommended List Price</div>';
   priceBody += '<div class="big">' + fmt(CONFIG.estimatedSalePrice) + '</div>';
-  priceBody += '<div class="range">' + fmtK(MARKET_METRICS.derivedRange.low) + ' \u2013 ' + fmtK(MARKET_METRICS.derivedRange.high) + ' value range</div>';
   priceBody += '</div>';
   priceBody += '<div class="narrative-box">' + CONFIG.pricingStrategy + '</div>';
 
