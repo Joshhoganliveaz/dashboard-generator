@@ -211,6 +211,7 @@ input[type=number]:focus{border-color:var(--terra)}
 
 <script>
 // === UTILITY FUNCTIONS ===
+var _raf = 0;
 function showTab(id){
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
@@ -228,7 +229,7 @@ function section(sKey,title,bodyHtml,titleStyle){
   return '<div class="section'+(isOpen?' open':'')+'"><div class="section-header" onclick="toggleSection(\''+sKey+'\')"><span class="section-title"'+tStyle+'>'+title+'</span><span class="section-arrow">&#9660;</span></div><div class="section-body">'+bodyHtml+'</div></div>';
 }
 function slider(label,key,min,max,step,prefix,suffix){
-  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);render()"></div>';
+  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);this.parentNode.querySelector(\'.field-value\').textContent=\''+(prefix||'')+'\'+Number(this.value).toLocaleString()+\''+(suffix||'')+'\';cancelAnimationFrame(_raf);_raf=requestAnimationFrame(render)"></div>';
 }
 function numInput(label,key,min,max,note){
   return '<div class="field"><div class="field-label">'+label+'</div><input type="number" value="'+S[key]+'" min="'+min+'" max="'+max+'" onchange="S.'+key+'=Number(this.value);render()">'+(note?'<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">'+note+'</div>':'')+'</div>';
