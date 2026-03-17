@@ -224,7 +224,7 @@ function section(sKey,title,bodyHtml,titleStyle){
   return '<div class="section'+(isOpen?' open':'')+'"><div class="section-header" onclick="toggleSection(\''+sKey+'\')"><span class="section-title"'+tStyle+'>'+title+'</span><span class="section-arrow">&#9660;</span></div><div class="section-body">'+bodyHtml+'</div></div>';
 }
 function slider(label,key,min,max,step,prefix,suffix){
-  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);this.parentNode.querySelector(\'.field-value\').textContent=\''+(prefix||'')+'\'+Number(this.value).toLocaleString()+\''+(suffix||'')+'\';cancelAnimationFrame(_raf);_raf=requestAnimationFrame(render)"></div>';
+  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);this.parentNode.querySelector(\'.field-value\').textContent=\''+(prefix||'')+'\'+Number(this.value).toLocaleString()+\''+(suffix||'')+'\';updateNetProceeds()"></div>';
 }
 function numInput(label,key,min,max,note){
   return '<div class="field"><div class="field-label">'+label+'</div><input type="number" value="'+S[key]+'" min="'+min+'" max="'+max+'" onchange="S.'+key+'=Number(this.value);render()">'+(note?'<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">'+note+'</div>':'')+'</div>';
@@ -414,6 +414,32 @@ function calc() {
   return { listingFee: listingFee, buyerFee: buyerFee, totalCommission: totalCommission, prepCost: prepCost, totalCosts: totalCosts, netProceeds: netProceeds, equity: equity, titleEscrow: titleEscrow };
 }
 
+// === LIGHTWEIGHT NET PROCEEDS UPDATE (no DOM rebuild) ===
+function updateNetProceeds() {
+  var c = calc();
+  var el = document.getElementById('np-salePrice');
+  if (!el) { render(); return; } // fallback if IDs not yet in DOM
+  el.textContent = fmt(S.salePrice);
+  document.getElementById('np-listingFee').textContent = '-' + fmt(c.listingFee);
+  document.getElementById('np-listingLabel').textContent = 'Listing Commission (' + S.listingPct + '%)';
+  document.getElementById('np-buyerFee').textContent = '-' + fmt(c.buyerFee);
+  document.getElementById('np-buyerLabel').textContent = 'Buyer Broker (' + S.buyerPct + '%)';
+  document.getElementById('np-titleEscrow').textContent = '-' + fmt(c.titleEscrow);
+  document.getElementById('np-loanPayoff').textContent = '-' + fmt(S.loanPayoff);
+  document.getElementById('np-prepCosts').textContent = '-' + fmt(c.prepCost);
+  document.getElementById('np-prepCosts').style.color = c.prepCost > 0 ? 'var(--negative)' : 'var(--neutral)';
+  var npColor = c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)';
+  document.getElementById('np-total').textContent = fmt(c.netProceeds);
+  document.getElementById('np-total').style.color = npColor;
+  document.getElementById('np-totalBox').style.background = c.netProceeds >= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)';
+  // Update top metric card for cash to seller
+  var cashEl = document.getElementById('metric-cashToSeller');
+  if (cashEl) {
+    cashEl.textContent = fmt(c.netProceeds);
+    cashEl.style.color = c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)';
+  }
+}
+
 // === RENDER ===
 function render(){
   var now = new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'});
@@ -438,8 +464,8 @@ function render(){
 
   // Top Metrics
   t1 += '<div class="metrics">';
-  t1 += '<div class="metric-card"><div class="metric-label">Recommended List Price</div><div class="metric-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</div><div class="metric-sub">Based on ' + MARKET_METRICS.compsUsedForValue + ' comparable sales</div></div>';
-  t1 += '<div class="metric-card"><div class="metric-label">Est. Cash to Seller</div><div class="metric-value" style="color:' + (c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)') + '">' + fmt(c.netProceeds) + '</div><div class="metric-sub">After all costs &amp; payoffs</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Recommended List Price</div><div class="metric-value" style="color:var(--terra)">' + fmt(CONFIG.estimatedSalePrice) + '</div><div class="metric-sub">Based on ' + MARKET_METRICS.compsUsedForValue + ' comparable sales</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Est. Cash to Seller</div><div class="metric-value" id="metric-cashToSeller" style="color:' + (c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)') + '">' + fmt(c.netProceeds) + '</div><div class="metric-sub">After all costs &amp; payoffs</div></div>';
   t1 += '</div>';
 
   // Property Snapshot
@@ -480,14 +506,14 @@ function render(){
   eqBody += slider('Sale Price', 'salePrice', spMin, spMax, 5000, '$', '');
 
   // Loan payoff input
-  eqBody += numInput('Loan Payoff', 'loanPayoff', 0, Math.round(CONFIG.estimatedSalePrice * 0.9), CONFIG.loanAmount ? 'Estimated from loan records' : '');
+  eqBody += '<div class="field"><div class="field-label">Loan Payoff</div><input type="number" value="' + S.loanPayoff + '" min="0" max="' + Math.round(CONFIG.estimatedSalePrice * 0.9) + '" onchange="S.loanPayoff=Number(this.value);updateNetProceeds()">' + (CONFIG.loanAmount ? '<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">Estimated from loan records</div>' : '') + '</div>';
 
   // Buyer Broker Commission buttons
   eqBody += '<div class="field"><div class="field-label">Buyer Broker Commission</div>';
   eqBody += '<div class="btn-group">';
   var buyerPcts = [2, 2.5, 3];
   for (var bp = 0; bp < buyerPcts.length; bp++) {
-    eqBody += '<button class="btn-opt' + (S.buyerPct === buyerPcts[bp] ? ' active' : '') + '" onclick="S.buyerPct=' + buyerPcts[bp] + ';render()">' + buyerPcts[bp] + '%</button>';
+    eqBody += '<button class="btn-opt' + (S.buyerPct === buyerPcts[bp] ? ' active' : '') + '" onclick="S.buyerPct=' + buyerPcts[bp] + ';this.parentNode.querySelectorAll(\'.btn-opt\').forEach(function(b){b.classList.remove(\'active\')});this.classList.add(\'active\');updateNetProceeds()">' + buyerPcts[bp] + '%</button>';
   }
   eqBody += '</div></div>';
 
@@ -496,19 +522,19 @@ function render(){
 
   // Summary breakdown
   eqBody += '<div style="margin-top:14px">';
-  eqBody += '<div class="summary-row"><span class="summary-label">Sale Price</span><span class="summary-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</span></div>';
-  eqBody += '<div class="summary-row"><span class="summary-label">Listing Commission (' + S.listingPct + '%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.listingFee) + '</span></div>';
-  eqBody += '<div class="summary-row"><span class="summary-label">Buyer Broker (' + S.buyerPct + '%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.buyerFee) + '</span></div>';
-  eqBody += '<div class="summary-row"><span class="summary-label">Title & Escrow (~0.5%)</span><span class="summary-value" style="color:var(--negative)">-' + fmt(c.titleEscrow) + '</span></div>';
-  eqBody += '<div class="summary-row"><span class="summary-label">Loan Payoff</span><span class="summary-value" style="color:var(--negative)">-' + fmt(S.loanPayoff) + '</span></div>';
-  eqBody += '<div class="summary-row"><span class="summary-label">Prep Costs</span><span class="summary-value" style="color:' + (c.prepCost > 0 ? 'var(--negative)' : 'var(--neutral)') + '">-' + fmt(c.prepCost) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Sale Price</span><span id="np-salePrice" class="summary-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</span></div>';
+  eqBody += '<div class="summary-row"><span id="np-listingLabel" class="summary-label">Listing Commission (' + S.listingPct + '%)</span><span id="np-listingFee" class="summary-value" style="color:var(--negative)">-' + fmt(c.listingFee) + '</span></div>';
+  eqBody += '<div class="summary-row"><span id="np-buyerLabel" class="summary-label">Buyer Broker (' + S.buyerPct + '%)</span><span id="np-buyerFee" class="summary-value" style="color:var(--negative)">-' + fmt(c.buyerFee) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Title & Escrow (~0.5%)</span><span id="np-titleEscrow" class="summary-value" style="color:var(--negative)">-' + fmt(c.titleEscrow) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Loan Payoff</span><span id="np-loanPayoff" class="summary-value" style="color:var(--negative)">-' + fmt(S.loanPayoff) + '</span></div>';
+  eqBody += '<div class="summary-row"><span class="summary-label">Prep Costs</span><span id="np-prepCosts" class="summary-value" style="color:' + (c.prepCost > 0 ? 'var(--negative)' : 'var(--neutral)') + '">-' + fmt(c.prepCost) + '</span></div>';
   eqBody += '</div>';
 
   // Net Proceeds total
   var npColor = c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)';
-  eqBody += '<div class="summary-total" style="background:' + (c.netProceeds >= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)') + '">';
+  eqBody += '<div id="np-totalBox" class="summary-total" style="background:' + (c.netProceeds >= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)') + '">';
   eqBody += '<span style="font-size:14px;font-weight:800;color:var(--slate)">Estimated Net Proceeds</span>';
-  eqBody += '<span style="font-size:18px;font-weight:900;color:' + npColor + '">' + fmt(c.netProceeds) + '</span>';
+  eqBody += '<span id="np-total" style="font-size:18px;font-weight:900;color:' + npColor + '">' + fmt(c.netProceeds) + '</span>';
   eqBody += '</div>';
 
   t1 += section('equity', 'Equity & Net Proceeds Calculator', eqBody);
