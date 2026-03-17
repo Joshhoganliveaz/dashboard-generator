@@ -206,6 +206,7 @@ input[type=number]:focus{border-color:var(--terra)}
 
 <script>
 // === UTILITY FUNCTIONS ===
+var _raf = 0;
 function showTab(id){
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
@@ -223,7 +224,7 @@ function section(sKey,title,bodyHtml,titleStyle){
   return '<div class="section'+(isOpen?' open':'')+'"><div class="section-header" onclick="toggleSection(\''+sKey+'\')"><span class="section-title"'+tStyle+'>'+title+'</span><span class="section-arrow">&#9660;</span></div><div class="section-body">'+bodyHtml+'</div></div>';
 }
 function slider(label,key,min,max,step,prefix,suffix){
-  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);render()"></div>';
+  return '<div class="field"><div class="field-label"><span>'+label+'</span><span class="field-value">'+(prefix||'')+S[key].toLocaleString()+(suffix||'')+'</span></div><input type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+S[key]+'" oninput="S.'+key+'=Number(this.value);this.parentNode.querySelector(\'.field-value\').textContent=\''+(prefix||'')+'\'+Number(this.value).toLocaleString()+\''+(suffix||'')+'\';cancelAnimationFrame(_raf);_raf=requestAnimationFrame(render)"></div>';
 }
 function numInput(label,key,min,max,note){
   return '<div class="field"><div class="field-label">'+label+'</div><input type="number" value="'+S[key]+'" min="'+min+'" max="'+max+'" onchange="S.'+key+'=Number(this.value);render()">'+(note?'<div style="font-size:10px;color:var(--neutral);font-style:italic;margin-top:2px">'+note+'</div>':'')+'</div>';
@@ -437,9 +438,8 @@ function render(){
 
   // Top Metrics
   t1 += '<div class="metrics">';
-  t1 += '<div class="metric-card"><div class="metric-label">Est. Sale Price</div><div class="metric-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</div><div class="metric-sub">Based on ' + MARKET_METRICS.compsUsedForValue + ' comparable sales</div></div>';
+  t1 += '<div class="metric-card"><div class="metric-label">Recommended List Price</div><div class="metric-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</div><div class="metric-sub">Based on ' + MARKET_METRICS.compsUsedForValue + ' comparable sales</div></div>';
   t1 += '<div class="metric-card"><div class="metric-label">Est. Cash to Seller</div><div class="metric-value" style="color:' + (c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)') + '">' + fmt(c.netProceeds) + '</div><div class="metric-sub">After all costs &amp; payoffs</div></div>';
-  t1 += '<div class="metric-card"><div class="metric-label">Home Equity</div><div class="metric-value" style="color:var(--positive)">' + fmt(c.equity) + '</div><div class="metric-sub">Sale price minus loan payoff</div></div>';
   t1 += '</div>';
 
   // Property Snapshot
@@ -471,8 +471,6 @@ function render(){
     }
   }
 
-  t1 += section('property', 'Property Snapshot', propBody);
-
   // Equity & Net Proceeds Calculator
   var eqBody = '';
 
@@ -481,8 +479,8 @@ function render(){
   var spMax = Math.round(MARKET_METRICS.derivedRange.high * 1.2);
   eqBody += slider('Sale Price', 'salePrice', spMin, spMax, 5000, '$', '');
 
-  // Loan payoff slider
-  eqBody += slider('Loan Payoff', 'loanPayoff', 0, Math.round(CONFIG.estimatedSalePrice * 0.9), 5000, '$', '');
+  // Loan payoff input
+  eqBody += numInput('Loan Payoff', 'loanPayoff', 0, Math.round(CONFIG.estimatedSalePrice * 0.9), CONFIG.loanAmount ? 'Estimated from loan records' : '');
 
   // Buyer Broker Commission buttons
   eqBody += '<div class="field"><div class="field-label">Buyer Broker Commission</div>';
@@ -514,6 +512,8 @@ function render(){
   eqBody += '</div>';
 
   t1 += section('equity', 'Equity & Net Proceeds Calculator', eqBody);
+
+  t1 += section('property', 'Property Snapshot', propBody);
 
   document.getElementById('tab-home').innerHTML = t1;
 
