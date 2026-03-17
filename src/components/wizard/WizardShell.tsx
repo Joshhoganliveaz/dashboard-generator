@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Check } from "lucide-react";
 import type { DashboardType } from "@/lib/supabase/types";
 
@@ -38,6 +40,7 @@ interface WizardShellProps {
   dashboardType: DashboardType;
   onStepClick: (step: number) => void;
   saving: boolean;
+  onSave?: () => Promise<void>;
   children: React.ReactNode;
 }
 
@@ -46,16 +49,74 @@ export default function WizardShell({
   dashboardType,
   onStepClick,
   saving,
+  onSave,
   children,
 }: WizardShellProps) {
   const steps = getSteps(dashboardType);
+  const router = useRouter();
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [exitSaving, setExitSaving] = useState(false);
+
+  const handleExit = () => {
+    setShowExitDialog(true);
+  };
+
+  const handleExitWithSave = async () => {
+    setExitSaving(true);
+    try {
+      if (onSave) await onSave();
+    } catch {
+      // Save failed, still navigate — user chose to leave
+    }
+    setExitSaving(false);
+    setShowExitDialog(false);
+    router.push("/");
+  };
+
+  const handleExitWithoutSave = () => {
+    setShowExitDialog(false);
+    router.push("/");
+  };
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
+      {/* Exit Confirmation Dialog */}
+      {showExitDialog && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 className="text-lg font-display font-bold text-slate mb-2">Leave Wizard?</h3>
+            <p className="text-sm text-slate-light mb-6">Would you like to save your progress before leaving?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleExitWithSave}
+                disabled={exitSaving}
+                className="w-full bg-terra text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-terra-dark transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {exitSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save & Exit"}
+              </button>
+              <button
+                onClick={handleExitWithoutSave}
+                disabled={exitSaving}
+                className="w-full bg-sand-pale text-slate px-4 py-2.5 rounded-lg font-semibold hover:bg-sand transition-colors disabled:opacity-60"
+              >
+                Exit Without Saving
+              </button>
+              <button
+                onClick={() => setShowExitDialog(false)}
+                disabled={exitSaving}
+                className="w-full text-slate-light px-4 py-2 rounded-lg text-sm hover:text-slate transition-colors disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-slate text-white px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
+          <button onClick={handleExit} className="text-left hover:opacity-80 transition-opacity">
             <h1 className="text-xl font-display font-bold">Dashboard Wizard</h1>
             <p className="text-sm opacity-70">
               {dashboardType === "sell"
@@ -64,7 +125,7 @@ export default function WizardShell({
                 ? "Buyer Dashboard"
                 : "Buy / Sell Dashboard"}
             </p>
-          </div>
+          </button>
           {saving && (
             <div className="flex items-center gap-2 text-sm text-sand">
               <Loader2 className="w-4 h-4 animate-spin" />

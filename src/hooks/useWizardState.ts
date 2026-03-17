@@ -142,6 +142,17 @@ export function useWizardState(dashboardId: string) {
     []
   );
 
+  // Save current local state to server without navigating
+  const saveCurrent = useCallback(async () => {
+    if (!dashboard || saving) return;
+    setSaving(true);
+    try {
+      await saveDashboardFields(dashboard);
+    } finally {
+      setSaving(false);
+    }
+  }, [dashboard, saving, saveDashboardFields]);
+
   return {
     dashboard,
     currentStep,
@@ -150,6 +161,7 @@ export function useWizardState(dashboardId: string) {
     saving,
     error,
     goToStep,
+    saveCurrent,
     updateDashboardData,
   };
 }

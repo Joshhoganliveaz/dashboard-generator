@@ -23,6 +23,7 @@ function WizardContent() {
     saving,
     error,
     goToStep,
+    saveCurrent,
     updateDashboardData,
   } = useWizardState(dashboardId);
 
@@ -162,6 +163,7 @@ function WizardContent() {
       dashboardType={dashboard.type}
       onStepClick={(step) => goToStep(step)}
       saving={saving}
+      onSave={saveCurrent}
     >
       {renderStepContent()}
     </WizardShell>
