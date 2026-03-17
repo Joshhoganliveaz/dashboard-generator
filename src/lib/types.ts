@@ -1,3 +1,41 @@
+// --- Monsoon Tax Record Types ---
+
+export interface LoanOrigination {
+  date: string;       // ISO date (YYYY-MM-DD)
+  amount: number;     // Mortgage amount
+  lender: string;     // Mortgage company name
+  financeType: string; // "Conventional", "FHA", "VA", etc.
+  assumedRate?: number; // PMMS rate for this loan's origination date (decimal, e.g. 0.051)
+}
+
+export interface DeedHistoryEntry {
+  saleDate: string;
+  buyer: string;
+  seller: string;
+  salePrice: number;
+  downPayment: number;
+  mortgageAmount: number;
+  financing: string;
+}
+
+export interface MonsoonExtraction {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  livingArea: number;
+  yearBuilt: number;
+  lotSqft: number;
+  stories: number;
+  pool: boolean;
+  poolSqft: number;
+  garage: number;
+  deedHistory: DeedHistoryEntry[];
+  loanOriginationHistory: LoanOrigination[];
+}
+
+// --- Dashboard Generator Types ---
+
 export interface ClientDetails {
   folderName: string;
   clientNames: string;
@@ -179,6 +217,10 @@ export interface SellDashboardConfig {
   // Sell-specific
   estimatedSalePrice: number;
   loanPayoff: number;
+  loanAmount?: number;
+  interestRate?: number;
+  refiDetected?: boolean;
+  secondLienAmount?: number;
   propertyHighlights: string[];
   upgrades: { name: string; value: string }[];
   // Market
@@ -293,6 +335,10 @@ export interface BuySellDashboardConfig {
   sellStories: number;
   estimatedSalePrice: number;
   loanPayoff: number;
+  loanAmount?: number;
+  interestRate?: number;
+  refiDetected?: boolean;
+  secondLienAmount?: number;
   sellPropertyHighlights: string[];
   sellComps: CompSale[];
   sellMarketMetrics: MarketMetrics;
