@@ -25,9 +25,13 @@ describe("serializeValue", () => {
     expect(result).toContain("<\\/script>");
   });
 
-  it("escapes backticks", () => {
+  it("preserves backticks without escaping (valid JSON)", () => {
     const result = serializeValue("use `code` here");
-    expect(result).toContain("\\`");
+    expect(result).toContain("`");
+    // Backticks must NOT be escaped — \` is invalid in JSON
+    expect(result).not.toContain("\\`");
+    // Verify it round-trips through JSON.parse
+    expect(JSON.parse(result)).toBe("use `code` here");
   });
 
   it("escapes Unicode line/paragraph separators", () => {

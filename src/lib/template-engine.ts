@@ -1,9 +1,13 @@
 import type { AnyDashboardConfig } from "./types";
 
 /**
- * Serialize a JS value as a JavaScript literal (not JSON).
+ * Serialize a JS value as a JSON-compatible object literal.
+ * - Keys are quoted (valid JSON AND valid JS)
  * - Strings use double quotes with robust escaping
  * - Arrays and objects are formatted readably
+ *
+ * Output is valid JSON so extractConfig can use JSON.parse instead of
+ * new Function(), which is blocked on Cloudflare Workers.
  */
 export function serializeValue(val: unknown, indent: number = 2): string {
   if (val === null || val === undefined) return "null";
@@ -13,7 +17,7 @@ export function serializeValue(val: unknown, indent: number = 2): string {
     return String(val);
   }
   if (typeof val === "string") {
-    // Robust escaping for JS string literals
+    // Robust escaping for JSON string literals embedded in HTML <script>
     const escaped = val
       .replace(/\\/g, "\\\\")
       .replace(/"/g, '\\"')
@@ -22,8 +26,9 @@ export function serializeValue(val: unknown, indent: number = 2): string {
       .replace(/\t/g, "\\t")
       .replace(/\u2028/g, "\\u2028") // line separator
       .replace(/\u2029/g, "\\u2029") // paragraph separator
-      .replace(/<\/(script)/gi, "<\\/$1") // prevent </script> breaking the HTML
-      .replace(/`/g, "\\`"); // backticks
+      .replace(/<\/(script)/gi, "<\\/$1"); // prevent </script> breaking the HTML
+    // Note: backticks are NOT escaped — they're valid unescaped in JSON strings,
+    // and \` is an invalid JSON escape sequence.
     return `"${escaped}"`;
   }
   if (Array.isArray(val)) {
@@ -35,7 +40,7 @@ export function serializeValue(val: unknown, indent: number = 2): string {
     const entries = Object.entries(val as Record<string, unknown>);
     if (entries.length === 0) return "{}";
     const items = entries.map(
-      ([k, v]) => `${" ".repeat(indent + 2)}${k}: ${serializeValue(v, indent + 2)}`
+      ([k, v]) => `${" ".repeat(indent + 2)}"${k}": ${serializeValue(v, indent + 2)}`
     );
     return `{\n${items.join(",\n")}\n${" ".repeat(indent)}}`;
   }
@@ -107,12 +112,13 @@ export function scanHtmlForRenderBugs(html: string): string[] {
 
   // Scan for specific known-bad patterns in rendered output context
   // purchasePrice: 0 with a houseversary template is almost always wrong
-  if (/purchasePrice:\s*0\b/.test(html) && /houseversary/i.test(html)) {
+  // Match both quoted and unquoted key formats for backward compat
+  if (/"?purchasePrice"?:\s*0\b/.test(html) && /houseversary/i.test(html)) {
     warnings.push("Purchase price is $0 — appreciation and equity calculations will be incorrect. Check tax records or enter manually.");
   }
 
   // Empty purchaseDate on houseversary
-  if (/purchaseDate:\s*""/.test(html) && /houseversary/i.test(html)) {
+  if (/"?purchaseDate"?:\s*""/.test(html) && /houseversary/i.test(html)) {
     warnings.push("Purchase date is empty — houseversary year and timeline will default to 1 year. Check tax records or Google Sheet closing date.");
   }
 
@@ -121,12 +127,11 @@ export function scanHtmlForRenderBugs(html: string): string[] {
 
 /**
  * Extract the CONFIG object from generated HTML.
- * CONFIG is a JS object literal (not JSON) between markers.
- * Uses Function constructor to safely evaluate the JS literal. Server-side only.
+ * CONFIG is a JSON-compatible object literal between markers.
+ * Uses JSON.parse (safe for Cloudflare Workers — no eval/new Function needed).
  */
 export function extractConfig(html: string): Record<string, unknown> {
   const match = html.match(/var CONFIG\s*=\s*([\s\S]*?);\s*\n\s*\/\/ ={5,}\s*\n\s*\/\/\s*===\s*END CONFIG/);
   if (!match) throw new Error("Could not extract CONFIG from HTML");
-  const fn = new Function(`return ${match[1]}`);
-  return fn();
+  return JSON.parse(match[1]);
 }
