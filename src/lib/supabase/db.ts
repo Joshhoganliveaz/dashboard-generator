@@ -30,7 +30,19 @@ export async function getDashboard(id: string): Promise<DashboardWithData> {
     .single();
 
   if (error) throw new Error(error.message);
-  return data as DashboardWithData;
+
+  // Supabase returns joined tables as arrays when there's no UNIQUE constraint
+  // on the foreign key. Normalize sell_data and buy_data to single objects.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = data as any;
+  if (Array.isArray(result.sell_data)) {
+    result.sell_data = result.sell_data[0] ?? null;
+  }
+  if (Array.isArray(result.buy_data)) {
+    result.buy_data = result.buy_data[0] ?? null;
+  }
+
+  return result as DashboardWithData;
 }
 
 export async function listDashboards(): Promise<Dashboard[]> {
@@ -53,6 +65,7 @@ export async function updateDashboard(
     .from("dashboards")
     .update(data)
     .eq("id", id)
+    .select()
     .single();
 
   if (error) throw new Error(error.message);

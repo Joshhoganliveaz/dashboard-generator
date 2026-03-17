@@ -24,7 +24,7 @@ CREATE TABLE dashboards (
 -- sell_data table
 CREATE TABLE sell_data (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  dashboard_id UUID REFERENCES dashboards(id) ON DELETE CASCADE NOT NULL,
+  dashboard_id UUID REFERENCES dashboards(id) ON DELETE CASCADE NOT NULL UNIQUE,
   address TEXT,
   city_state_zip TEXT,
   subdivision TEXT,
@@ -51,6 +51,7 @@ CREATE TABLE sell_data (
   upgrades JSONB DEFAULT '[]',
   cromford_metrics JSONB DEFAULT '[]',
   cromford_takeaway TEXT,
+  listing_status TEXT DEFAULT 'pre-listing',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -58,7 +59,7 @@ CREATE TABLE sell_data (
 -- buy_data table
 CREATE TABLE buy_data (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  dashboard_id UUID REFERENCES dashboards(id) ON DELETE CASCADE NOT NULL,
+  dashboard_id UUID REFERENCES dashboards(id) ON DELETE CASCADE NOT NULL UNIQUE,
   target_areas TEXT,
   budget_min NUMERIC,
   budget_max NUMERIC,
