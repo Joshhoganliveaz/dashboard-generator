@@ -37,6 +37,7 @@ export interface SellData {
   pool?: boolean | null;
   stories?: number | null;
   estimated_sale_price?: number | null;
+  listing_broker_pct?: number | null;
   loan_payoff?: number | null;
   loan_amount?: number | null;
   interest_rate?: number | null;

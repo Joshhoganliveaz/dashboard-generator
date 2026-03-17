@@ -138,6 +138,7 @@ export default function StepMarketData({
         communityName: dashboard.sell_data?.community_name,
         agentKey: dashboard.agent_key,
         loanPayoff: dashboard.sell_data?.loan_payoff,
+        listingBrokerPct: dashboard.sell_data?.listing_broker_pct,
       })
     );
 

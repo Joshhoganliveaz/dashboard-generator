@@ -216,6 +216,7 @@ export interface SellDashboardConfig {
   stories: number;
   // Sell-specific
   estimatedSalePrice: number;
+  listingBrokerPct: number;
   loanPayoff: number;
   loanAmount?: number;
   interestRate?: number;
@@ -334,6 +335,7 @@ export interface BuySellDashboardConfig {
   sellPool: boolean;
   sellStories: number;
   estimatedSalePrice: number;
+  listingBrokerPct: number;
   loanPayoff: number;
   loanAmount?: number;
   interestRate?: number;

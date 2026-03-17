@@ -295,6 +295,7 @@ var CONFIG = {
   listingStatus: "pre-listing",
   beds: 4, baths: 3, sqft: 2850, lotSqft: 8500, yearBuilt: 1998, pool: true, stories: 1,
   estimatedSalePrice: 850000,
+  listingBrokerPct: 3.5,
   loanPayoff: 340000,
   propertyHighlights: ["Complete kitchen remodel with quartz countertops", "Pebble Tec pool resurfaced 2024"],
   upgrades: [{ name: "Kitchen Remodel", value: "$45,000" }],
@@ -349,7 +350,7 @@ var SUBJECT = { sf: CONFIG.sqft, beds: CONFIG.beds, baths: CONFIG.baths, pool: C
 // === MUTABLE UI STATE ===
 var S = {
   salePrice: CONFIG.estimatedSalePrice,
-  listingPct: 3.5,
+  listingPct: CONFIG.listingBrokerPct || 3.5,
   buyerPct: 2.5,
   titleEscrow: Math.round(CONFIG.estimatedSalePrice * 0.005),
   loanPayoff: CONFIG.loanPayoff,
@@ -421,7 +422,7 @@ function updateNetProceeds() {
   if (!el) { render(); return; } // fallback if IDs not yet in DOM
   el.textContent = fmt(S.salePrice);
   document.getElementById('np-listingFee').textContent = '-' + fmt(c.listingFee);
-  document.getElementById('np-listingLabel').textContent = 'Listing Commission (' + S.listingPct + '%)';
+  document.getElementById('np-listingLabel').textContent = 'Listing Broker Fees (' + S.listingPct + '%)';
   document.getElementById('np-buyerFee').textContent = '-' + fmt(c.buyerFee);
   document.getElementById('np-buyerLabel').textContent = 'Buyer Broker (' + S.buyerPct + '%)';
   document.getElementById('np-titleEscrow').textContent = '-' + fmt(c.titleEscrow);
@@ -432,12 +433,6 @@ function updateNetProceeds() {
   document.getElementById('np-total').textContent = fmt(c.netProceeds);
   document.getElementById('np-total').style.color = npColor;
   document.getElementById('np-totalBox').style.background = c.netProceeds >= 0 ? 'rgba(92,138,77,.08)' : 'rgba(184,76,58,.08)';
-  // Update top metric card for cash to seller
-  var cashEl = document.getElementById('metric-cashToSeller');
-  if (cashEl) {
-    cashEl.textContent = fmt(c.netProceeds);
-    cashEl.style.color = c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)';
-  }
 }
 
 // === RENDER ===
@@ -462,10 +457,9 @@ function render(){
   // ===== TAB 1: YOUR HOME =====
   var t1 = '';
 
-  // Top Metrics
+  // Recommended List Price
   t1 += '<div class="metrics">';
   t1 += '<div class="metric-card"><div class="metric-label">Recommended List Price</div><div class="metric-value" style="color:var(--terra)">' + fmt(CONFIG.estimatedSalePrice) + '</div><div class="metric-sub">Based on ' + MARKET_METRICS.compsUsedForValue + ' comparable sales</div></div>';
-  t1 += '<div class="metric-card"><div class="metric-label">Est. Cash to Seller</div><div class="metric-value" id="metric-cashToSeller" style="color:' + (c.netProceeds >= 0 ? 'var(--positive)' : 'var(--negative)') + '">' + fmt(c.netProceeds) + '</div><div class="metric-sub">After all costs &amp; payoffs</div></div>';
   t1 += '</div>';
 
   // Property Snapshot
@@ -517,13 +511,13 @@ function render(){
   }
   eqBody += '</div></div>';
 
-  // Listing Commission display
-  eqBody += '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;color:var(--slate-light);border-bottom:1px solid var(--sand-pale)"><span>Listing Commission</span><span style="font-weight:700;color:var(--slate)">' + S.listingPct + '%</span></div>';
+  // Listing Broker Fees display
+  eqBody += '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;color:var(--slate-light);border-bottom:1px solid var(--sand-pale)"><span>Listing Broker Fees</span><span style="font-weight:700;color:var(--slate)">' + S.listingPct + '%</span></div>';
 
   // Summary breakdown
   eqBody += '<div style="margin-top:14px">';
   eqBody += '<div class="summary-row"><span class="summary-label">Sale Price</span><span id="np-salePrice" class="summary-value" style="color:var(--terra)">' + fmt(S.salePrice) + '</span></div>';
-  eqBody += '<div class="summary-row"><span id="np-listingLabel" class="summary-label">Listing Commission (' + S.listingPct + '%)</span><span id="np-listingFee" class="summary-value" style="color:var(--negative)">-' + fmt(c.listingFee) + '</span></div>';
+  eqBody += '<div class="summary-row"><span id="np-listingLabel" class="summary-label">Listing Broker Fees (' + S.listingPct + '%)</span><span id="np-listingFee" class="summary-value" style="color:var(--negative)">-' + fmt(c.listingFee) + '</span></div>';
   eqBody += '<div class="summary-row"><span id="np-buyerLabel" class="summary-label">Buyer Broker (' + S.buyerPct + '%)</span><span id="np-buyerFee" class="summary-value" style="color:var(--negative)">-' + fmt(c.buyerFee) + '</span></div>';
   eqBody += '<div class="summary-row"><span class="summary-label">Title & Escrow (~0.5%)</span><span id="np-titleEscrow" class="summary-value" style="color:var(--negative)">-' + fmt(c.titleEscrow) + '</span></div>';
   eqBody += '<div class="summary-row"><span class="summary-label">Loan Payoff</span><span id="np-loanPayoff" class="summary-value" style="color:var(--negative)">-' + fmt(S.loanPayoff) + '</span></div>';
@@ -537,9 +531,9 @@ function render(){
   eqBody += '<span id="np-total" style="font-size:18px;font-weight:900;color:' + npColor + '">' + fmt(c.netProceeds) + '</span>';
   eqBody += '</div>';
 
-  t1 += section('equity', 'Equity & Net Proceeds Calculator', eqBody);
-
   t1 += section('property', 'Property Snapshot', propBody);
+
+  t1 += section('equity', 'Net Proceeds Calculator', eqBody);
 
   document.getElementById('tab-home').innerHTML = t1;
 

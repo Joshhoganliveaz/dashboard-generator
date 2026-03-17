@@ -57,6 +57,9 @@ export default function StepClientInfo({
   const [estimatedSalePrice, setEstimatedSalePrice] = useState(
     sellData?.estimated_sale_price?.toString() || ""
   );
+  const [listingBrokerPct, setListingBrokerPct] = useState(
+    sellData?.listing_broker_pct?.toString() || "3.5"
+  );
   const [listingStatus, setListingStatus] = useState<string>(
     sellData?.listing_status || "pre-listing"
   );
@@ -208,6 +211,7 @@ export default function StepClientInfo({
         pool,
         stories: stories ? parseInt(stories, 10) : null,
         estimated_sale_price: estimatedSalePrice ? parseFloat(estimatedSalePrice) : null,
+        listing_broker_pct: listingBrokerPct ? parseFloat(listingBrokerPct) : null,
         listing_status: listingStatus as SellData["listing_status"],
         competition_link: competitionLink.trim() || null,
       } as SellData;
@@ -239,7 +243,7 @@ export default function StepClientInfo({
     subdivision, communityName, loanPayoff, loanAmount, interestRate,
     refiDetected, secondLienAmount, loanOriginationHistory,
     beds, baths, sqft, lotSqft,
-    yearBuilt, pool, stories, estimatedSalePrice, listingStatus, targetAreas, budgetMin,
+    yearBuilt, pool, stories, estimatedSalePrice, listingBrokerPct, listingStatus, targetAreas, budgetMin,
     budgetMax, bedsMin, bathsMin, mustHaves, schoolPreference,
     homeSearchUrl, competitionLink, dashboard, showSellFields, showBuyFields, goToStep,
   ]);
@@ -578,7 +582,7 @@ export default function StepClientInfo({
             </div>
             <div>
               <label htmlFor="estimatedSalePrice" className="block text-sm font-medium text-slate mb-1">
-                Estimated Sale Price
+                Recommended List Price
               </label>
               <input
                 id="estimatedSalePrice"
@@ -586,6 +590,21 @@ export default function StepClientInfo({
                 value={estimatedSalePrice}
                 onChange={(e) => setEstimatedSalePrice(e.target.value)}
                 min="0"
+                className="w-full px-3 py-2 border border-sand rounded-lg text-sm text-slate focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra"
+              />
+            </div>
+            <div>
+              <label htmlFor="listingBrokerPct" className="block text-sm font-medium text-slate mb-1">
+                Listing Broker Fees (%)
+              </label>
+              <input
+                id="listingBrokerPct"
+                type="number"
+                value={listingBrokerPct}
+                onChange={(e) => setListingBrokerPct(e.target.value)}
+                min="0"
+                max="10"
+                step="0.5"
                 className="w-full px-3 py-2 border border-sand rounded-lg text-sm text-slate focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra"
               />
             </div>

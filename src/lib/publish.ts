@@ -73,6 +73,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
       stories: sd?.stories ?? 1,
       // Sell-specific
       estimatedSalePrice: sd?.estimated_sale_price ?? 0,
+      listingBrokerPct: sd?.listing_broker_pct ?? 3.5,
       loanPayoff: sd?.loan_payoff ?? 0,
       loanAmount: sd?.loan_amount ?? undefined,
       interestRate: sd?.interest_rate ?? undefined,
@@ -151,6 +152,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
     sellPool: sd?.pool ?? false,
     sellStories: sd?.stories ?? 1,
     estimatedSalePrice: sd?.estimated_sale_price ?? 0,
+    listingBrokerPct: sd?.listing_broker_pct ?? 3.5,
     loanPayoff: sd?.loan_payoff ?? 0,
     loanAmount: sd?.loan_amount ?? undefined,
     interestRate: sd?.interest_rate ?? undefined,
