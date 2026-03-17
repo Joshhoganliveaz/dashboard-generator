@@ -72,6 +72,36 @@ export async function updateDashboard(
   return dashboard as Dashboard;
 }
 
+export async function deleteDashboard(id: string): Promise<void> {
+  const supabase = await createClient();
+
+  // Delete child rows first to respect foreign key constraints
+  const { error: sellErr } = await supabase
+    .from("sell_data")
+    .delete()
+    .eq("dashboard_id", id);
+  if (sellErr) throw new Error(sellErr.message);
+
+  const { error: buyErr } = await supabase
+    .from("buy_data")
+    .delete()
+    .eq("dashboard_id", id);
+  if (buyErr) throw new Error(buyErr.message);
+
+  const { error: poiErr } = await supabase
+    .from("properties_of_interest")
+    .delete()
+    .eq("dashboard_id", id);
+  if (poiErr) throw new Error(poiErr.message);
+
+  // Delete the dashboard itself
+  const { error } = await supabase
+    .from("dashboards")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 // ---- Sell Data ----
 
 export async function upsertSellData(

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getDashboard,
   updateDashboard,
+  deleteDashboard,
   upsertSellData,
   upsertBuyData,
 } from "@/lib/supabase/db";
+import { deleteDashboardHtml } from "@/lib/r2";
 
 export async function GET(
   _request: NextRequest,
@@ -80,6 +82,30 @@ export async function PATCH(
     return NextResponse.json(fresh);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    const dashboard = await getDashboard(id);
+
+    // Clean up published HTML from R2 if it was ever published
+    if (dashboard.published_at) {
+      await deleteDashboardHtml(dashboard.slug);
+    }
+
+    await deleteDashboard(id);
+    return NextResponse.json({ deleted: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    if (message.includes("no rows") || message.includes("multiple")) {
+      return NextResponse.json({ error: "Dashboard not found" }, { status: 404 });
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
