@@ -5,7 +5,7 @@ milestone_name: Live Dashboard Platform
 status: shipped
 stopped_at: Milestone v1.0 complete
 last_updated: "2026-03-16T04:30:00.000Z"
-last_activity: 2026-03-17 — Completed quick task 4: Add tax records upload to client info wizard
+last_activity: 2026-03-17 — Completed quick task 5: Move up net sheet calculator, improve slider UX
 progress:
   total_phases: 5
   completed_phases: 5
@@ -50,9 +50,10 @@ None — milestone complete.
 | 2 | Remove median stats from comps, replace pricing narrative with infographic cards | 2026-03-17 | 85d9ac9 | [2-seller-dashboard-remove-median-stats-fro](./quick/2-seller-dashboard-remove-median-stats-fro/) |
 | 3 | Replace competition tracker with Lofty search link CTA | 2026-03-17 | 1407d92 | [3-replace-competition-tracker-with-lofty-s](./quick/3-replace-competition-tracker-with-lofty-s/) |
 | 4 | Add tax records upload to client info wizard | 2026-03-17 | 214263c | [4-add-tax-records-upload-to-client-info-wi](./quick/4-add-tax-records-upload-to-client-info-wi/) |
+| 5 | Move up net sheet calculator, debounce sliders, loan payoff numInput | 2026-03-17 | 8525389 | [5-move-up-net-sheet-calculator-improve-sal](./quick/5-move-up-net-sheet-calculator-improve-sal/) |
 
 ## Session Continuity
 
 Last session: 2026-03-17
-Stopped at: Completed quick task 4
+Stopped at: Completed quick task 5
 Resume file: None
