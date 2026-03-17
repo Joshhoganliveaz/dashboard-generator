@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Dashboard, DashboardType, DashboardStatus } from "@/lib/supabase/types";
+import { sortDashboards } from "@/components/library/DashboardLibrary";
 
 // Test the filter logic directly (same logic as DashboardLibrary component)
 function filterDashboards(
@@ -18,24 +19,21 @@ function makeDashboard(
   overrides: Partial<Dashboard> & { type: DashboardType; status: DashboardStatus; client_names: string }
 ): Dashboard {
   return {
-    id: overrides.id || crypto.randomUUID(),
-    slug: overrides.slug || "test-slug",
-    type: overrides.type,
-    status: overrides.status,
-    client_names: overrides.client_names,
-    agent_key: overrides.agent_key || "josh",
-    created_at: overrides.created_at || "2026-01-01T00:00:00Z",
-    updated_at: overrides.updated_at || "2026-01-15T00:00:00Z",
+    id: crypto.randomUUID(),
+    slug: "test-slug",
+    agent_key: "josh",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-15T00:00:00Z",
     ...overrides,
   };
 }
 
 const testDashboards: Dashboard[] = [
-  makeDashboard({ client_names: "John Smith", type: "sell", status: "draft", slug: "john-smith-123-main" }),
-  makeDashboard({ client_names: "Jane Doe", type: "buyer", status: "published", slug: "jane-doe-buyer" }),
-  makeDashboard({ client_names: "Bob Wilson", type: "buysell", status: "draft", slug: "bob-wilson-456-oak" }),
-  makeDashboard({ client_names: "Alice Brown", type: "sell", status: "archived", slug: "alice-brown-789-elm" }),
-  makeDashboard({ client_names: "Charlie Davis", type: "buyer", status: "draft", slug: "charlie-davis-buyer" }),
+  makeDashboard({ client_names: "John Smith", type: "sell", status: "draft", slug: "john-smith-123-main", updated_at: "2026-03-10T00:00:00Z" }),
+  makeDashboard({ client_names: "Jane Doe", type: "buyer", status: "published", slug: "jane-doe-buyer", updated_at: "2026-03-15T00:00:00Z" }),
+  makeDashboard({ client_names: "Bob Wilson", type: "buysell", status: "draft", slug: "bob-wilson-456-oak", updated_at: "2026-03-12T00:00:00Z" }),
+  makeDashboard({ client_names: "Alice Brown", type: "sell", status: "archived", slug: "alice-brown-789-elm", updated_at: "2026-03-01T00:00:00Z" }),
+  makeDashboard({ client_names: "Charlie Davis", type: "buyer", status: "draft", slug: "charlie-davis-buyer", updated_at: "2026-03-14T00:00:00Z" }),
 ];
 
 describe("DashboardLibrary filter logic", () => {
@@ -92,7 +90,67 @@ describe("DashboardLibrary filter logic", () => {
   });
 });
 
-describe("DashboardCard data", () => {
+describe("DashboardLibrary sort logic", () => {
+  it("sorts by client_names ascending", () => {
+    const result = sortDashboards(testDashboards, "client_names", "asc");
+    expect(result.map((d) => d.client_names)).toEqual([
+      "Alice Brown",
+      "Bob Wilson",
+      "Charlie Davis",
+      "Jane Doe",
+      "John Smith",
+    ]);
+  });
+
+  it("sorts by client_names descending", () => {
+    const result = sortDashboards(testDashboards, "client_names", "desc");
+    expect(result.map((d) => d.client_names)).toEqual([
+      "John Smith",
+      "Jane Doe",
+      "Charlie Davis",
+      "Bob Wilson",
+      "Alice Brown",
+    ]);
+  });
+
+  it("sorts by updated_at ascending", () => {
+    const result = sortDashboards(testDashboards, "updated_at", "asc");
+    expect(result.map((d) => d.client_names)).toEqual([
+      "Alice Brown",     // 2026-03-01
+      "John Smith",      // 2026-03-10
+      "Bob Wilson",      // 2026-03-12
+      "Charlie Davis",   // 2026-03-14
+      "Jane Doe",        // 2026-03-15
+    ]);
+  });
+
+  it("sorts by updated_at descending", () => {
+    const result = sortDashboards(testDashboards, "updated_at", "desc");
+    expect(result.map((d) => d.client_names)).toEqual([
+      "Jane Doe",        // 2026-03-15
+      "Charlie Davis",   // 2026-03-14
+      "Bob Wilson",      // 2026-03-12
+      "John Smith",      // 2026-03-10
+      "Alice Brown",     // 2026-03-01
+    ]);
+  });
+
+  it("sorts by type ascending", () => {
+    const result = sortDashboards(testDashboards, "type", "asc");
+    // buyer, buyer, buysell, sell, sell
+    expect(result.map((d) => d.type)).toEqual(["buyer", "buyer", "buysell", "sell", "sell"]);
+  });
+
+  it("sort + filter work together", () => {
+    const filtered = filterDashboards(testDashboards, "sell", null);
+    const sorted = sortDashboards(filtered, "client_names", "asc");
+    expect(sorted).toHaveLength(2);
+    expect(sorted[0].client_names).toBe("Alice Brown");
+    expect(sorted[1].client_names).toBe("John Smith");
+  });
+});
+
+describe("Dashboard data shape", () => {
   it("dashboard has required display fields", () => {
     const d = testDashboards[0];
     expect(d.client_names).toBeTruthy();
