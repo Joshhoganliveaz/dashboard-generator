@@ -54,18 +54,6 @@ const FeatureSchema = z.object({
   desc: z.string(),
 });
 
-const CompetitionListingSchema = z.object({
-  address: z.string(),
-  price: z.number(),
-  status: z.string(),
-  dom: z.number(),
-  beds: z.string(),
-  baths: z.string(),
-  sqft: z.number(),
-  pool: z.string(),
-  note: z.string(),
-});
-
 const PrepItemSchema = z.object({
   key: z.string(),
   label: z.string(),
@@ -116,7 +104,7 @@ export const SellDashboardConfigSchema = z.object({
   comps: z.array(CompSaleSchema),
   marketMetrics: MarketMetricsSchema,
   pricingStrategy: z.string(),
-  competition: z.array(CompetitionListingSchema),
+  competitionLink: z.string().optional(),
   marketSnapshot: z.array(MarketSnapshotItemSchema),
   // Listing plan
   prepItems: z.array(PrepItemSchema),
@@ -204,6 +192,7 @@ export const BuyerDashboardConfigSchema = z.object({
   propertiesOfInterest: z.array(PropertyOfInterestConfigSchema),
   // Links
   homeSearchUrl: z.string().optional(),
+  competitionLink: z.string().optional(),
 });
 
 export type BuyerDashboardConfig = z.infer<typeof BuyerDashboardConfigSchema>;
@@ -244,7 +233,7 @@ export const BuySellDashboardConfigSchema = z.object({
   sellComps: z.array(CompSaleSchema),
   sellMarketMetrics: MarketMetricsSchema,
   sellPricingStrategy: z.string(),
-  sellCompetition: z.array(CompetitionListingSchema),
+  competitionLink: z.string().optional(),
   // Buy-side
   targetAreas: z.string(),
   budgetMin: z.number(),

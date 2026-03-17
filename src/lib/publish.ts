@@ -80,7 +80,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
       comps: sd?.comps ?? [],
       marketMetrics: isNonEmptyObject(sd?.market_metrics) ? sd!.market_metrics as MarketMetrics : defaultMetrics,
       pricingStrategy: sd?.pricing_strategy ?? "",
-      competition: sd?.competition ?? [],
+      competitionLink: sd?.competition_link || undefined,
       marketSnapshot: sd?.market_snapshot ?? [],
       // Listing plan
       prepItems: sd?.prep_items ?? [],
@@ -119,6 +119,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
       marketSnapshot: bd?.market_snapshot ?? [],
       propertiesOfInterest: mapPOI(properties ?? []),
       homeSearchUrl: bd?.home_search_url ?? "",
+      competitionLink: bd?.competition_link || undefined,
     };
     return config;
   }
@@ -151,7 +152,7 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
     sellComps: sd?.comps ?? [],
     sellMarketMetrics: isNonEmptyObject(sd?.market_metrics) ? sd!.market_metrics as MarketMetrics : defaultMetrics,
     sellPricingStrategy: sd?.pricing_strategy ?? "",
-    sellCompetition: sd?.competition ?? [],
+    competitionLink: sd?.competition_link || undefined,
     // Buy-side
     targetAreas: bd?.target_areas ?? "",
     budgetMin: bd?.budget_min ?? 0,

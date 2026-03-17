@@ -148,18 +148,6 @@ export interface Upgrade {
 
 // --- Sell Dashboard Types ---
 
-export interface CompetitionListing {
-  address: string;
-  price: number;
-  status: string;
-  dom: number;
-  beds: string;
-  baths: string;
-  sqft: number;
-  pool: string;
-  note: string;
-}
-
 export interface PrepItem {
   key: string;
   label: string;
@@ -197,7 +185,7 @@ export interface SellDashboardConfig {
   comps: CompSale[];
   marketMetrics: MarketMetrics;
   pricingStrategy: string;
-  competition: CompetitionListing[];
+  competitionLink?: string;
   marketSnapshot: { label: string; value: string }[];
   // Listing plan
   prepItems: PrepItem[];
@@ -277,6 +265,7 @@ export interface BuyerDashboardConfig {
   propertiesOfInterest: PropertyOfInterestConfig[];
   // Links
   homeSearchUrl?: string;
+  competitionLink?: string;
 }
 
 // --- Buy/Sell Dashboard Types ---
@@ -308,7 +297,7 @@ export interface BuySellDashboardConfig {
   sellComps: CompSale[];
   sellMarketMetrics: MarketMetrics;
   sellPricingStrategy: string;
-  sellCompetition: CompetitionListing[];
+  competitionLink?: string;
   // Buy-side
   targetAreas: string;
   budgetMin: number;

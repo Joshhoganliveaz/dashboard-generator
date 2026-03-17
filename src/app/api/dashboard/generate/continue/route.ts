@@ -90,6 +90,7 @@ export async function POST(request: Request) {
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
     schoolPreference?: string; homeSearchUrl?: string;
     sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number; compLinks?: string;
+    competitionLink?: string;
   };
   try { clientDetails = JSON.parse(clientDetailsRaw); } catch {
     return NextResponse.json({ error: "Invalid client details" }, { status: 400 });
@@ -493,7 +494,7 @@ async function buildHouseversaryConfig(
 }
 
 async function buildSellConfig(
-  clientDetails: ClientDetails & { loanPayoff?: number },
+  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string },
   subject: SubjectProperty,
   features: Feature[],
   csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
@@ -519,7 +520,6 @@ async function buildSellConfig(
   );
   const contentData = parseJSONFromClaude(contentResponse) as {
     pricingStrategy: string;
-    competition: { address: string; price: number; status: string; dom: number; beds: string; baths: string; sqft: number; pool: string; note: string }[];
     marketSnapshot: { label: string; value: string }[];
     prepItems: { key: string; label: string; defaultCost: number; desc: string }[];
     marketingPlan: string[];
@@ -554,7 +554,7 @@ async function buildSellConfig(
     comps: csvResult.comps,
     marketMetrics: csvResult.marketMetrics,
     pricingStrategy: contentData.pricingStrategy || "",
-    competition: Array.isArray(contentData.competition) ? contentData.competition : [],
+    competitionLink: clientDetails.competitionLink || undefined,
     marketSnapshot: Array.isArray(contentData.marketSnapshot) ? contentData.marketSnapshot : [],
     prepItems: Array.isArray(contentData.prepItems) ? contentData.prepItems : [],
     marketingPlan: Array.isArray(contentData.marketingPlan) ? contentData.marketingPlan : [],
@@ -573,7 +573,7 @@ async function buildBuyerConfig(
   clientDetails: ClientDetails & {
     targetAreas?: string; budgetMin?: number; budgetMax?: number;
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
-    schoolPreference?: string; homeSearchUrl?: string;
+    schoolPreference?: string; homeSearchUrl?: string; competitionLink?: string;
   },
   csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
   controller: ReadableStreamDefaultController,
@@ -619,6 +619,7 @@ async function buildBuyerConfig(
     timeline: Array.isArray(contentData.timeline) ? contentData.timeline : [],
     marketSnapshot: Array.isArray(contentData.marketSnapshot) ? contentData.marketSnapshot : [],
     homeSearchUrl: clientDetails.homeSearchUrl || undefined,
+    competitionLink: clientDetails.competitionLink || undefined,
   };
 }
 
@@ -626,7 +627,7 @@ async function buildBuySellConfig(
   clientDetails: ClientDetails & {
     targetAreas?: string; budgetMin?: number; budgetMax?: number;
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
-    schoolPreference?: string; homeSearchUrl?: string;
+    schoolPreference?: string; homeSearchUrl?: string; competitionLink?: string;
     sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number;
   },
   subject: SubjectProperty,
@@ -661,7 +662,6 @@ async function buildBuySellConfig(
   );
   const contentData = parseJSONFromClaude(contentResponse) as {
     sellPricingStrategy: string;
-    sellCompetition: BuySellDashboardConfig["sellCompetition"];
     sellPropertyHighlights: string[];
     neighborhoods: BuySellDashboardConfig["neighborhoods"];
     schoolDistricts: BuySellDashboardConfig["schoolDistricts"];
@@ -694,7 +694,7 @@ async function buildBuySellConfig(
     sellComps: csvResult.comps,
     sellMarketMetrics: csvResult.marketMetrics,
     sellPricingStrategy: contentData.sellPricingStrategy || "",
-    sellCompetition: Array.isArray(contentData.sellCompetition) ? contentData.sellCompetition : [],
+    competitionLink: clientDetails.competitionLink || undefined,
     targetAreas: clientDetails.targetAreas || "",
     budgetMin: Number(clientDetails.budgetMin) || 400000,
     budgetMax: Number(clientDetails.budgetMax) || 800000,

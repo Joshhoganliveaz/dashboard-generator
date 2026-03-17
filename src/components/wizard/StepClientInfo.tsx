@@ -70,6 +70,9 @@ export default function StepClientInfo({
   );
   const [schoolPreference, setSchoolPreference] = useState(dashboard.buy_data?.school_preference || "");
   const [homeSearchUrl, setHomeSearchUrl] = useState(dashboard.buy_data?.home_search_url || "");
+  const [competitionLink, setCompetitionLink] = useState(
+    dashboard.sell_data?.competition_link || dashboard.buy_data?.competition_link || ""
+  );
 
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -192,6 +195,7 @@ export default function StepClientInfo({
         stories: stories ? parseInt(stories, 10) : null,
         estimated_sale_price: estimatedSalePrice ? parseFloat(estimatedSalePrice) : null,
         listing_status: listingStatus as SellData["listing_status"],
+        competition_link: competitionLink.trim() || null,
       } as SellData;
     }
 
@@ -210,6 +214,7 @@ export default function StepClientInfo({
           .filter(Boolean),
         school_preference: schoolPreference.trim() || null,
         home_search_url: homeSearchUrl.trim() || null,
+        competition_link: competitionLink.trim() || null,
       } as BuyData;
     }
 
@@ -220,7 +225,7 @@ export default function StepClientInfo({
     subdivision, communityName, loanPayoff, beds, baths, sqft, lotSqft,
     yearBuilt, pool, stories, estimatedSalePrice, listingStatus, targetAreas, budgetMin,
     budgetMax, bedsMin, bathsMin, mustHaves, schoolPreference,
-    homeSearchUrl, dashboard, showSellFields, showBuyFields, goToStep,
+    homeSearchUrl, competitionLink, dashboard, showSellFields, showBuyFields, goToStep,
   ]);
 
   return (
@@ -701,6 +706,31 @@ export default function StepClientInfo({
                 className="w-full px-3 py-2 border border-sand rounded-lg text-sm text-slate focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra"
               />
             </div>
+          </div>
+        </fieldset>
+      )}
+
+      {/* Competition Link -- all dashboard types */}
+      {(showSellFields || showBuyFields) && (
+        <fieldset className="mb-8">
+          <legend className="text-sm font-semibold text-slate mb-3 uppercase tracking-wide">
+            Competition Link
+          </legend>
+          <div>
+            <label htmlFor="competitionLink" className="block text-sm font-medium text-slate mb-1">
+              Competition Link URL
+            </label>
+            <input
+              id="competitionLink"
+              type="url"
+              value={competitionLink}
+              onChange={(e) => setCompetitionLink(e.target.value)}
+              placeholder="https://... (Lofty search URL)"
+              className="w-full px-3 py-2 border border-sand rounded-lg text-sm text-slate focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra"
+            />
+            <p className="text-xs text-slate-light mt-1">
+              Paste a Lofty search URL to show active homes in the client&apos;s area
+            </p>
           </div>
         </fieldset>
       )}

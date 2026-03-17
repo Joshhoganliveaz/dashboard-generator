@@ -1,4 +1,4 @@
-import type { CompSale, MarketMetrics, CompetitionListing, PrepItem, CromfordMetric, Feature, NeighborhoodCard, SchoolDistrict } from "@/lib/types";
+import type { CompSale, MarketMetrics, PrepItem, CromfordMetric, Feature, NeighborhoodCard, SchoolDistrict } from "@/lib/types";
 
 // ---- Enums ----
 
@@ -42,7 +42,7 @@ export interface SellData {
   market_metrics: MarketMetrics | Record<string, never>;
   property_highlights: string[];
   pricing_strategy?: string | null;
-  competition: CompetitionListing[];
+  competition_link?: string | null;
   market_snapshot: { label: string; value: string }[];
   prep_items: PrepItem[];
   marketing_plan: string[];
@@ -71,6 +71,7 @@ export interface BuyData {
   timeline: { phase: string; title: string; items: string[] }[];
   market_snapshot: { label: string; value: string }[];
   home_search_url?: string | null;
+  competition_link?: string | null;
   created_at: string;
   updated_at: string;
 }

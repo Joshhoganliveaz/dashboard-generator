@@ -766,9 +766,6 @@ Generate a JSON object with these fields:
 
 {
   "pricingStrategy": "2-3 paragraph pricing strategy analysis. Reference the derived value range ($${metrics.derivedRange.low.toLocaleString()}-$${metrics.derivedRange.high.toLocaleString()}), comparable sales patterns, and market conditions. Strategic and confident tone. Do NOT recommend a specific list price.",
-  "competition": [
-    {"address": "123 Main St", "price": 850000, "status": "Active", "dom": 45, "beds": "4", "baths": "3", "sqft": 2200, "pool": "Y", "note": "Direct competitor, priced above market"}
-  ],
   "marketSnapshot": [
     {"label": "${city} Median Price", "value": "$XXX,XXX"},
     {"label": "${subject.subdivision} Median $/SF", "value": "$XXX"},
@@ -802,10 +799,9 @@ Generate a JSON object with these fields:
 }
 
 Rules:
-- Competition: Generate 3-5 realistic competing listings based on the market data. Use the actual subdivision and nearby areas. Include mix of Active, Under Contract, and Price Drop statuses.
 - Prep items: Tailor to this specific property type and condition. Include 5-7 items.
 - Timeline: 4 phases covering pre-listing through close.
-- Property highlights: 4-6 bullet points about what makes THIS home stand out vs. competition.
+- Property highlights: 4-6 bullet points about what makes THIS home stand out.
 - Upgrades: List documented or likely upgrades based on the property features.
 - Market snapshot: 3-4 key market stats for the area.
 - Never use the word "just".
@@ -935,9 +931,6 @@ Generate a JSON object:
 
 {
   "sellPricingStrategy": "1-2 paragraph pricing analysis for the sell side. Reference derived value and comps.",
-  "sellCompetition": [
-    {"address": "123 Main St", "price": 850000, "status": "Active", "dom": 45, "beds": "4", "baths": "3", "sqft": 2200, "pool": "Y", "note": "Direct competitor"}
-  ],
   "sellPropertyHighlights": ["Highlight about this specific property"],
   "neighborhoods": [
     {
@@ -974,7 +967,6 @@ Generate a JSON object:
 }
 
 Rules:
-- Competition: 3-5 realistic competing listings near the current home.
 - Neighborhoods: 4-6 real neighborhoods matching their buy criteria.
 - Schools: 2-3 real districts with real schools.
 - Strategy options: 3 approaches with honest pros/cons.
