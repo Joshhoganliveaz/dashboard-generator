@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
     schoolPreference?: string; homeSearchUrl?: string;
     sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number; compLinks?: string;
-    competitionLink?: string; listingStatus?: string; listingBrokerPct?: number;
+    competitionLink?: string; listingStatus?: string; listingBrokerPct?: number; estimatedSalePrice?: number;
   };
   try { clientDetails = JSON.parse(clientDetailsRaw); } catch {
     return NextResponse.json({ error: "Invalid client details" }, { status: 400 });
@@ -494,7 +494,7 @@ async function buildHouseversaryConfig(
 }
 
 async function buildSellConfig(
-  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string; listingStatus?: string; listingBrokerPct?: number },
+  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string; listingStatus?: string; listingBrokerPct?: number; estimatedSalePrice?: number },
   subject: SubjectProperty,
   features: Feature[],
   csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
@@ -547,7 +547,7 @@ async function buildSellConfig(
     yearBuilt: Number(subject.yearBuilt) || 0,
     pool: subject.pool,
     stories: Number(subject.stories) || 1,
-    estimatedSalePrice: Number(csvResult.marketMetrics.derivedValue) || 0,
+    estimatedSalePrice: Number(clientDetails.estimatedSalePrice) || Number(csvResult.marketMetrics.derivedValue) || 0,
     listingBrokerPct: Number(clientDetails.listingBrokerPct) || 3.5,
     loanPayoff: Number(clientDetails.loanPayoff) || 0,
     propertyHighlights: Array.isArray(contentData.propertyHighlights) ? contentData.propertyHighlights : propertyHighlights,
@@ -631,7 +631,7 @@ async function buildBuySellConfig(
     targetAreas?: string; budgetMin?: number; budgetMax?: number;
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
     schoolPreference?: string; homeSearchUrl?: string; competitionLink?: string;
-    listingStatus?: string; sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number; listingBrokerPct?: number;
+    listingStatus?: string; sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number; listingBrokerPct?: number; estimatedSalePrice?: number;
   },
   subject: SubjectProperty,
   features: Feature[],
@@ -691,7 +691,7 @@ async function buildBuySellConfig(
     sellYearBuilt: Number(subject.yearBuilt) || 0,
     sellPool: subject.pool,
     sellStories: Number(subject.stories) || 1,
-    estimatedSalePrice: Number(csvResult.marketMetrics.derivedValue) || 0,
+    estimatedSalePrice: Number(clientDetails.estimatedSalePrice) || Number(csvResult.marketMetrics.derivedValue) || 0,
     listingBrokerPct: Number(clientDetails.listingBrokerPct) || 3.5,
     loanPayoff: Number(clientDetails.loanPayoff) || 0,
     sellPropertyHighlights: Array.isArray(contentData.sellPropertyHighlights) ? contentData.sellPropertyHighlights : propertyHighlights,

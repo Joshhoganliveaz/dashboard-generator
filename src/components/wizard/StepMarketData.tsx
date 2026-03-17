@@ -90,7 +90,10 @@ export default function StepMarketData({
     if (config.upgrades) sellUpdates.upgrades = config.upgrades;
     if (config.cromford_metrics) sellUpdates.cromford_metrics = config.cromford_metrics;
     if (config.cromford_takeaway) sellUpdates.cromford_takeaway = config.cromford_takeaway;
-    if (config.estimated_sale_price) sellUpdates.estimated_sale_price = config.estimated_sale_price;
+    // Only use derived price if user hasn't set one in client info
+    if (config.estimated_sale_price && !dashboard.sell_data?.estimated_sale_price) {
+      sellUpdates.estimated_sale_price = config.estimated_sale_price;
+    }
 
     // Save sell_data updates to Supabase via API
     if (Object.keys(sellUpdates).length > 0) {
@@ -139,6 +142,7 @@ export default function StepMarketData({
         agentKey: dashboard.agent_key,
         loanPayoff: dashboard.sell_data?.loan_payoff,
         listingBrokerPct: dashboard.sell_data?.listing_broker_pct,
+        estimatedSalePrice: dashboard.sell_data?.estimated_sale_price,
       })
     );
 

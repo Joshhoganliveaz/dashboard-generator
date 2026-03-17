@@ -68,6 +68,7 @@ export async function POST(request: Request) {
     competitionLink?: string;
     listingStatus?: string;
     listingBrokerPct?: number;
+    estimatedSalePrice?: number;
   };
   try {
     clientDetails = JSON.parse(clientDetailsRaw);
@@ -631,7 +632,7 @@ async function buildHouseversaryConfig(
 // === Sell Pipeline ===
 
 async function buildSellConfig(
-  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string; listingStatus?: string; listingBrokerPct?: number },
+  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string; listingStatus?: string; listingBrokerPct?: number; estimatedSalePrice?: number },
   subject: SubjectProperty,
   features: Feature[],
   csvResult: Awaited<ReturnType<typeof runFullAnalysis>> | null,
@@ -686,7 +687,7 @@ async function buildSellConfig(
     yearBuilt: Number(subject.yearBuilt) || 0,
     pool: subject.pool,
     stories: Number(subject.stories) || 1,
-    estimatedSalePrice: Number(csvResult.marketMetrics.derivedValue) || 0,
+    estimatedSalePrice: Number(clientDetails.estimatedSalePrice) || Number(csvResult.marketMetrics.derivedValue) || 0,
     listingBrokerPct: Number(clientDetails.listingBrokerPct) || 3.5,
     loanPayoff: Number(clientDetails.loanPayoff) || 0,
     propertyHighlights: Array.isArray(contentData.propertyHighlights) ? contentData.propertyHighlights : propertyHighlights,
@@ -805,6 +806,7 @@ async function buildBuySellConfig(
     sellCityStateZip?: string;
     loanPayoff?: number;
     listingBrokerPct?: number;
+    estimatedSalePrice?: number;
   },
   subject: SubjectProperty,
   features: Feature[],
@@ -864,7 +866,7 @@ async function buildBuySellConfig(
     sellYearBuilt: Number(subject.yearBuilt) || 0,
     sellPool: subject.pool,
     sellStories: Number(subject.stories) || 1,
-    estimatedSalePrice: Number(csvResult.marketMetrics.derivedValue) || 0,
+    estimatedSalePrice: Number(clientDetails.estimatedSalePrice) || Number(csvResult.marketMetrics.derivedValue) || 0,
     listingBrokerPct: Number(clientDetails.listingBrokerPct) || 3.5,
     loanPayoff: Number(clientDetails.loanPayoff) || 0,
     sellPropertyHighlights: Array.isArray(contentData.sellPropertyHighlights) ? contentData.sellPropertyHighlights : propertyHighlights,
