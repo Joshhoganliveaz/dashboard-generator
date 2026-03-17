@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
     schoolPreference?: string; homeSearchUrl?: string;
     sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number; compLinks?: string;
-    competitionLink?: string;
+    competitionLink?: string; listingStatus?: string;
   };
   try { clientDetails = JSON.parse(clientDetailsRaw); } catch {
     return NextResponse.json({ error: "Invalid client details" }, { status: 400 });
@@ -494,7 +494,7 @@ async function buildHouseversaryConfig(
 }
 
 async function buildSellConfig(
-  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string },
+  clientDetails: ClientDetails & { loanPayoff?: number; competitionLink?: string; listingStatus?: string },
   subject: SubjectProperty,
   features: Feature[],
   csvResult: { comps: CompSale[]; marketMetrics: MarketMetrics } | null,
@@ -554,6 +554,7 @@ async function buildSellConfig(
     comps: csvResult.comps,
     marketMetrics: csvResult.marketMetrics,
     pricingStrategy: contentData.pricingStrategy || "",
+    listingStatus: (clientDetails.listingStatus as SellDashboardConfig["listingStatus"]) || "pre-listing",
     competitionLink: clientDetails.competitionLink || undefined,
     marketSnapshot: Array.isArray(contentData.marketSnapshot) ? contentData.marketSnapshot : [],
     prepItems: Array.isArray(contentData.prepItems) ? contentData.prepItems : [],
@@ -618,6 +619,7 @@ async function buildBuyerConfig(
     schoolDistricts: Array.isArray(contentData.schoolDistricts) ? contentData.schoolDistricts : [],
     timeline: Array.isArray(contentData.timeline) ? contentData.timeline : [],
     marketSnapshot: Array.isArray(contentData.marketSnapshot) ? contentData.marketSnapshot : [],
+    propertiesOfInterest: [],
     homeSearchUrl: clientDetails.homeSearchUrl || undefined,
     competitionLink: clientDetails.competitionLink || undefined,
   };
@@ -628,7 +630,7 @@ async function buildBuySellConfig(
     targetAreas?: string; budgetMin?: number; budgetMax?: number;
     bedsMin?: number; bathsMin?: number; mustHaves?: string[];
     schoolPreference?: string; homeSearchUrl?: string; competitionLink?: string;
-    sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number;
+    listingStatus?: string; sellAddress?: string; sellCityStateZip?: string; loanPayoff?: number;
   },
   subject: SubjectProperty,
   features: Feature[],
@@ -694,6 +696,7 @@ async function buildBuySellConfig(
     sellComps: csvResult.comps,
     sellMarketMetrics: csvResult.marketMetrics,
     sellPricingStrategy: contentData.sellPricingStrategy || "",
+    sellListingStatus: (clientDetails.listingStatus as BuySellDashboardConfig["sellListingStatus"]) || "pre-listing",
     competitionLink: clientDetails.competitionLink || undefined,
     targetAreas: clientDetails.targetAreas || "",
     budgetMin: Number(clientDetails.budgetMin) || 400000,
@@ -710,6 +713,7 @@ async function buildBuySellConfig(
     cromfordTakeaway,
     cromfordSource,
     features,
+    propertiesOfInterest: [],
     homeSearchUrl: clientDetails.homeSearchUrl || undefined,
     sellReferenceLinks: compLinks.length > 0
       ? compLinks.map(url => ({ url, label: extractDomainLabel(url) }))
