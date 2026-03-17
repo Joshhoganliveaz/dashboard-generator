@@ -137,6 +137,13 @@ input[type=number]:focus{border-color:var(--terra)}
 .home-hero-stat .detail{font-size:10px;color:var(--neutral);margin-top:2px}
 .narrative-box{background:linear-gradient(135deg,rgba(194,112,62,.05),transparent);border-left:3px solid var(--terra);padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;line-height:1.8;color:var(--neutral)}
 .narrative-box strong{color:var(--slate)}
+.pricing-infographic{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.pricing-stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.pricing-stat-icon{font-size:22px;margin-bottom:6px}
+.pricing-stat-value{font-size:20px;font-weight:800;color:var(--terra);margin-bottom:4px}
+.pricing-stat-label{font-size:11px;font-weight:600;color:var(--slate-light);text-transform:uppercase;letter-spacing:.5px}
+.pricing-stat-sub{font-size:11px;color:var(--neutral);margin-top:4px}
+@media(max-width:600px){.pricing-infographic{grid-template-columns:1fr}}
 .btn-group{display:flex;gap:6px;margin:6px 0}
 .btn-opt{flex:1;padding:8px 4px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-family:inherit;font-size:12px;font-weight:600;color:var(--slate-light);cursor:pointer;text-align:center;transition:.2s}
 .btn-opt.active{background:var(--terra);color:#fff;border-color:var(--terra)}
@@ -621,14 +628,70 @@ function render(){
   priceBody += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--slate-light);font-weight:600;margin-bottom:8px">Recommended List Price</div>';
   priceBody += '<div class="big">' + fmt(CONFIG.estimatedSalePrice) + '</div>';
   priceBody += '</div>';
-  priceBody += '<div class="narrative-box">' + CONFIG.pricingStrategy + '</div>';
+  // Pricing infographic cards
+  var trendDir = MARKET_METRICS.priceTrendDirection || 'stable';
+  var trendIcon = trendDir === 'rising' ? '\u2197' : trendDir === 'falling' ? '\u2198' : '\u2192';
+  var trendBorderColor = trendDir === 'rising' ? '#5C8A4D' : trendDir === 'falling' ? '#D4A028' : '#4A90D9';
+  var trendLabel = trendDir.charAt(0).toUpperCase() + trendDir.slice(1);
+  var stlRatio = MARKET_METRICS.saleToListRatio;
+  var stlSub = stlRatio > 0.99 ? 'Sellers getting full ask' : stlRatio > 0.97 ? 'Slight negotiation typical' : 'Buyer-friendly negotiations';
+  var domVal = MARKET_METRICS.avgDom;
+  var domSub = domVal <= 14 ? 'Fast-moving market' : domVal <= 30 ? 'Healthy absorption' : 'Extended market times';
 
-  // Market trend callout
-  var trendColor = MARKET_METRICS.priceTrendDirection === 'rising' ? 'green' : MARKET_METRICS.priceTrendDirection === 'falling' ? 'amber' : 'blue';
-  priceBody += '<div class="callout ' + trendColor + '">';
-  priceBody += '<div class="callout-title">Market Trend: ' + MARKET_METRICS.priceTrendDirection.charAt(0).toUpperCase() + MARKET_METRICS.priceTrendDirection.slice(1) + '</div>';
-  priceBody += '<div class="callout-text">' + MARKET_METRICS.priceTrendDetail + ' \u2022 Sale-to-List Ratio: ' + fmtPct(MARKET_METRICS.saleToListRatio) + '</div>';
+  priceBody += '<div class="pricing-infographic">';
+
+  // Card 1 - Market Trend
+  priceBody += '<div class="pricing-stat-card" style="border-left:3px solid ' + trendBorderColor + '">';
+  priceBody += '<div class="pricing-stat-icon">' + trendIcon + '</div>';
+  priceBody += '<div class="pricing-stat-value">' + trendLabel + '</div>';
+  priceBody += '<div class="pricing-stat-label">MARKET TREND</div>';
+  priceBody += '<div class="pricing-stat-sub">' + MARKET_METRICS.priceTrendDetail + '</div>';
   priceBody += '</div>';
+
+  // Card 2 - Sale-to-List Ratio
+  priceBody += '<div class="pricing-stat-card">';
+  priceBody += '<div class="pricing-stat-icon">\uD83C\uDFAF</div>';
+  priceBody += '<div class="pricing-stat-value">' + fmtPct(stlRatio) + '</div>';
+  priceBody += '<div class="pricing-stat-label">SALE-TO-LIST RATIO</div>';
+  priceBody += '<div class="pricing-stat-sub">' + stlSub + '</div>';
+  priceBody += '</div>';
+
+  // Card 3 - Days on Market
+  priceBody += '<div class="pricing-stat-card">';
+  priceBody += '<div class="pricing-stat-icon">\uD83D\uDCC5</div>';
+  priceBody += '<div class="pricing-stat-value">' + domVal + ' days</div>';
+  priceBody += '<div class="pricing-stat-label">AVG DAYS ON MARKET</div>';
+  priceBody += '<div class="pricing-stat-sub">' + domSub + '</div>';
+  priceBody += '</div>';
+
+  // Card 4 - Comps Analyzed
+  priceBody += '<div class="pricing-stat-card">';
+  priceBody += '<div class="pricing-stat-icon">\uD83D\uDCCA</div>';
+  priceBody += '<div class="pricing-stat-value">' + MARKET_METRICS.compsUsedForValue + '</div>';
+  priceBody += '<div class="pricing-stat-label">COMPS ANALYZED</div>';
+  priceBody += '<div class="pricing-stat-sub">Within ' + MARKET_METRICS.analysisPeriodMonths + ' month window</div>';
+  priceBody += '</div>';
+
+  // Card 5 - Total Sales
+  priceBody += '<div class="pricing-stat-card">';
+  priceBody += '<div class="pricing-stat-icon">\uD83C\uDFE0</div>';
+  priceBody += '<div class="pricing-stat-value">' + MARKET_METRICS.totalSalesInPeriod + '</div>';
+  priceBody += '<div class="pricing-stat-label">AREA SALES</div>';
+  priceBody += '<div class="pricing-stat-sub">' + MARKET_METRICS.subdivisionSalesCount + ' in subdivision</div>';
+  priceBody += '</div>';
+
+  // Card 6 - Price per SF
+  priceBody += '<div class="pricing-stat-card">';
+  priceBody += '<div class="pricing-stat-icon">\uD83D\uDCCF</div>';
+  priceBody += '<div class="pricing-stat-value">$' + MARKET_METRICS.avgPpsf + '</div>';
+  priceBody += '<div class="pricing-stat-label">AVG PRICE/SF</div>';
+  priceBody += '<div class="pricing-stat-sub">$' + MARKET_METRICS.ppsfRange.low + ' - $' + MARKET_METRICS.ppsfRange.high + ' range</div>';
+  priceBody += '</div>';
+
+  priceBody += '</div>';
+
+  // Pricing strategy as secondary context below infographic
+  priceBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.7;margin-bottom:16px;padding:0 4px">' + CONFIG.pricingStrategy + '</div>';
 
   t2 += section('pricing', 'Pricing Strategy', priceBody);
 
