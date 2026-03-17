@@ -51,7 +51,6 @@ const validSellConfig = {
     analysisPeriodMonths: 12,
   },
   pricingStrategy: "Price at market",
-  competition: [],
   marketSnapshot: [],
   prepItems: [],
   marketingPlan: [],

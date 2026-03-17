@@ -103,9 +103,7 @@ const sellData: SellData = {
   market_metrics: sampleMetrics,
   property_highlights: ["Updated kitchen", "Pool"],
   pricing_strategy: "Price at market value",
-  competition: [
-    { address: "789 Pine St", price: 530000, status: "Active", dom: 10, beds: "4", baths: "2", sqft: 2100, pool: "Yes", note: "Similar comp" },
-  ],
+  competition_link: "https://lofty.com/search/mesa-85201",
   market_snapshot: [{ label: "Median Price", value: "$500,000" }],
   prep_items: [{ key: "paint", label: "Interior Paint", defaultCost: 2500, desc: "Fresh neutral colors" }],
   marketing_plan: ["Professional photos", "3D tour"],
