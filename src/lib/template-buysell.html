@@ -161,11 +161,6 @@ input[type=number]:focus{border-color:var(--terra)}
 .gap-label{color:var(--slate-light)}
 .gap-value{font-weight:700}
 .gap-total{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-top:8px;font-size:15px;font-weight:800}
-.competition-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
-.competition-addr{font-weight:700;font-size:13px;color:var(--slate);margin-bottom:4px}
-.competition-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:6px}
-.competition-stat{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid var(--sand-pale)}
-.competition-note{font-size:11px;color:var(--neutral);font-style:italic}
 @media(min-width:768px){
   .header-names{font-size:32px}
   .metrics{grid-template-columns:repeat(3,1fr)}
@@ -316,9 +311,7 @@ var CONFIG = {
     earliestSale: "2025-03-15", latestSale: "2026-03-01", analysisPeriodMonths: 12
   },
   sellPricingStrategy: "Based on the comparable sales analysis, your home is positioned competitively in the $1.1M-$1.2M range. The recent renovations and 4-car garage with RV gate provide a premium above the median comps.",
-  sellCompetition: [
-    { address: "456 W Oak Ln", price: 1200000, status: "Active", dom: 45, beds: "5", baths: "4.5", sqft: 4000, pool: "Y", note: "Priced above market" }
-  ],
+  competitionLink: "",
   // Buy side
   targetAreas: "West Gilbert, Queen Creek",
   budgetMin: 1200000, budgetMax: 1500000,
@@ -430,7 +423,7 @@ var S = {
   sec_sell_property: true,
   sec_sell_net: true,
   sec_sell_comps: true,
-  sec_sell_competition: true,
+  sec_sell_competition: true, // retained for section toggle compatibility
   sec_sell_pricing: true,
   sec_sell_cromford: true,
   sec_schools: true,
@@ -728,28 +721,13 @@ function render(){
     sellHtml += section('sell_reflinks', 'Helpful Links', refBody2);
   }
 
-  // Competition Tracker
-  var compBody = '';
-  var comps2 = CONFIG.sellCompetition || [];
-  if (comps2.length > 0) {
-    for (var j = 0; j < comps2.length; j++) {
-      var cmp = comps2[j];
-      compBody += '<div class="competition-card">';
-      compBody += '<div class="competition-addr">' + cmp.address + ' <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;background:' + (cmp.status === 'Active' ? 'rgba(92,138,77,.1);color:var(--positive)' : 'var(--sand-pale);color:var(--neutral)') + '">' + cmp.status + '</span></div>';
-      compBody += '<div class="competition-meta">';
-      compBody += '<div class="competition-stat"><span class="cd-label">Price</span><span class="cd-val">' + fmt(cmp.price) + '</span></div>';
-      compBody += '<div class="competition-stat"><span class="cd-label">DOM</span><span class="cd-val">' + cmp.dom + '</span></div>';
-      compBody += '<div class="competition-stat"><span class="cd-label">Bed/Bath</span><span class="cd-val">' + cmp.beds + '/' + cmp.baths + '</span></div>';
-      compBody += '<div class="competition-stat"><span class="cd-label">SF</span><span class="cd-val">' + (cmp.sqft ? cmp.sqft.toLocaleString() : 'N/A') + '</span></div>';
-      if (cmp.pool) { compBody += '<div class="competition-stat"><span class="cd-label">Pool</span><span class="cd-val">' + cmp.pool + '</span></div>'; }
-      compBody += '</div>';
-      if (cmp.note) compBody += '<div class="competition-note">' + cmp.note + '</div>';
-      compBody += '</div>';
-    }
-  } else {
-    compBody += '<div class="callout blue"><div class="callout-text">No competing listings currently tracked.</div></div>';
+  // Competition Link CTA
+  if (CONFIG.competitionLink) {
+    var compBody = '';
+    compBody += '<div style="font-size:12px;color:var(--neutral);line-height:1.6;margin-bottom:16px">See what homes are currently active and competing for buyers in your area.</div>';
+    compBody += '<div style="text-align:center"><a href="' + CONFIG.competitionLink + '" target="_blank" rel="noopener" style="display:inline-block;background:var(--terra);color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">View Active Homes in Your Area \u2192</a></div>';
+    sellHtml += section('sell_competition', 'Your Local Competition', compBody);
   }
-  sellHtml += section('sell_competition', 'Competition (' + comps2.length + ' Active)', compBody);
 
   // Pricing Strategy
   if (CONFIG.sellPricingStrategy) {
