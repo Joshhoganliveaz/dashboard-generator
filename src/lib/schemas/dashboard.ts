@@ -98,6 +98,10 @@ export const SellDashboardConfigSchema = z.object({
   // Sell-specific
   estimatedSalePrice: z.number(),
   loanPayoff: z.number(),
+  loanAmount: z.number().optional(),
+  interestRate: z.number().optional(),
+  refiDetected: z.boolean().optional(),
+  secondLienAmount: z.number().optional(),
   propertyHighlights: z.array(z.string()),
   upgrades: z.array(z.object({ name: z.string(), value: z.string() })),
   // Market
@@ -229,6 +233,10 @@ export const BuySellDashboardConfigSchema = z.object({
   sellStories: z.number(),
   estimatedSalePrice: z.number(),
   loanPayoff: z.number(),
+  loanAmount: z.number().optional(),
+  interestRate: z.number().optional(),
+  refiDetected: z.boolean().optional(),
+  secondLienAmount: z.number().optional(),
   sellPropertyHighlights: z.array(z.string()),
   sellComps: z.array(CompSaleSchema),
   sellMarketMetrics: MarketMetricsSchema,

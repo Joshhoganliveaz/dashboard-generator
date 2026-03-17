@@ -74,6 +74,10 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
       // Sell-specific
       estimatedSalePrice: sd?.estimated_sale_price ?? 0,
       loanPayoff: sd?.loan_payoff ?? 0,
+      loanAmount: sd?.loan_amount ?? undefined,
+      interestRate: sd?.interest_rate ?? undefined,
+      refiDetected: sd?.refi_detected ?? undefined,
+      secondLienAmount: sd?.second_lien_amount ?? undefined,
       propertyHighlights: sd?.property_highlights ?? [],
       upgrades: sd?.upgrades ?? [],
       // Market
@@ -148,6 +152,10 @@ export function buildConfigFromDashboard(dashboard: DashboardWithData, propertie
     sellStories: sd?.stories ?? 1,
     estimatedSalePrice: sd?.estimated_sale_price ?? 0,
     loanPayoff: sd?.loan_payoff ?? 0,
+    loanAmount: sd?.loan_amount ?? undefined,
+    interestRate: sd?.interest_rate ?? undefined,
+    refiDetected: sd?.refi_detected ?? undefined,
+    secondLienAmount: sd?.second_lien_amount ?? undefined,
     sellPropertyHighlights: sd?.property_highlights ?? [],
     sellComps: sd?.comps ?? [],
     sellMarketMetrics: isNonEmptyObject(sd?.market_metrics) ? sd!.market_metrics as MarketMetrics : defaultMetrics,

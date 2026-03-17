@@ -38,6 +38,11 @@ export interface SellData {
   stories?: number | null;
   estimated_sale_price?: number | null;
   loan_payoff?: number | null;
+  loan_amount?: number | null;
+  interest_rate?: number | null;
+  refi_detected?: boolean | null;
+  second_lien_amount?: number | null;
+  loan_origination_history?: { date: string; amount: number; lender: string; financeType: string; assumedRate?: number }[] | null;
   comps: CompSale[];
   market_metrics: MarketMetrics | Record<string, never>;
   property_highlights: string[];

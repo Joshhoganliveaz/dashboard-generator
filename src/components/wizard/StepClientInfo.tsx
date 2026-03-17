@@ -3,7 +3,9 @@
 import { useState, useCallback, useRef } from "react";
 import { Loader2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import type { DashboardWithData, SellData, BuyData } from "@/lib/supabase/types";
+import type { LoanOrigination } from "@/lib/types";
 import { generateSlug } from "@/lib/slug-utils";
+import TaxRecordUpload from "./TaxRecordUpload";
 
 const AGENT_OPTIONS = [
   { value: "josh_jacqui", label: "Josh & Jacqui" },
@@ -58,6 +60,13 @@ export default function StepClientInfo({
   const [listingStatus, setListingStatus] = useState<string>(
     sellData?.listing_status || "pre-listing"
   );
+
+  // Tax record extraction loan fields
+  const [loanAmount, setLoanAmount] = useState<number | null>(sellData?.loan_amount ?? null);
+  const [interestRate, setInterestRate] = useState<number | null>(sellData?.interest_rate ?? null);
+  const [refiDetected, setRefiDetected] = useState<boolean | null>(sellData?.refi_detected ?? null);
+  const [secondLienAmount, setSecondLienAmount] = useState<number | null>(sellData?.second_lien_amount ?? null);
+  const [loanOriginationHistory, setLoanOriginationHistory] = useState<LoanOrigination[] | null>(sellData?.loan_origination_history ?? null);
 
   // Buy fields
   const [targetAreas, setTargetAreas] = useState(dashboard.buy_data?.target_areas || "");
@@ -186,6 +195,11 @@ export default function StepClientInfo({
         subdivision: subdivision.trim() || null,
         community_name: communityName.trim() || null,
         loan_payoff: loanPayoff ? parseFloat(loanPayoff) : null,
+        loan_amount: loanAmount,
+        interest_rate: interestRate,
+        refi_detected: refiDetected,
+        second_lien_amount: secondLienAmount,
+        loan_origination_history: loanOriginationHistory,
         beds: beds ? parseInt(beds, 10) : null,
         baths: baths ? parseFloat(baths) : null,
         sqft: sqft ? parseInt(sqft, 10) : null,
@@ -222,7 +236,9 @@ export default function StepClientInfo({
     await goToStep(4, updates);
   }, [
     clientNames, fullName, email, agentKey, address, cityStateZip,
-    subdivision, communityName, loanPayoff, beds, baths, sqft, lotSqft,
+    subdivision, communityName, loanPayoff, loanAmount, interestRate,
+    refiDetected, secondLienAmount, loanOriginationHistory,
+    beds, baths, sqft, lotSqft,
     yearBuilt, pool, stories, estimatedSalePrice, listingStatus, targetAreas, budgetMin,
     budgetMax, bedsMin, bathsMin, mustHaves, schoolPreference,
     homeSearchUrl, competitionLink, dashboard, showSellFields, showBuyFields, goToStep,
@@ -384,6 +400,20 @@ export default function StepClientInfo({
               </div>
             </div>
           )}
+
+          {/* Tax Record Upload */}
+          <TaxRecordUpload
+            onExtracted={(data) => {
+              setLoanPayoff(data.loanPayoff.toString());
+              setLoanAmount(data.loanAmount);
+              setInterestRate(data.interestRate);
+              setRefiDetected(data.refiDetected);
+              setSecondLienAmount(data.secondLienAmount);
+              setLoanOriginationHistory(data.loanOriginationHistory);
+            }}
+            purchaseDate={null}
+            estimatedSalePrice={estimatedSalePrice ? parseFloat(estimatedSalePrice) : null}
+          />
         </fieldset>
       )}
 
